@@ -18,8 +18,27 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: '' },
     company: { type: String, default: '' },
     twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: '' },
+    backupCodes: { type: [String], default: [] },
+    otpVerified: { type: Boolean, default: false },
     isEmailVerified: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
+    
+    // Gamification properties
+    xp: { type: Number, default: 3450 },
+    coins: { type: Number, default: 640 },
+    level: { type: Number, default: 5 },
+    streak: { type: Number, default: 18 },
+    longestStreak: { type: Number, default: 24 },
+    unlockedTitles: { type: [String], default: ['Novice', 'Tracker', 'Thrifty'] },
+    unlockedAvatars: { type: [String], default: [] },
+    unlockedThemes: { type: [String], default: ['light', 'dark'] },
+    achievements: [{
+      id: { type: String },
+      currentProgress: { type: Number, default: 0 },
+      unlocked: { type: Boolean, default: false },
+      unlockedAt: { type: Date }
+    }]
   },
   { timestamps: true }
 );

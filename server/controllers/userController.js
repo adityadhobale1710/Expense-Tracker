@@ -13,10 +13,26 @@ export const getMe = asyncHandler(async (req, res) => {
 // @desc  Update profile
 // @route PUT /api/users/me
 export const updateMe = asyncHandler(async (req, res) => {
-  const { name, avatar, currency, phone, company, twoFactorEnabled, role } = req.body;
+  const {
+    name, avatar, currency, phone, company, twoFactorEnabled, role,
+    xp, coins, level, streak, longestStreak, unlockedTitles, unlockedAvatars, unlockedThemes, achievements
+  } = req.body;
+
+  const updateFields = { name, avatar, currency, phone, company, twoFactorEnabled, role };
+  
+  if (xp !== undefined) updateFields.xp = xp;
+  if (coins !== undefined) updateFields.coins = coins;
+  if (level !== undefined) updateFields.level = level;
+  if (streak !== undefined) updateFields.streak = streak;
+  if (longestStreak !== undefined) updateFields.longestStreak = longestStreak;
+  if (unlockedTitles !== undefined) updateFields.unlockedTitles = unlockedTitles;
+  if (unlockedAvatars !== undefined) updateFields.unlockedAvatars = unlockedAvatars;
+  if (unlockedThemes !== undefined) updateFields.unlockedThemes = unlockedThemes;
+  if (achievements !== undefined) updateFields.achievements = achievements;
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { name, avatar, currency, phone, company, twoFactorEnabled, role },
+    updateFields,
     { new: true, runValidators: true }
   ).select('-password -refreshToken');
   sendSuccess(res, 200, 'Profile updated', user);

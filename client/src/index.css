@@ -3,7 +3,33 @@
 @tailwind utilities;
 
 :root {
-  /* Slate family mapping for light theme */
+  /* Default (Dark theme variable mappings) */
+  --dark-50: 15 23 42;
+  --dark-100: 30 41 59;
+  --dark-700: 71 85 105;
+  --dark-800: 15 23 42;
+  --dark-900: 10 15 30;
+  
+  --slate-50: 248 250 252;
+  --slate-100: 241 245 249;
+  --slate-200: 226 232 240;
+  --slate-300: 203 213 225;
+  --slate-400: 148 163 184;
+  --slate-500: 100 116 139;
+  --slate-600: 71 85 105;
+  --slate-700: 51 65 85;
+  --slate-800: 30 41 59;
+  --slate-900: 15 23 42;
+}
+
+/* Light Theme */
+html[data-theme="light"] {
+  --dark-50: 248 250 252;
+  --dark-100: 241 245 249;
+  --dark-700: 100 116 139;
+  --dark-800: 255 255 255;
+  --dark-900: 241 245 249;
+  
   --slate-50: 15 23 42;
   --slate-100: 30 41 59;
   --slate-200: 51 65 85;
@@ -14,13 +40,66 @@
   --slate-700: 226 232 240;
   --slate-800: 241 245 249;
   --slate-900: 248 250 252;
+}
 
-  /* Dark family mapping for light theme */
-  --dark-50: 2 6 23;
-  --dark-100: 15 23 42;
-  --dark-700: 226 232 240;
-  --dark-800: 255 255 255;
-  --dark-900: 248 250 252;
+/* Midnight Theme */
+html[data-theme="midnight"] {
+  --dark-50: 0 0 0;
+  --dark-100: 5 6 15;
+  --dark-700: 15 23 42;
+  --dark-800: 8 9 20;
+  --dark-900: 1 2 6;
+  
+  --slate-50: 250 252 255;
+  --slate-100: 165 180 252;
+  --slate-200: 129 140 248;
+  --slate-300: 99 102 241;
+  --slate-400: 79 70 229;
+}
+
+/* Ocean Theme */
+html[data-theme="ocean"] {
+  --dark-50: 2 10 25;
+  --dark-100: 6 16 35;
+  --dark-700: 30 50 80;
+  --dark-800: 5 15 32;
+  --dark-900: 1 5 15;
+  
+  --slate-50: 240 249 255;
+  --slate-100: 186 230 253;
+  --slate-200: 125 211 252;
+  --slate-300: 56 189 248;
+  --slate-400: 14 165 233;
+}
+
+/* Forest Theme */
+html[data-theme="forest"] {
+  --dark-50: 4 12 8;
+  --dark-100: 8 20 12;
+  --dark-700: 30 60 40;
+  --dark-800: 6 18 10;
+  --dark-900: 2 8 4;
+  
+  --slate-50: 240 253 244;
+  --slate-100: 187 247 208;
+  --slate-200: 134 239 172;
+  --slate-300: 74 222 128;
+  --slate-400: 34 197 94;
+}
+
+/* Purple Neon Theme */
+html[data-theme="purple-neon"] {
+  --dark-50: 12 1 20;
+  --dark-100: 20 3 32;
+  --dark-700: 55 10 80;
+  --dark-800: 16 2 26;
+  --dark-900: 8 0 14;
+  
+  --slate-50: 253 244 255;
+  --slate-100: 245 208 254;
+  --slate-200: 232 121 249;
+  --slate-300: 217 70 239;
+  --slate-400: 192 38 211;
 }
 
 

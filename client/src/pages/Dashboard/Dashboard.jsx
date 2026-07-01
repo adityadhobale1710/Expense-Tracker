@@ -1,28 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useExpense } from '../../context/ExpenseContext';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import { PROGRESSION_LEVELS } from '../Achievements/achievementsData';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import toast from 'react-hot-toast';
-
-// Mock Data from the Login Page project converted into React equivalents
-const BADGES = [
-  { id: "b1", name: "Budget Boss", icon: "👑", desc: "Kept all spending within budget for 30 consecutive days", unlocked: true },
-  { id: "b2", name: "Saving Spark", icon: "🔥", desc: "Saved 30% of monthly income for the first time", unlocked: true },
-  { id: "b3", name: "Eco Guardian", icon: "🍃", desc: "Low carbon footprint index under 50kg for a week", unlocked: true },
-  { id: "b4", name: "Compound King", icon: "💎", desc: "Invested ₹50,000 total in mutual index funds", unlocked: false },
-  { id: "b5", name: "Streak Legend", icon: "📅", desc: "Log transactions 50 days in a row", unlocked: false }
-];
-
-
-const WEALTH_HOLDINGS = [
-  { name: "Nifty 50 Index Fund", type: "Mutual Fund", amount: 120000, returns: "+14.2%", color: "text-green-400" },
-  { name: "Reliance Industries", type: "Stock", amount: 45000, returns: "-2.4%", color: "text-red-400" },
-  { name: "Bitcoin ETF", type: "Crypto", amount: 35000, returns: "+28.1%", color: "text-green-400" }
-];
 
 const NET_WORTH_HISTORY = [
   { name: "Jan", Wealth: 120000 },
@@ -33,72 +18,42 @@ const NET_WORTH_HISTORY = [
   { name: "Jun", Wealth: 200000 }
 ];
 
-const WIDGET_LABELS = {
-  health: "Financial Health Score",
-  gamified: "Achievements & XP Level",
-  heatmap: "Monthly Spending Heatmap",
-  aiInsights: "AI spending recommendations",
-  transactions: "Recent transactions",
-  bills: "Upcoming obligations",
-  eco: "Eco emission tracker",
-  wealth: "👑 Wealth & Investment tracker"
-};
-
 export default function Dashboard() {
-  const { summary, fetchSummary, expenses, fetchExpenses, incomes, fetchIncomes, categories, fetchCategories, addExpense, addIncome } = useExpense();
-  const { user, updateUser } = useAuth();
+  const { summary, fetchSummary, expenses, fetchExpenses, incomes, fetchIncomes, categories, fetchCategories, budgets, fetchBudgets, addExpense, addIncome } = useExpense();
+  const { user } = useAuth();
 
-  // Gamification state synchronized with Achievements page
-  const [gameXp, setGameXp] = useState(() => parseInt(localStorage.getItem('game_xp') || '3450', 10));
-  const [gameCoins, setGameCoins] = useState(() => parseInt(localStorage.getItem('game_coins') || '640', 10));
-  const [gameStreak, setGameStreak] = useState(() => parseInt(localStorage.getItem('game_streak') || '18', 10));
-  const [unlockedBadgesCount, setUnlockedBadgesCount] = useState(() => {
-    try {
-      const saved = localStorage.getItem('game_achievements');
-      if (saved) {
-        return JSON.parse(saved).filter(a => a.unlocked).length;
-      }
-    } catch (e) {}
-    return 13; // default unlocked count
-  });
+  // Gamification state
+  const [gameXp, setGameXp] = useState(3450);
+  const [gameCoins, setGameCoins] = useState(640);
+  const [gameStreak, setGameStreak] = useState(18);
+  const [unlockedBadgesCount, setUnlockedBadgesCount] = useState(13);
 
-  // Keep in sync with changes in localStorage
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setGameXp(parseInt(localStorage.getItem('game_xp') || '3450', 10));
-      setGameCoins(parseInt(localStorage.getItem('game_coins') || '640', 10));
-      setGameStreak(parseInt(localStorage.getItem('game_streak') || '18', 10));
-      try {
-        const saved = localStorage.getItem('game_achievements');
-        if (saved) {
-          setUnlockedBadgesCount(JSON.parse(saved).filter(a => a.unlocked).length);
-        }
-      } catch (e) {}
-    };
-    window.addEventListener('storage', handleStorageChange);
-    // Polling as a fallback for same-tab updates
-    const interval = setInterval(handleStorageChange, 1000);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
-
-  // Widget Order state
+  // Widget Order state (16 widgets)
   const [widgetOrder, setWidgetOrder] = useState(() => {
     const saved = localStorage.getItem('dashboard_widget_order');
-    return saved ? JSON.parse(saved) : ['health', 'gamified', 'heatmap', 'aiInsights', 'transactions', 'bills', 'eco', 'wealth'];
+    return saved ? JSON.parse(saved) : [
+      'todaySpend', 'weeklySpend', 'monthlySpend', 'remainingBudget',
+      'currentSavings', 'savingsProgress', 'largestExpense', 'mostUsedCategory',
+      'health', 'bills', 'notifications', 'heatmap',
+      'tipOfTheDay', 'cashFlow', 'wealth', 'investmentSummary'
+    ];
   });
 
-  // Simulator Modals state
-  const [activeModal, setActiveModal] = useState(null); // 'ocr' | 'voice' | 'qr' | 'addTx'
+  // Modals state
+  const [activeModal, setActiveModal] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('"Your voice transcript will appear here..."');
   const [qrScanning, setQrScanning] = useState(false);
   const [qrMerchant, setQrMerchant] = useState('');
 
-  // Add Transaction Form (from voice/ocr/qr pre-fills)
+  // Notifications state
+  const [recentNotifications, setRecentNotifications] = useState([
+    { message: 'Salary credited successfully! 💼', date: 'Today' },
+    { message: 'Rent utility bill generated. 💡', date: 'Yesterday' }
+  ]);
+
+  // Add Transaction Form
   const [txForm, setTxForm] = useState({
     title: '',
     amount: '',
@@ -109,20 +64,44 @@ export default function Dashboard() {
     description: ''
   });
 
-  // Slider compound simulator state
-  const [investmentPrincipal, setInvestmentPrincipal] = useState(5000);
-  const [investmentDuration, setInvestmentDuration] = useState(5);
-  const projectedInvestment = Math.round(investmentPrincipal * Math.pow(1 + 0.12, investmentDuration));
+  // Drag and Drop state
+  const [draggedWidget, setDraggedWidget] = useState(null);
 
-  // Initialize
+  const fetchGamification = async () => {
+    if (!user) return;
+    try {
+      const { data } = await api.get('/users/me');
+      if (data.data) {
+        setGameXp(data.data.xp || 3450);
+        setGameCoins(data.data.coins || 640);
+        setGameStreak(data.data.streak || 18);
+        setUnlockedBadgesCount(data.data.achievements?.filter(a => a.unlocked).length || 13);
+      }
+    } catch {}
+  };
+
+  const fetchRecentNotifications = async () => {
+    try {
+      const { data } = await api.get('/notifications');
+      if (data.data && data.data.length > 0) {
+        setRecentNotifications(data.data.slice(0, 3).map(n => ({
+          message: n.message,
+          date: new Date(n.createdAt).toLocaleDateString('en-IN')
+        })));
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     fetchSummary();
-    fetchExpenses({ limit: 5 });
-    fetchIncomes({ limit: 5 });
+    fetchExpenses({ limit: 10 });
+    fetchIncomes({ limit: 10 });
     fetchCategories();
+    fetchBudgets();
+    fetchGamification();
+    fetchRecentNotifications();
   }, []);
 
-  // Update categories default on form type change
   useEffect(() => {
     if (categories.length > 0 && !txForm.category) {
       const firstMatched = categories.find(c => c.type === txForm.type);
@@ -132,36 +111,18 @@ export default function Dashboard() {
     }
   }, [txForm.type, categories]);
 
-  // Drag and Drop implementation
-  const [draggedWidget, setDraggedWidget] = useState(null);
-
-  const handleDragStart = (id) => {
-    setDraggedWidget(id);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
+  const handleDragStart = (id) => setDraggedWidget(id);
+  const handleDragOver = (e) => e.preventDefault();
   const handleDrop = (targetId) => {
     if (!draggedWidget || draggedWidget === targetId) return;
     const newOrder = [...widgetOrder];
     const draggedIdx = newOrder.indexOf(draggedWidget);
     const targetIdx = newOrder.indexOf(targetId);
-
     newOrder.splice(draggedIdx, 1);
     newOrder.splice(targetIdx, 0, draggedWidget);
-
     setWidgetOrder(newOrder);
     localStorage.setItem('dashboard_widget_order', JSON.stringify(newOrder));
     setDraggedWidget(null);
-  };
-
-  // Switch role simulator (Premium demo)
-  const togglePremiumRole = () => {
-    const nextRole = user?.role === 'premium' ? 'user' : 'premium';
-    updateUser({ role: nextRole });
-    toast.success(`Role switched to ${nextRole.toUpperCase()} mode!`);
   };
 
   // OCR Pre-fill simulation
@@ -174,14 +135,12 @@ export default function Dashboard() {
       if (brand === 'starbucks') {
         prefill = { title: 'Starbucks Coffee', amount: '450', type: 'expense', description: 'Caramel Macchiato' };
       } else if (brand === 'uber') {
-        prefill = { title: 'Uber Trip', amount: '1200', type: 'expense', description: 'Airport commute' };
+        prefill = { title: 'Uber Trip', amount: '1200', type: 'expense', description: 'commute' };
       } else if (brand === 'walmart') {
-        prefill = { title: 'Grocery Shopping', amount: '5400', type: 'expense', description: 'Weekly groceries at Walmart' };
+        prefill = { title: 'Grocery Shopping', amount: '5400', type: 'expense', description: 'Walmart groceries' };
       }
 
-      // Map to correct category ID if possible
       const categoryMatch = categories.find(c => c.type === 'expense' && (c.name.toLowerCase().includes('food') || c.name.toLowerCase().includes('transport') || c.name.toLowerCase().includes('shop')));
-
       setTxForm(prev => ({
         ...prev,
         ...prefill,
@@ -189,35 +148,77 @@ export default function Dashboard() {
       }));
       setActiveModal('addTx');
       toast.success('Mock receipt text extracted successfully!');
-    }, 1500);
+    }, 1200);
   };
 
-  // Voice command parsing simulation
+  // Voice command parsing using Web Speech API
   const handleVoiceRecording = () => {
-    setVoiceRecording(true);
-    setVoiceTranscript('Listening for financial logs...');
-    setTimeout(() => {
-      setVoiceTranscript('"Spent 650 rupees on dinner at Dominos today"');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      // Simulate if speech not supported
+      setVoiceRecording(true);
+      setVoiceTranscript('Listening...');
+      setTimeout(() => {
+        setVoiceTranscript('"Spent 650 rupees on dinner at Dominos today"');
+        setVoiceRecording(false);
+      }, 1500);
+      return;
+    }
+
+    const rec = new SpeechRecognition();
+    rec.lang = 'en-IN';
+    rec.interimResults = false;
+
+    rec.onstart = () => {
+      setVoiceRecording(true);
+      setVoiceTranscript('Listening for transaction...');
+    };
+
+    rec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setVoiceTranscript(`"${transcript}"`);
+    };
+
+    rec.onerror = () => {
+      toast.error('Voice capture failed');
       setVoiceRecording(false);
-    }, 2000);
+    };
+
+    rec.onend = () => {
+      setVoiceRecording(false);
+    };
+
+    rec.start();
   };
 
   const processVoice = () => {
-    const categoryMatch = categories.find(c => c.type === 'expense' && c.name.toLowerCase().includes('food'));
+    const text = voiceTranscript.toLowerCase();
+    let amount = '0';
+    let title = 'Voice Transaction';
+
+    const matchAmount = text.match(/(\d+)\s*(?:rupees|rs|inr)/i) || text.match(/(?:rs\.?|₹)\s*(\d+)/i) || text.match(/\b\d{2,5}\b/);
+    if (matchAmount) {
+      amount = matchAmount[1] || matchAmount[0];
+    }
+
+    if (text.includes('starbucks')) title = 'Starbucks Coffee';
+    else if (text.includes('uber')) title = 'Uber Ride';
+    else if (text.includes('dominos') || text.includes('dinner') || text.includes('coffee')) title = 'Dinner at Dominos';
+    
+    const categoryMatch = categories.find(c => c.type === 'expense' && (c.name.toLowerCase().includes('food') || c.name.toLowerCase().includes('transport')));
+
     setTxForm(prev => ({
       ...prev,
-      title: 'Dinner at Dominos',
-      amount: '650',
+      title,
+      amount,
       type: 'expense',
-      description: 'Voice entered transaction',
+      description: 'Voice entries',
       category: categoryMatch ? categoryMatch._id : prev.category
     }));
-    setActiveModal(null);
     setActiveModal('addTx');
     toast.success('Voice transcription processed successfully!');
   };
 
-  // QR Scanning pre-fill simulation
   const simulateQR = () => {
     setQrScanning(true);
     setTimeout(() => {
@@ -227,20 +228,18 @@ export default function Dashboard() {
         const categoryMatch = categories.find(c => c.type === 'expense' && c.name.toLowerCase().includes('shop'));
         setTxForm(prev => ({
           ...prev,
-          title: 'Zara Apparel Purchase',
+          title: 'Zara Purchase',
           amount: '3800',
           type: 'expense',
-          description: 'UPI Scanned Merchant Payment',
+          description: 'UPI QR Payment Scan',
           category: categoryMatch ? categoryMatch._id : prev.category
         }));
-        setActiveModal(null);
         setActiveModal('addTx');
-        toast.success('Merchant payment metadata captured!');
-      }, 1000);
-    }, 1500);
+        toast.success('QR merchant metadata captured!');
+      }, 800);
+    }, 1200);
   };
 
-  // Handle Quick Transaction Submit to DB
   const handleSaveTransaction = async (e) => {
     e.preventDefault();
     try {
@@ -261,8 +260,8 @@ export default function Dashboard() {
 
       setActiveModal(null);
       fetchSummary();
-      fetchExpenses({ limit: 5 });
-      fetchIncomes({ limit: 5 });
+      fetchExpenses({ limit: 10 });
+      fetchIncomes({ limit: 10 });
       setTxForm({
         title: '',
         amount: '',
@@ -277,11 +276,36 @@ export default function Dashboard() {
     }
   };
 
-  // Combine and sort real-time transactions
-  const combinedTx = [
-    ...expenses.slice(0, 5).map(e => ({ ...e, type: 'expense' })),
-    ...incomes.slice(0, 5).map(i => ({ ...i, type: 'income' }))
-  ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+  // ─── WIDGETS DATA CALCULATIONS ───
+  const todayDateString = new Date().toDateString();
+  const todaySpend = expenses
+    .filter(e => new Date(e.date).toDateString() === todayDateString)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const weeklySpend = expenses
+    .filter(e => (new Date() - new Date(e.date)) / (1000 * 60 * 60 * 24) <= 7)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const monthlySpend = summary?.totalExpense || 0;
+  const budgetList = Array.isArray(budgets) ? budgets : [];
+  const remainingBudget = Math.max(
+    budgetList.reduce((sum, b) => sum + (Number(b.limit) || 0), 0) - budgetList.reduce((sum, b) => sum + (Number(b.spent) || 0), 0),
+    0
+  );
+
+  const largestExpenseObj = expenses.length > 0
+    ? expenses.reduce((max, e) => e.amount > max.amount ? e : max, expenses[0])
+    : null;
+
+  const categoryCounts = {};
+  expenses.forEach(e => {
+    if (e.category?.name) {
+      categoryCounts[e.category.name] = (categoryCounts[e.category.name] || 0) + 1;
+    }
+  });
+  const mostUsedCategory = Object.keys(categoryCounts).length > 0
+    ? Object.keys(categoryCounts).reduce((a, b) => categoryCounts[a] > categoryCounts[b] ? a : b)
+    : 'None';
 
   return (
     <div className="space-y-6 animate-fade-in relative pb-12">
@@ -289,230 +313,259 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Hello, {user?.name?.split(' ')[0]}</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Here is your financial gamified overview for today.</p>
+          <p className="text-xs text-slate-400 mt-0.5">Here is your financial drag-and-drop dashboard panel today.</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={togglePremiumRole}
-            className={`btn border text-xs px-4 py-2 ${
-              user?.role === 'premium'
-                ? 'bg-amber-500/20 border-amber-500/30 text-amber-300'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {user?.role === 'premium' ? '👑 Premium Mode Active' : '🔓 Try Premium Mode'}
-          </button>
-          <button
-            onClick={() => {
-              setTxForm({
-                title: '',
-                amount: '',
-                type: 'expense',
-                category: categories.find(c => c.type === 'expense')?._id || '',
-                date: new Date().toISOString().split('T')[0],
-                paymentMethod: 'upi',
-                description: ''
-              });
-              setActiveModal('addTx');
-            }}
-            className="btn-primary text-xs px-4 py-2"
-          >
-            + Add Transaction
-          </button>
-        </div>
-      </div>
-
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="card-sm flex items-center gap-4 border-l-4 border-emerald-500">
-          <span className="text-2xl">💰</span>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase">Total Income</p>
-            <p className="text-lg font-extrabold text-slate-100 mt-0.5">₹{Number(summary?.totalIncome || 0).toLocaleString('en-IN')}</p>
-          </div>
-        </div>
-        <div className="card-sm flex items-center gap-4 border-l-4 border-red-500">
-          <span className="text-2xl">💸</span>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase">Total Expenses</p>
-            <p className="text-lg font-extrabold text-slate-100 mt-0.5">₹{Number(summary?.totalExpense || 0).toLocaleString('en-IN')}</p>
-          </div>
-        </div>
-        <div className="card-sm flex items-center gap-4 border-l-4 border-indigo-500">
-          <span className="text-2xl">🏦</span>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase">Net Balance</p>
-            <p className="text-lg font-extrabold text-slate-100 mt-0.5">₹{Number(summary?.balance || 0).toLocaleString('en-IN')}</p>
-          </div>
-        </div>
-        <div className="card-sm flex items-center gap-4 border-l-4 border-amber-500">
-          <span className="text-2xl">🔥</span>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase">Savings Rate</p>
-            <p className="text-lg font-extrabold text-slate-100 mt-0.5">{summary?.savingsRate || 0}%</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="text-xs text-slate-500 font-semibold flex items-center gap-2 mb-2">
-        <span>🧩</span>
-        <span>Tip: Drag widgets by headers to custom arrange your control dashboard panel</span>
+        <button
+          onClick={() => {
+            setTxForm({
+              title: '',
+              amount: '',
+              type: 'expense',
+              category: categories.find(c => c.type === 'expense')?._id || '',
+              date: new Date().toISOString().split('T')[0],
+              paymentMethod: 'upi',
+              description: ''
+            });
+            setActiveModal('addTx');
+          }}
+          className="btn-primary text-xs px-4 py-2"
+        >
+          + Add Transaction
+        </button>
       </div>
 
       {/* Rearrangeable Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {widgetOrder.map((widgetId) => {
-          // Render widget logic
+          // 1. Today Spend
+          if (widgetId === 'todaySpend') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">📅 Today's Spending</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  <p className="text-2xl font-extrabold text-slate-100">₹{todaySpend.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Aggregated logs for today</p>
+                </div>
+              </div>
+            );
+          }
+
+          // 2. Weekly Spend
+          if (widgetId === 'weeklySpend') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">📊 Weekly Spending</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  <p className="text-2xl font-extrabold text-slate-100">₹{weeklySpend.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Logs in last 7 days</p>
+                </div>
+              </div>
+            );
+          }
+
+          // 3. Monthly Spend
+          if (widgetId === 'monthlySpend') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">💸 Monthly Spending</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  <p className="text-2xl font-extrabold text-slate-100">₹{monthlySpend.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Total current monthly volume</p>
+                </div>
+              </div>
+            );
+          }
+
+          // 4. Remaining Budget
+          if (widgetId === 'remainingBudget') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">🎯 Remaining Budget</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  <p className="text-2xl font-extrabold text-indigo-400">₹{remainingBudget.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Cushion below limits</p>
+                </div>
+              </div>
+            );
+          }
+
+          // 5. Current Savings
+          if (widgetId === 'currentSavings') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">🏦 Liquid Savings Balance</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  <p className="text-2xl font-extrabold text-emerald-400">₹{Number(summary?.balance || 0).toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Net wallet cash balances</p>
+                </div>
+              </div>
+            );
+          }
+
+          // 6. Savings Goal Progress
+          if (widgetId === 'savingsProgress') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">🥅 Goal Progress</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4 space-y-2">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span>Emergency Fund</span>
+                    <span>72%</span>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill bg-indigo-500" style={{ width: '72%' }} />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // 7. Largest Expense
+          if (widgetId === 'largestExpense') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">💥 Largest Expense</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  {largestExpenseObj ? (
+                    <>
+                      <p className="text-lg font-extrabold text-slate-200 truncate">{largestExpenseObj.title}</p>
+                      <p className="text-xl font-black text-red-400 mt-1">-₹{largestExpenseObj.amount.toLocaleString('en-IN')}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-slate-500">No logs captured</p>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          // 8. Most Used Category
+          if (widgetId === 'mostUsedCategory') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">🗂️ Top Category</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  <p className="text-xl font-extrabold text-indigo-300 uppercase">{mostUsedCategory}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Most frequent logging sector</p>
+                </div>
+              </div>
+            );
+          }
+
+          // 9. Financial Health Score
           if (widgetId === 'health') {
             return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                  <h3 className="text-sm font-bold text-slate-200">🏥 Financial Health</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">🏥 Health Score</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
-                <div className="flex flex-col items-center py-6">
-                  <div className="relative w-36 h-36 flex items-center justify-center">
+                <div className="flex flex-col items-center py-4">
+                  <div className="relative w-28 h-28 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="40" stroke="#cbd5e1" strokeWidth="8" fill="transparent" />
+                      <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="8" fill="transparent" />
                       <circle cx="50" cy="50" r="40" stroke="#6366f1" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * 82) / 100} />
                     </svg>
                     <div className="absolute flex flex-col items-center">
-                      <span className="text-3xl font-extrabold text-slate-100">82</span>
-                      <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Excellent</span>
+                      <span className="text-2xl font-extrabold text-slate-100">82</span>
+                      <span className="text-[8px] text-emerald-400 font-bold uppercase">Excellent</span>
                     </div>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-400 text-center leading-normal">
-                  Your budget variances are well optimized. Try increasing auto-savings to boost your index to 90.
-                </p>
               </div>
             );
           }
 
-          if (widgetId === 'gamified') {
-            // Calculate active level info inside the render block
-            let currentLvlInfo = PROGRESSION_LEVELS[0];
-            let nextLvlInfo = PROGRESSION_LEVELS[1];
-            
-            for (let i = 0; i < PROGRESSION_LEVELS.length; i++) {
-              if (gameXp >= PROGRESSION_LEVELS[i].xpRequired) {
-                currentLvlInfo = PROGRESSION_LEVELS[i];
-                nextLvlInfo = PROGRESSION_LEVELS[i + 1] || PROGRESSION_LEVELS[i];
-              } else {
-                break;
-              }
-            }
-            
-            const baseXP = currentLvlInfo.xpRequired;
-            const targetXP = nextLvlInfo.xpRequired;
-            const earnedXP = gameXp - baseXP;
-            const totalXPNeeded = targetXP - baseXP;
-            const progressPct = currentLvlInfo.level === 20 ? 100 : Math.min(Math.round((earnedXP / totalXPNeeded) * 100), 100);
-
+          // 10. Upcoming Bills
+          if (widgetId === 'bills') {
             return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move relative overflow-hidden"
-              >
-                {/* Visual Glass Shine */}
-                <div className="absolute top-0 right-0 p-2 opacity-5 text-7xl pointer-events-none select-none">
-                  {currentLvlInfo.icon}
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">⏳ Upcoming Obligations</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
-
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                  <h3 className="text-sm font-bold text-slate-200">🔥 Level & Achievements</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
-                </div>
-                
-                <div className="py-3 space-y-3.5">
-                  {/* Level & XP */}
-                  <div className="flex items-center justify-between text-xs">
+                <div className="py-2.5 space-y-2">
+                  <div className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
                     <div>
-                      <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-[10px] font-bold text-amber-400">
-                        Lvl {currentLvlInfo.level} — {currentLvlInfo.name}
-                      </span>
+                      <p className="font-bold text-slate-300">Apartment Rent</p>
+                      <p className="text-[9px] text-slate-500">Due: Jul 5</p>
                     </div>
-                    <span className="font-semibold text-slate-400">{gameXp.toLocaleString()} XP</span>
+                    <span className="font-bold text-slate-200">₹20,000</span>
                   </div>
-
-                  {/* XP Bar */}
-                  <div className="space-y-1">
-                    <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
-                      <div
-                        className="bg-gradient-to-r from-indigo-500 to-primary-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${progressPct}%` }}
-                      />
+                  <div className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-slate-300">Netflix Premium</p>
+                      <p className="text-[9px] text-slate-500">Due: Jul 8</p>
                     </div>
-                    <div className="flex justify-between text-[9px] text-slate-500">
-                      <span>{progressPct}% to next lvl</span>
-                      <span>Coins: {gameCoins}🪙</span>
-                    </div>
+                    <span className="font-bold text-slate-200">₹649</span>
                   </div>
-
-                  {/* Streak & Badges Unlocked */}
-                  <div className="flex justify-between items-center text-xs text-slate-300 bg-slate-900/30 border border-slate-800 p-2.5 rounded-xl">
-                    <div className="flex items-center gap-1">
-                      <span>⚡ Streak:</span>
-                      <span className="font-extrabold text-orange-400">{gameStreak} Days</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>🏅 Unlocked:</span>
-                      <span className="font-extrabold text-emerald-400">{unlockedBadgesCount} / 27</span>
-                    </div>
-                  </div>
-
-                  {/* Quick link button to Achievements page */}
-                  <Link
-                    to="/achievements"
-                    className="btn bg-primary-600 hover:bg-primary-500 text-white shadow-lg text-center text-xs font-semibold py-2 rounded-xl transition-all duration-200 block w-full active:scale-95 cursor-pointer"
-                  >
-                    Open Achievements Panel 🏆
-                  </Link>
                 </div>
               </div>
             );
           }
 
+          // 11. Recent Notifications
+          if (widgetId === 'notifications') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">🔔 Recent Notifications</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-2 space-y-2">
+                  {recentNotifications.map((n, idx) => (
+                    <div key={idx} className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl text-[10px]">
+                      <p className="text-slate-300 leading-normal">{n.message}</p>
+                      <span className="text-slate-500 font-bold block text-right mt-0.5">{n.date}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          // 12. Expense Heatmap
           if (widgetId === 'heatmap') {
             return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                  <h3 className="text-sm font-bold text-slate-200">📅 Spending Density</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">📅 Spending Density</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <div className="grid grid-cols-7 gap-1.5">
-                    {Array.from({ length: 30 }, (_, i) => {
+                    {Array.from({ length: 28 }, (_, i) => {
                       const day = i + 1;
                       let shade = 'bg-slate-800/40';
                       if ([2, 5, 8, 12, 18, 22].includes(day)) shade = 'bg-red-500/70';
-                      else if ([3, 6, 14, 25, 29].includes(day)) shade = 'bg-primary-500/50';
-                      else if ([1, 10, 15, 20].includes(day)) shade = 'bg-emerald-500/60';
-
+                      else if ([3, 6, 14, 25].includes(day)) shade = 'bg-primary-500/50';
+                      else if ([1, 10, 15].includes(day)) shade = 'bg-emerald-500/60';
                       return (
-                        <div
-                          key={day}
-                          title={`Day ${day}`}
-                          className={`w-full aspect-square rounded-md text-[8px] font-bold flex items-center justify-center text-slate-400 ${shade}`}
-                        >
+                        <div key={day} className={`w-full aspect-square rounded-md text-[8px] font-bold flex items-center justify-center text-slate-400 ${shade}`}>
                           {day}
                         </div>
                       );
@@ -523,36 +576,21 @@ export default function Dashboard() {
             );
           }
 
-          if (widgetId === 'aiInsights') {
+          // 13. AI Tip of the Day
+          if (widgetId === 'tipOfTheDay') {
             return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                  <h3 className="text-sm font-bold text-slate-200">🤖 AI Spending Advisor</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">💡 AI Tip of the Day</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4 space-y-3">
                   <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex gap-3">
                     <span className="text-xl">💡</span>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200">Overlapping streaming subscriptions</h4>
+                      <h4 className="text-xs font-bold text-slate-200">Cut unused streaming services</h4>
                       <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
-                        Canceling Netflix could save you ₹22,900/year. Acting on this boosts your Health score.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl flex gap-3">
-                    <span className="text-xl">⚠️</span>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-200">Dining expenses climbing</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
-                        Eating out is up 14% vs last month. Set a dining budget to control leaking savings.
+                        Canceling Spotify could save you ₹1,428/year. Redirecting it to gold funds yields better CAGR.
                       </p>
                     </div>
                   </div>
@@ -561,242 +599,71 @@ export default function Dashboard() {
             );
           }
 
-          if (widgetId === 'transactions') {
+          // 14. Monthly Cash Flow
+          if (widgetId === 'cashFlow') {
             return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move md:col-span-2 xl:col-span-3"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50 mb-4">
-                  <h3 className="text-sm font-bold text-slate-200">📝 Recent Transactions</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move md:col-span-2 xl:col-span-3">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50 mb-3">
+                  <h3 className="text-xs font-bold text-slate-300">📈 Monthly Cash Flow Projections</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
-                {combinedTx.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-6">No recent transactions recorded.</p>
-                ) : (
-                  <div className="table-container">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Title</th>
-                          <th>Category</th>
-                          <th>Method</th>
-                          <th>Date</th>
-                          <th>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {combinedTx.map((tx) => (
-                          <tr key={tx._id}>
-                            <td className="font-semibold text-xs">{tx.title}</td>
-                            <td className="text-xs">{tx.category?.icon} {tx.category?.name || 'Unassigned'}</td>
-                            <td className="text-xs font-mono">{tx.paymentMethod?.toUpperCase()}</td>
-                            <td className="text-[11px] text-slate-400">{new Date(tx.date).toLocaleDateString('en-IN')}</td>
-                            <td className={`text-xs font-bold ${tx.type === 'income' ? 'text-green-400' : 'text-red-400'}`}>
-                              {tx.type === 'income' ? '+' : '-'}₹{tx.amount.toLocaleString('en-IN')}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          if (widgetId === 'bills') {
-            return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                  <h3 className="text-sm font-bold text-slate-200">⏳ Upcoming Obligations</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4 space-y-2.5">
-                  <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span>🏠</span>
-                      <div>
-                        <p className="font-bold text-slate-300">Apartment Rent</p>
-                        <p className="text-[10px] text-slate-500">Due: Jul 1</p>
-                      </div>
-                    </div>
-                    <span className="font-bold text-slate-200">₹1,800.00</span>
-                  </div>
-                  <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span>🎬</span>
-                      <div>
-                        <p className="font-bold text-slate-300">Netflix Premium</p>
-                        <p className="text-[10px] text-slate-500">Due: Jul 5</p>
-                      </div>
-                    </div>
-                    <span className="font-bold text-slate-200">₹22.99</span>
-                  </div>
+                <div className="h-40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={NET_WORTH_HISTORY} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} />
+                      <YAxis tick={{ fill: '#64748b', fontSize: 10 }} />
+                      <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} />
+                      <Area type="monotone" dataKey="Wealth" stroke="#10b981" fillOpacity={1} fill="url(#colorCash)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             );
           }
 
-          if (widgetId === 'eco') {
-            return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                  <h3 className="text-sm font-bold text-slate-200">🍃 Eco emission tracker</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4 space-y-3 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Monthly CO2 Impact:</span>
-                    <span className="font-bold text-slate-200">248.5 kg CO2</span>
-                  </div>
-                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: '49.7%' }}></div>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-slate-500">
-                    <span>Rank: Top 15% Offset</span>
-                    <span className="font-bold text-emerald-400">Carbon Score: A</span>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-
-
+          // 15. Net Worth
           if (widgetId === 'wealth') {
-            if (user?.role !== 'premium' && user?.role !== 'admin') {
-              return (
-                <div
-                  key={widgetId}
-                  draggable
-                  onDragStart={() => handleDragStart(widgetId)}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(widgetId)}
-                  className="card flex flex-col justify-between border-dashed border-2 border-slate-700/50 opacity-60 text-center py-8 hover:opacity-100 transition-all cursor-move"
-                >
-                  <span className="text-3xl mb-2">🔒</span>
-                  <h3 className="text-sm font-bold text-slate-200">Premium Wealth Tracker</h3>
-                  <p className="text-[10px] text-slate-400 max-w-[200px] mx-auto mt-2 leading-normal">
-                    Unlock portfolio dashboards, stock trends, and net worth simulators.
-                  </p>
-                  <button onClick={togglePremiumRole} className="btn-primary text-[10px] py-1.5 px-3 mx-auto mt-4">
-                    Activate Premium
-                  </button>
-                </div>
-              );
-            }
-
             return (
-              <div
-                key={widgetId}
-                draggable
-                onDragStart={() => handleDragStart(widgetId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(widgetId)}
-                className="card flex flex-col justify-between hover:border-amber-500/30 transition-all cursor-move md:col-span-2 xl:col-span-3"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-700/50 mb-4">
-                  <h3 className="text-sm font-bold text-amber-400">👑 Premium Wealth & Investments</h3>
-                  <span className="text-xs text-slate-500">≡ Drag</span>
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">👑 Net Worth Tracker</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left Column: Asset list */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Active Holdings</h4>
-                    {WEALTH_HOLDINGS.map((h, i) => (
-                      <div key={i} className="p-3 bg-dark-900/60 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
-                        <div>
-                          <p className="font-bold text-slate-200">{h.name}</p>
-                          <p className="text-[9px] text-slate-500">{h.type}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-slate-200">₹{h.amount.toLocaleString('en-IN')}</p>
-                          <p className={`text-[10px] font-bold ${h.color}`}>{h.returns}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="py-4">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Aggregate Net Worth</p>
+                  <p className="text-3xl font-black text-amber-400 mt-1">₹{(Number(summary?.balance || 0) + 200000).toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+            );
+          }
 
-                  {/* Middle Column: Compound interest sliders */}
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Projected Growth Calculator (12% CAGR)</h4>
-                    <div className="space-y-3 text-xs">
-                      <div>
-                        <div className="flex justify-between mb-1 text-[10px]">
-                          <span>Monthly deposit:</span>
-                          <span className="font-bold text-primary-400">₹{investmentPrincipal.toLocaleString('en-IN')}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1000"
-                          max="50000"
-                          step="1000"
-                          value={investmentPrincipal}
-                          onChange={(e) => setInvestmentPrincipal(Number(e.target.value))}
-                          className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-1 text-[10px]">
-                          <span>Duration (years):</span>
-                          <span className="font-bold text-primary-400">{investmentDuration} Years</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1"
-                          max="20"
-                          step="1"
-                          value={investmentDuration}
-                          onChange={(e) => setInvestmentDuration(Number(e.target.value))}
-                          className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                        />
-                      </div>
-                      <div className="p-3 bg-primary-600/10 border border-primary-500/20 rounded-xl text-center">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold block">Estimated Future Value</span>
-                        <span className="text-lg font-extrabold text-slate-100 block mt-1">₹{projectedInvestment.toLocaleString('en-IN')}</span>
-                      </div>
-                    </div>
+          // 16. Investment Summary
+          if (widgetId === 'investmentSummary') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">💼 Investment Portfolio Summary</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-3 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Mutual Index Funds:</span>
+                    <span className="font-bold text-slate-200">₹1,20,000</span>
                   </div>
-
-                  {/* Right Column: Recharts Chart */}
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Net Worth Progression</h4>
-                    <div className="h-40">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={NET_WORTH_HISTORY} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="colorWealth" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2}/>
-                              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                          <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} />
-                          <YAxis tick={{ fill: '#64748b', fontSize: 10 }} />
-                          <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #cbd5e1', fontSize: 11 }} itemStyle={{ color: '#0f172a' }} labelStyle={{ color: '#0f172a' }} />
-                          <Area type="monotone" dataKey="Wealth" stroke="#f59e0b" fillOpacity={1} fill="url(#colorWealth)" strokeWidth={2} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Equity/Stocks:</span>
+                    <span className="font-bold text-slate-200">₹45,000</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Crypto Ledger:</span>
+                    <span className="font-bold text-slate-200">₹35,000</span>
                   </div>
                 </div>
               </div>
@@ -811,14 +678,14 @@ export default function Dashboard() {
       <div className="fixed bottom-6 left-6 flex flex-col gap-2 z-40">
         <button
           onClick={() => setActiveModal('voice')}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
           title="Voice entry"
         >
           🎙️
         </button>
         <button
           onClick={() => setActiveModal('qr')}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 hover:bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
           title="Scan QR Merchant"
         >
           📱
@@ -829,7 +696,7 @@ export default function Dashboard() {
       <div className="fixed bottom-6 right-6 z-40">
         <button
           onClick={() => setActiveModal('ocr')}
-          className="btn-primary flex items-center gap-2 h-12 px-5 rounded-full shadow-lg"
+          className="btn-primary flex items-center gap-2 h-12 px-5 rounded-full shadow-lg cursor-pointer"
         >
           📷 Scan Receipt
         </button>
@@ -838,7 +705,7 @@ export default function Dashboard() {
       {/* ─── OCR MODAL ─── */}
       {activeModal === 'ocr' && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="glass max-w-md w-full p-6 space-y-4">
+          <div className="card max-w-md w-full p-6 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
               <h3 className="font-bold text-slate-100 flex items-center gap-2">📷 Receipt OCR Scanner</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
@@ -847,22 +714,22 @@ export default function Dashboard() {
               Select one of the mock receipt objects below to simulate automatic transaction scanning and parsing.
             </p>
             <div className="flex flex-col gap-2">
-              <button onClick={() => simulateOCR('starbucks')} className="p-3 bg-slate-800 hover:bg-slate-700 text-left text-xs font-semibold rounded-xl flex items-center justify-between">
+              <button onClick={() => simulateOCR('starbucks')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
                 <span>☕ Starbucks Coffee receipt</span>
                 <span className="text-slate-400">₹450.00</span>
               </button>
-              <button onClick={() => simulateOCR('uber')} className="p-3 bg-slate-800 hover:bg-slate-700 text-left text-xs font-semibold rounded-xl flex items-center justify-between">
+              <button onClick={() => simulateOCR('uber')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
                 <span>🚗 Uber Ride invoice</span>
                 <span className="text-slate-400">₹1,200.00</span>
               </button>
-              <button onClick={() => simulateOCR('walmart')} className="p-3 bg-slate-800 hover:bg-slate-700 text-left text-xs font-semibold rounded-xl flex items-center justify-between">
+              <button onClick={() => simulateOCR('walmart')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
                 <span>🛍️ Walmart grocery bill</span>
                 <span className="text-slate-400">₹5,400.00</span>
               </button>
             </div>
             {ocrLoading && (
               <div className="flex flex-col items-center justify-center py-4 space-y-2 border-t border-slate-800">
-                <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs font-medium text-slate-300">AI parsing receipt structures...</span>
               </div>
             )}
@@ -873,7 +740,7 @@ export default function Dashboard() {
       {/* ─── VOICE ENTRY MODAL ─── */}
       {activeModal === 'voice' && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="glass max-w-sm w-full p-6 text-center space-y-4">
+          <div className="card max-w-sm w-full p-6 text-center space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700/50 pb-3 text-left">
               <h3 className="font-bold text-slate-100">🎙️ Voice transaction logger</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
@@ -884,7 +751,7 @@ export default function Dashboard() {
             <div className="flex justify-center py-6">
               <button
                 onClick={handleVoiceRecording}
-                className={`h-20 w-20 rounded-full flex items-center justify-center text-3xl shadow-xl transition-all ${
+                className={`h-20 w-20 rounded-full flex items-center justify-center text-3xl shadow-xl transition-all cursor-pointer ${
                   voiceRecording ? 'bg-red-600 animate-pulse scale-105 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
                 }`}
               >
@@ -911,18 +778,18 @@ export default function Dashboard() {
       {/* ─── QR SCANNER MODAL ─── */}
       {activeModal === 'qr' && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="glass max-w-sm w-full p-6 text-center space-y-4">
+          <div className="card max-w-sm w-full p-6 text-center space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700/50 pb-3 text-left">
               <h3 className="font-bold text-slate-100">📱 UPI QR Payment Scanner</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
             </div>
             <p className="text-xs text-slate-400">Simulates capturing merchant code detail structures.</p>
-            <div className="relative w-48 h-48 mx-auto border-4 border-primary-500 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-              <div className="absolute top-0 w-full h-1 bg-primary-500 shadow-md shadow-primary-500/50 animate-bounce" style={{ animationDuration: '3s' }} />
+            <div className="relative w-48 h-48 mx-auto border-4 border-indigo-500 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+              <div className="absolute top-0 w-full h-1 bg-indigo-500 shadow-md shadow-indigo-500/50 animate-bounce" style={{ animationDuration: '3s' }} />
               <span className="text-8xl opacity-15 text-white">🔳</span>
               {qrScanning && (
                 <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center space-y-2">
-                  <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                   <span className="text-[10px] text-slate-300">Scanning metadata...</span>
                 </div>
               )}
@@ -934,7 +801,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <button onClick={simulateQR} disabled={qrScanning || qrMerchant} className="btn-primary text-xs w-full py-2.5">
+            <button onClick={simulateQR} disabled={qrScanning || qrMerchant} className="btn-primary text-xs w-full py-2.5 cursor-pointer">
               Simulate QR Scan
             </button>
           </div>
@@ -943,8 +810,8 @@ export default function Dashboard() {
 
       {/* ─── ADD TRANSACTION MODAL ─── */}
       {activeModal === 'addTx' && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="glass max-w-md w-full p-6 my-8 space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
+          <div className="card max-w-md w-full p-6 my-8 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
               <h3 className="font-bold text-slate-100">Add Scanned Transaction</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
@@ -958,7 +825,7 @@ export default function Dashboard() {
                     step="0.01"
                     className="input py-2"
                     value={txForm.amount}
-                    onChange={(e) => setForm(prev => setTxForm({ ...txForm, amount: e.target.value }))}
+                    onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
                     required
                   />
                 </div>

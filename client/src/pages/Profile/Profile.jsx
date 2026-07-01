@@ -35,6 +35,18 @@ export default function Profile() {
   const [savingPwd, setSavingPwd] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
+  // Theme states
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'dark';
+  });
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    toast.success(`Theme switched to ${newTheme.toUpperCase()}`);
+  };
+
   // Simulated preferences states
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled || false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -329,7 +341,7 @@ export default function Profile() {
                 <p className="text-xs text-slate-400 mt-1">Configure language, base currency, and API conversion rules.</p>
               </div>
               <div className="space-y-4 text-xs">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="form-group">
                     <label className="label">Base Currency Selection</label>
                     <select
@@ -360,6 +372,21 @@ export default function Profile() {
                       <option value="en">English</option>
                       <option value="es">Español</option>
                       <option value="hi">हिन्दी</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Theme Customization</label>
+                    <select
+                      className="select"
+                      value={theme}
+                      onChange={(e) => handleThemeChange(e.target.value)}
+                    >
+                      <option value="light">☀️ Light Theme</option>
+                      <option value="dark">🌙 Classic Dark</option>
+                      <option value="midnight">🪐 Midnight Neon</option>
+                      <option value="ocean">🌊 Deep Ocean</option>
+                      <option value="forest">🌲 Forest Greens</option>
+                      <option value="purple-neon">🔮 Purple Neon</option>
                     </select>
                   </div>
                 </div>

@@ -1,0 +1,16 @@
+{
+  "short_name": "MyExpensePro",
+  "name": "My Expense Pro — Smart Finance Manager",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/dashboard",
+  "background_color": "#0b0f19",
+  "theme_color": "#6366f1",
+  "display": "standalone",
+  "orientation": "portrait"
+}

@@ -3,13 +3,21 @@ import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { to: '/dashboard',   icon: '📊', label: 'Dashboard' },
+  { to: '/wallets',     icon: '💳', label: 'Wallets' },
   { to: '/income',      icon: '💰', label: 'Income' },
   { to: '/expenses',    icon: '💸', label: 'Expenses' },
   { to: '/budget',      icon: '🎯', label: 'Budget' },
-  { to: '/reports',     icon: '📈', label: 'Reports' },
+  { to: '/goals',       icon: '🥅', label: 'Savings Goals' },
+  { to: '/investments', icon: '📈', label: 'Investments' },
+  { to: '/loans',       icon: '🏛️', label: 'Loans & EMIs' },
+  { to: '/subscriptions',icon: '🔁', label: 'Subscriptions' },
+  { to: '/split-bills', icon: '🍕', label: 'Split Bills' },
+  { to: '/family',      icon: '👪', label: 'Family Sharing' },
   { to: '/calendar',    icon: '📅', label: 'Bill Calendar' },
-  { to: '/ai-insights',  icon: '🤖', label: 'AI Insights' },
-  { to: '/achievements', icon: '🏆', label: 'Achievements' },
+  { to: '/ai-insights', icon: '💡', label: 'AI Insights' },
+  { to: '/ai-assistant',icon: '🤖', label: 'AI Assistant' },
+  { to: '/analytics-pro',icon: '📊', label: 'Analytics Pro' },
+  { to: '/achievements',icon: '🏆', label: 'Achievements' },
   { to: '/profile',     icon: '👤', label: 'Profile' },
 ];
 
@@ -48,6 +56,15 @@ export default function Sidebar() {
             <span>{label}</span>
           </NavLink>
         ))}
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/admin-portal"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <span className="text-lg">🛡️</span>
+            <span>Admin Portal</span>
+          </NavLink>
+        )}
       </nav>
 
       {/* User info at footer */}

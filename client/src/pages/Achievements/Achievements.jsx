@@ -1,34 +1,49 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useExpense } from '../../context/ExpenseContext';
-import { PROGRESSION_LEVELS, XP_ACTIONS, INITIAL_ACHIEVEMENTS, MOCK_LEADERBOARD } from './achievementsData';
+import { PROGRESSION_LEVELS, XP_ACTIONS, INITIAL_ACHIEVEMENTS } from './achievementsData';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function Achievements() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
-  // Game states persisted in localStorage (or initialized with mock data)
+  // Game states checking user context first, then localStorage, then default mock values
   const [xp, setXp] = useState(() => {
+    if (user?.xp !== undefined) return user.xp;
     const saved = localStorage.getItem('game_xp');
     return saved ? parseInt(saved, 10) : 3450;
   });
   
   const [coins, setCoins] = useState(() => {
+    if (user?.coins !== undefined) return user.coins;
     const saved = localStorage.getItem('game_coins');
     return saved ? parseInt(saved, 10) : 640;
   });
   
   const [streak, setStreak] = useState(() => {
+    if (user?.streak !== undefined) return user.streak;
     const saved = localStorage.getItem('game_streak');
     return saved ? parseInt(saved, 10) : 18;
   });
 
   const [longestStreak, setLongestStreak] = useState(() => {
+    if (user?.longestStreak !== undefined) return user.longestStreak;
     const saved = localStorage.getItem('game_longest_streak');
     return saved ? parseInt(saved, 10) : 24;
   });
 
   const [achievements, setAchievements] = useState(() => {
+    if (user?.achievements && user.achievements.length > 0) {
+      // Map user achievements to local static achievements templates
+      const userMap = {};
+      user.achievements.forEach(a => { userMap[a.id] = a; });
+      return INITIAL_ACHIEVEMENTS.map(ach => ({
+        ...ach,
+        currentProgress: userMap[ach.id]?.currentProgress !== undefined ? userMap[ach.id].currentProgress : ach.currentProgress,
+        unlocked: userMap[ach.id]?.unlocked !== undefined ? userMap[ach.id].unlocked : ach.unlocked,
+      }));
+    }
     const saved = localStorage.getItem('game_achievements');
     return saved ? JSON.parse(saved) : INITIAL_ACHIEVEMENTS;
   });
@@ -163,6 +178,33 @@ export default function Achievements() {
       localStorage.setItem('game_recent_unlock', JSON.stringify(recentUnlock));
     }
   }, [xp, coins, streak, longestStreak, achievements, recentUnlock]);
+
+  // Sync gamification parameters to backend database with 2s debounce
+  useEffect(() => {
+    if (!user) return;
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const { data } = await api.put('/users/me', {
+          xp,
+          coins,
+          level: getCurrentLevelInfo(xp).currentLvl.level,
+          streak,
+          longestStreak,
+          achievements: achievements.map(a => ({
+            id: a.id,
+            currentProgress: a.currentProgress,
+            unlocked: a.unlocked,
+          }))
+        });
+        if (data.success && data.data) {
+          updateUser(data.data);
+        }
+      } catch (e) {
+        console.warn("MERN Database gamification sync failed: ", e);
+      }
+    }, 2000);
+    return () => clearTimeout(delayDebounce);
+  }, [xp, coins, streak, longestStreak, achievements]);
 
   // Calculate level based on XP
   const getCurrentLevelInfo = (xpVal) => {
@@ -812,15 +854,15 @@ export default function Achievements() {
         </div>
       </div>
 
-      {/* Leaderboard and progression details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Progression details */}
+      <div className="mt-6">
         
-        {/* Progression Levels Reference (Accordion-style scroll) */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl lg:col-span-1">
+        {/* Progression Levels Reference */}
+        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl w-full">
           <h3 className="text-base font-bold text-slate-100 pb-3 border-b border-slate-700/50">
             🌌 Progression Tiers & Rewards
           </h3>
-          <div className="mt-4 space-y-2 max-h-[350px] overflow-y-auto pr-2 scrollbar-thin">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {PROGRESSION_LEVELS.map(lvl => {
               const isCurrent = currentLvl.level === lvl.level;
               const isUnlocked = xp >= lvl.xpRequired;
@@ -860,71 +902,6 @@ export default function Achievements() {
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* Global Savings Leaderboard */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl lg:col-span-2">
-          <div className="pb-3 border-b border-slate-700/50 flex justify-between items-center">
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-1.5">
-              🏆 Savings Leaderboard
-            </h3>
-            <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded px-2 py-0.5 font-bold uppercase">
-              Global Season 4
-            </span>
-          </div>
-
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-700/40 text-slate-500 font-bold">
-                  <th className="py-2.5">Rank</th>
-                  <th className="py-2.5">User</th>
-                  <th className="py-2.5">Level</th>
-                  <th className="py-2.5 text-right">XP</th>
-                  <th className="py-2.5 text-right">Achievements</th>
-                  <th className="py-2.5 text-right">Coins</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40">
-                {MOCK_LEADERBOARD.map(p => (
-                  <tr
-                    key={p.rank}
-                    className={`transition-colors hover:bg-slate-800/20 ${
-                      p.self ? 'bg-primary-600/10 font-bold border-l-2 border-primary-500' : ''
-                    }`}
-                  >
-                    <td className="py-3">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-                        p.rank === 1 ? 'bg-yellow-500/20 text-yellow-400' : p.rank === 2 ? 'bg-slate-400/20 text-slate-300' : 'bg-amber-700/20 text-amber-500'
-                      }`}>
-                        {p.rank}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${p.color} flex items-center justify-center text-white text-[10px] font-bold`}>
-                          {p.avatar}
-                        </div>
-                        <span className={p.self ? 'text-primary-400' : 'text-slate-300'}>{p.username}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-slate-300">
-                      <span className="font-semibold">{p.level}</span>
-                    </td>
-                    <td className="py-3 text-right font-semibold text-slate-300">
-                      {p.xp.toLocaleString()} XP
-                    </td>
-                    <td className="py-3 text-right font-semibold text-emerald-400">
-                      {p.achievements} 🏅
-                    </td>
-                    <td className="py-3 text-right font-bold text-yellow-400">
-                      {p.coins}🪙
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
 
