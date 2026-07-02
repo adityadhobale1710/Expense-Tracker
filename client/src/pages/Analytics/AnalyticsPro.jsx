@@ -123,10 +123,10 @@ export default function AnalyticsPro() {
                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                    <YAxis stroke="#94a3b8" fontSize={11} />
-                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
+                    <YAxis stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
+                    <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }} />
                     <Legend />
                     <Area type="monotone" dataKey="Income" stroke="#10b981" fillOpacity={1} fill="url(#incomeColor)" />
                     <Area type="monotone" dataKey="Expense" stroke="#ef4444" fillOpacity={1} fill="url(#expenseColor)" />
@@ -142,10 +142,10 @@ export default function AnalyticsPro() {
             <div className="h-64 mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={forecastData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                  <YAxis stroke="#94a3b8" fontSize={11} />
-                  <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
+                  <YAxis stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
+                  <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }} />
                   <Legend />
                   <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Expense" fill="#6366f1" radius={[4, 4, 0, 0]} />

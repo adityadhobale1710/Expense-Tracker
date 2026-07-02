@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -35,15 +36,11 @@ export default function Profile() {
   const [savingPwd, setSavingPwd] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
-  // Theme states
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'dark';
-  });
+  // Global theme context
+  const { theme, setTheme } = useTheme();
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
     toast.success(`Theme switched to ${newTheme.toUpperCase()}`);
   };
 

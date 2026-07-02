@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -26,13 +27,33 @@ const PAGE_TITLES = {
   '/admin-portal':  { title: 'Admin Control Center', subtitle: 'Server diagnostics & settings' },
 };
 
+const THEME_ICONS = {
+  light: '☀️',
+  dark: '🌙',
+  midnight: '🪐',
+  ocean: '🌊',
+  forest: '🌲',
+  'purple-neon': '🔮',
+};
+
+const THEMES = [
+  { id: 'light', name: 'Light Theme', icon: '☀️' },
+  { id: 'dark', name: 'Classic Dark', icon: '🌙' },
+  { id: 'midnight', name: 'Midnight Neon', icon: '🪐' },
+  { id: 'ocean', name: 'Deep Ocean', icon: '🌊' },
+  { id: 'forest', name: 'Forest Greens', icon: '🌲' },
+  { id: 'purple-neon', name: 'Purple Neon', icon: '🔮' },
+];
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const page = PAGE_TITLES[pathname] || { title: 'My Expense', subtitle: '' };
+  const { theme, setTheme } = useTheme();
 
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showThemeDropdown, setShowThemeDropdown] = useState(false);
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -76,8 +97,11 @@ export default function Navbar() {
         {/* Notifications Icon with Dropdown */}
         <div className="relative">
           <button
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-700/50 hover:bg-slate-800 text-slate-300 hover:text-slate-100 relative text-sm"
+            onClick={() => {
+              setShowDropdown(!showDropdown);
+              setShowThemeDropdown(false);
+            }}
+            className="p-2 rounded-xl bg-slate-900 border border-slate-700/50 hover:bg-slate-800 text-slate-300 hover:text-slate-100 relative text-sm cursor-pointer"
           >
             🔔
             {unreadCount > 0 && (
@@ -112,6 +136,48 @@ export default function Navbar() {
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Theme Picker Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowThemeDropdown(!showThemeDropdown);
+              setShowDropdown(false);
+            }}
+            className="p-2 rounded-xl bg-slate-900 border border-slate-700/50 hover:bg-slate-800 text-slate-300 hover:text-slate-100 relative text-sm cursor-pointer flex items-center justify-center h-9 w-9"
+            title="Switch Theme"
+          >
+            <span className="text-base leading-none">{THEME_ICONS[theme] || '🎨'}</span>
+          </button>
+
+          {showThemeDropdown && (
+            <div className="absolute right-0 mt-2 w-52 bg-dark-900 border border-slate-700 rounded-2xl p-2.5 shadow-xl z-50 animate-fade-in space-y-1">
+              <div className="flex justify-between items-center pb-1.5 px-2 border-b border-slate-800">
+                <span className="text-xs font-bold text-slate-200">Switch Theme</span>
+              </div>
+              <div className="pt-1 space-y-0.5">
+                {THEMES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setTheme(t.id);
+                      setShowThemeDropdown(false);
+                    }}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                      theme === t.id
+                        ? 'bg-primary-600/20 text-primary-400 border border-primary-500/20'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 border border-transparent'
+                    }`}
+                  >
+                    <span className="text-sm leading-none">{t.icon}</span>
+                    <span className="flex-1">{t.name}</span>
+                    {theme === t.id && <span className="text-[10px] text-primary-400">✓</span>}
+                  </button>
+                ))}
               </div>
             </div>
           )}

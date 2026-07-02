@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useExpense } from '../../context/ExpenseContext';
 import { PROGRESSION_LEVELS, XP_ACTIONS, INITIAL_ACHIEVEMENTS } from './achievementsData';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -59,6 +58,11 @@ export default function Achievements() {
   const [hoveredRewardId, setHoveredRewardId] = useState(null);
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatyTexts, setFloatyTexts] = useState([]); // Array of { id, text, x, y }
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilter]);
   
   const canvasRef = useRef(null);
 
@@ -226,7 +230,7 @@ export default function Achievements() {
   
   // XP progress ratio
   const getLevelProgressPercentage = () => {
-    if (currentLvl.level === 20) return 100;
+    if (currentLvl.level === 30) return 100;
     const base = currentLvl.xpRequired;
     const target = nextLvl.xpRequired;
     const earned = xp - base;
@@ -422,6 +426,14 @@ export default function Achievements() {
     
     return true;
   });
+  
+  // Pagination calculations
+  const achievementsPerPage = 10;
+  const totalPages = Math.ceil(filteredAchievements.length / achievementsPerPage);
+  const paginatedAchievements = filteredAchievements.slice(
+    (currentPage - 1) * achievementsPerPage,
+    currentPage * achievementsPerPage
+  );
 
   // Calculate statistics
   const totalBadgesCount = achievements.length;
@@ -541,7 +553,7 @@ export default function Achievements() {
               <div className="flex justify-between text-xs font-semibold">
                 <span className="text-slate-400">XP Progress</span>
                 <span className="text-slate-200">
-                  {xp.toLocaleString()} / {currentLvl.level === 20 ? 'Max' : nextLvl.xpRequired.toLocaleString()} XP
+                  {xp.toLocaleString()} / {currentLvl.level === 30 ? 'Max' : nextLvl.xpRequired.toLocaleString()} XP
                 </span>
               </div>
               <div className="w-full bg-slate-900 h-3.5 border border-slate-800 rounded-full overflow-hidden p-0.5">
@@ -551,7 +563,7 @@ export default function Achievements() {
                 />
               </div>
               <p className="text-[10px] text-slate-500 text-right italic font-medium">
-                {currentLvl.level === 20 ? 'Max progression reached!' : `${(nextLvl.xpRequired - xp).toLocaleString()} XP needed for level ${nextLvl.level}`}
+                {currentLvl.level === 30 ? 'Max progression reached!' : `${(nextLvl.xpRequired - xp).toLocaleString()} XP needed for level ${nextLvl.level}`}
               </p>
             </div>
           </div>
@@ -640,7 +652,7 @@ export default function Achievements() {
 
           <div className="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-700/30">
             <span>Next Level Reward:</span>
-            <span className="font-bold text-indigo-400">{currentLvl.level === 20 ? 'Max Level!' : nextLvl.reward}</span>
+            <span className="font-bold text-indigo-400">{currentLvl.level === 30 ? 'Max Level!' : nextLvl.reward}</span>
           </div>
         </div>
 
@@ -754,8 +766,8 @@ export default function Achievements() {
 
         {/* Achievements Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
-          {filteredAchievements.length > 0 ? (
-            filteredAchievements.map(ach => (
+          {paginatedAchievements.length > 0 ? (
+            paginatedAchievements.map(ach => (
               <div
                 key={ach.id}
                 className={`relative border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 min-h-[190px] select-none hover:scale-[1.03] group ${
@@ -852,6 +864,29 @@ export default function Achievements() {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-slate-700/30">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+            >
+              ← Previous
+            </button>
+            <span className="text-xs text-slate-400 font-semibold px-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+            >
+              Next →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Progression details */}

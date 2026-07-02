@@ -20,6 +20,13 @@
   --slate-700: 51 65 85;
   --slate-800: 30 41 59;
   --slate-900: 15 23 42;
+
+  /* Chart colors */
+  --chart-grid: #1e293b;
+  --chart-text: #64748b;
+  --chart-tooltip-bg: #0f172a;
+  --chart-tooltip-border: #334155;
+  --chart-tooltip-text: #f8fafc;
 }
 
 /* Light Theme */
@@ -40,6 +47,13 @@ html[data-theme="light"] {
   --slate-700: 226 232 240;
   --slate-800: 241 245 249;
   --slate-900: 248 250 252;
+
+  /* Chart colors */
+  --chart-grid: #e2e8f0;
+  --chart-text: #64748b;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #cbd5e1;
+  --chart-tooltip-text: #0f172a;
 }
 
 /* Midnight Theme */
@@ -249,4 +263,31 @@ html[data-theme="purple-neon"] {
   }
   .animate-fade-in  { animation: fadeIn 0.3s ease-in-out; }
   .animate-slide-up { animation: slideUp 0.3s ease-out; }
+}
+
+/* ── Light Theme Specific Style Overrides ── */
+html[data-theme="light"] .nav-link.active {
+  @apply bg-primary-600/10 text-primary-600 border border-primary-500/20;
+}
+
+html[data-theme="light"] .badge-green  { @apply bg-green-500/10 text-green-600; }
+html[data-theme="light"] .badge-red    { @apply bg-red-500/10 text-red-600; }
+html[data-theme="light"] .badge-blue   { @apply bg-blue-500/10 text-blue-600; }
+html[data-theme="light"] .badge-purple { @apply bg-purple-500/10 text-purple-600; }
+html[data-theme="light"] .badge-yellow { @apply bg-yellow-500/10 text-yellow-600; }
+
+html[data-theme="light"] .text-gradient {
+  @apply from-primary-600 to-indigo-600;
+}
+
+html[data-theme="light"] .glow-primary {
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+}
+
+html[data-theme="light"] .btn-ghost:hover {
+  @apply bg-slate-700/20;
+}
+
+html[data-theme="light"] .btn-icon:hover {
+  @apply bg-slate-700/20;
 }

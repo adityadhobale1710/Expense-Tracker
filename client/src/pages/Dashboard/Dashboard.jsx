@@ -616,10 +616,10 @@ export default function Dashboard() {
                           <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} />
-                      <YAxis tick={{ fill: '#64748b', fontSize: 10 }} />
-                      <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                      <XAxis dataKey="name" tick={{ fill: 'var(--chart-text)', fontSize: 10 }} />
+                      <YAxis tick={{ fill: 'var(--chart-text)', fontSize: 10 }} />
+                      <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }} />
                       <Area type="monotone" dataKey="Wealth" stroke="#10b981" fillOpacity={1} fill="url(#colorCash)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
