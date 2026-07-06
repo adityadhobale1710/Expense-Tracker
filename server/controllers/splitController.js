@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import SplitExpense from '../models/SplitExpense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
 
 // @desc    Get all split expenses for user
 // @route   GET /api/splits
@@ -26,6 +27,33 @@ export const createSplit = asyncHandler(async (req, res) => {
     groupName,
     members: members || [],
   });
+
+  // Notify members via email in the background
+  if (members && members.length > 0) {
+    const creatorName = req.user.name;
+    const currency = req.user.currency || 'INR';
+
+    members.forEach((m) => {
+      const emailHtml = getHtmlTemplate({
+        title: 'New Split Bill Notification',
+        greeting: `Hello,`,
+        body: `**${creatorName}** has shared a bill with you for **"${title}"**${groupName ? ` in group **"${groupName}"**` : ''}.<br/><br/>` +
+              `Total Bill Amount: <strong>${currency} ${amount}</strong><br/>` +
+              `Your Share: <strong>${currency} ${m.share}</strong>`,
+        ctaText: 'View Split Bills',
+        ctaUrl: `${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`,
+        footerText: 'Log in to My Expense Pro to manage and settle your active split bills.',
+      });
+
+      sendEmail({
+        to: m.userEmail.toLowerCase(),
+        subject: `New Split Bill: "${title}" by ${creatorName} - My Expense Pro`,
+        html: emailHtml,
+        text: `Hello!\n\n${creatorName} shared a split bill with you.\n\nBill: "${title}"\nTotal Amount: ${currency} ${amount}\nYour Share: ${currency} ${m.share}\n\nView and settle your split bills on My Expense Pro: ${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`,
+      }).catch((err) => console.error(`Split bill email notify failed for ${m.userEmail}:`, err));
+    });
+  }
+
   sendSuccess(res, 201, 'Split bill created', split);
 });
 

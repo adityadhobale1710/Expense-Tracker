@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Family from '../models/Family.js';
 import Expense from '../models/Expense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
 
 // @desc    Get family hub for current user
 // @route   GET /api/family
@@ -56,6 +57,25 @@ export const inviteMember = asyncHandler(async (req, res) => {
   });
 
   await family.save();
+
+  // Send Invitation Email
+  const inviteHtml = getHtmlTemplate({
+    title: 'Family Hub Invitation',
+    greeting: 'Hello!',
+    body: `You have been invited by **${req.user.name}** (${req.user.email}) to join their Family Sharing Hub on My Expense Pro as a **${role || 'member'}**.`,
+    ctaText: 'Accept Invitation & Go to Dashboard',
+    ctaUrl: `${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`,
+    footerText: 'If you do not have an account, please sign up using this email address to see your pending invitations.',
+  });
+
+  // Run async non-blocking so response is not delayed
+  sendEmail({
+    to: email.toLowerCase(),
+    subject: `Invitation to join ${req.user.name}'s Family Hub - My Expense Pro`,
+    html: inviteHtml,
+    text: `Hello!\n\nYou have been invited by ${req.user.name} (${req.user.email}) to join their Family Sharing Hub on My Expense Pro as a ${role || 'member'}.\n\nGo to My Expense Pro to accept your invitation: ${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`,
+  }).catch(err => console.error('Family invite email failed:', err));
+
   sendSuccess(res, 200, 'Invitation sent successfully', family);
 });
 
