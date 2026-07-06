@@ -9,6 +9,21 @@ import {
 } from 'recharts';
 import toast from 'react-hot-toast';
 
+const getLocalTodayString = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const getLocalTimeString = () => {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
 const NET_WORTH_HISTORY = [
   { name: "Jan", Wealth: 120000 },
   { name: "Feb", Wealth: 135000 },
@@ -59,7 +74,8 @@ export default function Dashboard() {
     amount: '',
     type: 'expense',
     category: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalTodayString(),
+    time: getLocalTimeString(),
     paymentMethod: 'upi',
     description: ''
   });
@@ -247,7 +263,7 @@ export default function Dashboard() {
         title: txForm.title,
         amount: Number(txForm.amount),
         category: txForm.category,
-        date: txForm.date,
+        date: new Date(`${txForm.date}T${txForm.time || '00:00'}`).toISOString(),
         paymentMethod: txForm.paymentMethod,
         description: txForm.description
       };
@@ -267,7 +283,8 @@ export default function Dashboard() {
         amount: '',
         type: 'expense',
         category: categories.find(c => c.type === 'expense')?._id || '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalTodayString(),
+        time: getLocalTimeString(),
         paymentMethod: 'upi',
         description: ''
       });
@@ -322,7 +339,8 @@ export default function Dashboard() {
               amount: '',
               type: 'expense',
               category: categories.find(c => c.type === 'expense')?._id || '',
-              date: new Date().toISOString().split('T')[0],
+              date: getLocalTodayString(),
+              time: getLocalTimeString(),
               paymentMethod: 'upi',
               description: ''
             });
@@ -874,6 +892,29 @@ export default function Dashboard() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="form-group">
+                  <label className="label">Date</label>
+                  <input
+                    type="date"
+                    className="input py-2"
+                    value={txForm.date}
+                    onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="label">Time</label>
+                  <input
+                    type="time"
+                    className="input py-2"
+                    value={txForm.time}
+                    onChange={(e) => setTxForm({ ...txForm, time: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="form-group">
                   <label className="label">Payment Method</label>
                   <select
                     className="select py-2"
@@ -887,25 +928,14 @@ export default function Dashboard() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="label">Date</label>
+                  <label className="label">Notes / Description</label>
                   <input
-                    type="date"
+                    type="text"
                     className="input py-2"
-                    value={txForm.date}
-                    onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
-                    required
+                    value={txForm.description}
+                    onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
                   />
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label className="label">Notes / Description</label>
-                <input
-                  type="text"
-                  className="input py-2"
-                  value={txForm.description}
-                  onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
-                />
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-700/50">

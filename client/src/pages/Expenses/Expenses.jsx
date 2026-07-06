@@ -3,8 +3,23 @@ import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
 import toast from 'react-hot-toast';
 
+const getLocalTodayString = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const getLocalTimeString = () => {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
 const PAYMENT_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
-const EMPTY = { title: '', amount: '', category: '', date: new Date().toISOString().split('T')[0], paymentMethod: 'upi', description: '', tags: '' };
+const EMPTY = { title: '', amount: '', category: '', date: getLocalTodayString(), time: getLocalTimeString(), paymentMethod: 'upi', description: '', tags: '' };
 
 export default function Expenses() {
   const { expenses, fetchExpenses, addExpense, updateExpense, deleteExpense, categories, fetchCategories, loading } = useExpense();
@@ -15,12 +30,31 @@ export default function Expenses() {
 
   useEffect(() => { fetchExpenses(); fetchCategories('expense'); }, []);
 
-  const openAdd = () => { setForm(EMPTY); setModal({ open: true, mode: 'add', item: null }); };
+  const openAdd = () => {
+    setForm({
+      ...EMPTY,
+      date: getLocalTodayString(),
+      time: getLocalTimeString()
+    });
+    setModal({ open: true, mode: 'add', item: null });
+  };
+
   const openEdit = (item) => {
+    const itemDateObj = new Date(item.date);
+    const yyyy = itemDateObj.getFullYear();
+    const mm = String(itemDateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(itemDateObj.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    
+    const hh = String(itemDateObj.getHours()).padStart(2, '0');
+    const min = String(itemDateObj.getMinutes()).padStart(2, '0');
+    const timeStr = `${hh}:${min}`;
+
     setForm({
       ...item,
       category: item.category?._id || item.category || '',
-      date: new Date(item.date).toISOString().split('T')[0],
+      date: dateStr,
+      time: timeStr,
       tags: (item.tags || []).join(', '),
     });
     setModal({ open: true, mode: 'edit', item });
@@ -31,7 +65,11 @@ export default function Expenses() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = { ...form, tags: form.tags ? form.tags.split(',').map((t) => t.trim()) : [] };
+      const payload = {
+        ...form,
+        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
+        tags: form.tags ? form.tags.split(',').map((t) => t.trim()) : []
+      };
       if (modal.mode === 'add') await addExpense(payload);
       else await updateExpense(modal.item._id, payload);
       closeModal();
@@ -107,7 +145,12 @@ export default function Expenses() {
                       ) : <span className="text-slate-500">—</span>}
                     </td>
                     <td><span className="badge badge-blue">{item.paymentMethod?.toUpperCase()}</span></td>
-                    <td className="text-slate-400">{new Date(item.date).toLocaleDateString('en-IN')}</td>
+                    <td className="text-slate-400">
+                      <div className="flex flex-col">
+                        <span>{new Date(item.date).toLocaleDateString('en-IN')}</span>
+                        <span className="text-[10px] text-slate-500">{new Date(item.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </td>
                     <td className="text-red-400 font-semibold">₹{item.amount.toLocaleString('en-IN')}</td>
                     <td>
                       <div className="flex gap-2">
@@ -125,18 +168,24 @@ export default function Expenses() {
 
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'add' ? 'Add Expense' : 'Edit Expense'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="form-group">
-            <label className="label">Title *</label>
-            <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Grocery shopping" />
-          </div>
           <div className="grid grid-cols-2 gap-3">
+            <div className="form-group">
+              <label className="label">Title *</label>
+              <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Grocery shopping" />
+            </div>
             <div className="form-group">
               <label className="label">Amount (₹) *</label>
               <input type="number" className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0" placeholder="0" />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Date *</label>
               <input type="date" className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="label">Time *</label>
+              <input type="time" className="input" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

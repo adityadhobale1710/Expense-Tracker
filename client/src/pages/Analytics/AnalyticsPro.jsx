@@ -75,9 +75,21 @@ export default function AnalyticsPro() {
     const avgIncome = incomes.length > 0 ? incomes.reduce((sum, i) => sum + i.amount, 0) / 3 : 25000;
 
     return [
-      { name: 'Current Month', Income: avgIncome, Expense: avgExpense },
-      { name: 'Next Month (Est)', Income: avgIncome * 1.02, Expense: avgExpense * 0.96 },
-      { name: 'Month 3 (Est)', Income: avgIncome * 1.05, Expense: avgExpense * 0.94 }
+      {
+        name: 'Current Month',
+        Income: Number(avgIncome.toFixed(2)),
+        Expense: Number(avgExpense.toFixed(2))
+      },
+      {
+        name: 'Next Month (Est)',
+        Income: Number((avgIncome * 1.02).toFixed(2)),
+        Expense: Number((avgExpense * 0.96).toFixed(2))
+      },
+      {
+        name: 'Month 3 (Est)',
+        Income: Number((avgIncome * 1.05).toFixed(2)),
+        Expense: Number((avgExpense * 0.94).toFixed(2))
+      }
     ];
   };
 
@@ -145,7 +157,10 @@ export default function AnalyticsPro() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
                   <YAxis stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
-                  <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }} />
+                  <Tooltip
+                    formatter={(value) => `₹${value.toFixed(2)}`}
+                    contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }}
+                  />
                   <Legend />
                   <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Expense" fill="#6366f1" radius={[4, 4, 0, 0]} />
