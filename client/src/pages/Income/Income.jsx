@@ -3,7 +3,22 @@ import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
 import toast from 'react-hot-toast';
 
-const EMPTY = { title: '', amount: '', category: '', source: '', date: new Date().toISOString().split('T')[0], description: '' };
+const getLocalTodayString = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const getLocalTimeString = () => {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
+const EMPTY = { title: '', amount: '', category: '', source: '', date: getLocalTodayString(), time: getLocalTimeString(), description: '' };
 
 export default function Income() {
   const { incomes, fetchIncomes, addIncome, updateIncome, deleteIncome, loading } = useExpense();
@@ -13,9 +28,31 @@ export default function Income() {
 
   useEffect(() => { fetchIncomes(); }, []);
 
-  const openAdd = () => { setForm(EMPTY); setModal({ open: true, mode: 'add', item: null }); };
+  const openAdd = () => {
+    setForm({
+      ...EMPTY,
+      date: getLocalTodayString(),
+      time: getLocalTimeString()
+    });
+    setModal({ open: true, mode: 'add', item: null });
+  };
+
   const openEdit = (item) => {
-    setForm({ ...item, date: new Date(item.date).toISOString().split('T')[0] });
+    const itemDateObj = new Date(item.date);
+    const yyyy = itemDateObj.getFullYear();
+    const mm = String(itemDateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(itemDateObj.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    
+    const hh = String(itemDateObj.getHours()).padStart(2, '0');
+    const min = String(itemDateObj.getMinutes()).padStart(2, '0');
+    const timeStr = `${hh}:${min}`;
+
+    setForm({
+      ...item,
+      date: dateStr,
+      time: timeStr
+    });
     setModal({ open: true, mode: 'edit', item });
   };
   const closeModal = () => setModal({ open: false, mode: 'add', item: null });
@@ -24,8 +61,12 @@ export default function Income() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      if (modal.mode === 'add') await addIncome(form);
-      else await updateIncome(modal.item._id, form);
+      const payload = {
+        ...form,
+        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString()
+      };
+      if (modal.mode === 'add') await addIncome(payload);
+      else await updateIncome(modal.item._id, payload);
       closeModal();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save');
@@ -73,7 +114,12 @@ export default function Income() {
                     <td className="font-medium text-slate-100">{item.title}</td>
                     <td><span className="badge badge-green">{item.category || '—'}</span></td>
                     <td className="text-slate-400">{item.source || '—'}</td>
-                    <td className="text-slate-400">{new Date(item.date).toLocaleDateString('en-IN')}</td>
+                    <td className="text-slate-400">
+                      <div className="flex flex-col">
+                        <span>{new Date(item.date).toLocaleDateString('en-IN')}</span>
+                        <span className="text-[10px] text-slate-500">{new Date(item.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </td>
                     <td className="text-green-400 font-semibold">₹{item.amount.toLocaleString('en-IN')}</td>
                     <td>
                       <div className="flex gap-2">
@@ -91,18 +137,24 @@ export default function Income() {
 
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'add' ? 'Add Income' : 'Edit Income'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="form-group">
-            <label className="label">Title *</label>
-            <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Monthly Salary" />
-          </div>
           <div className="grid grid-cols-2 gap-3">
+            <div className="form-group">
+              <label className="label">Title *</label>
+              <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Monthly Salary" />
+            </div>
             <div className="form-group">
               <label className="label">Amount (₹) *</label>
               <input type="number" className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0" placeholder="0" />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Date *</label>
               <input type="date" className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="label">Time *</label>
+              <input type="time" className="input" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

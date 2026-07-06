@@ -23,6 +23,8 @@ const userSchema = new mongoose.Schema(
     otpVerified: { type: Boolean, default: false },
     isEmailVerified: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpire: { type: Date, default: null },
     
     // Gamification properties
     xp: { type: Number, default: 3450 },
