@@ -116,6 +116,22 @@ html[data-theme="purple-neon"] {
   --slate-400: 192 38 211;
 }
 
+/* Dark Blue Theme */
+html[data-theme="dark-blue"] {
+  --dark-50: 10 25 50;
+  --dark-100: 18 38 78;
+  --dark-700: 59 130 246;
+  --dark-800: 15 32 66;
+  --dark-900: 8 18 36;
+  
+  --slate-50: 239 246 255;
+  --slate-100: 191 219 254;
+  --slate-200: 147 197 253;
+  --slate-300: 96 165 250;
+  --slate-400: 59 130 246;
+}
+
+
 
 @layer base {
   * {
