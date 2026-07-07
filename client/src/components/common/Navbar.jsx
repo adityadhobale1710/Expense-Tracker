@@ -34,6 +34,7 @@ const THEME_ICONS = {
   ocean: '🌊',
   forest: '🌲',
   'purple-neon': '🔮',
+  'dark-blue': '🔵',
 };
 
 const THEMES = [
@@ -43,6 +44,7 @@ const THEMES = [
   { id: 'ocean', name: 'Deep Ocean', icon: '🌊' },
   { id: 'forest', name: 'Forest Greens', icon: '🌲' },
   { id: 'purple-neon', name: 'Purple Neon', icon: '🔮' },
+  { id: 'dark-blue', name: 'Dark Blue', icon: '🔵' },
 ];
 
 export default function Navbar() {

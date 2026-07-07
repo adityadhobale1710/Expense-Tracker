@@ -384,6 +384,7 @@ export default function Profile() {
                       <option value="ocean">🌊 Deep Ocean</option>
                       <option value="forest">🌲 Forest Greens</option>
                       <option value="purple-neon">🔮 Purple Neon</option>
+                      <option value="dark-blue">🔵 Dark Blue</option>
                     </select>
                   </div>
                 </div>
