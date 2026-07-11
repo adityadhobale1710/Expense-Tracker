@@ -1,193 +1,338 @@
-import { useState, useEffect } from 'react';
-import {
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
-} from 'recharts';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
+import { Layers, Sun, Moon, Sparkles, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// Component imports
+import FilterBar from '../../components/analytics/FilterBar';
+import SummaryCards from '../../components/cards/SummaryCards';
+import ExpenseLineChart from '../../components/charts/ExpenseLineChart';
+import DonutChart from '../../components/charts/DonutChart';
+import PieChart from '../../components/charts/PieChart';
+import CategoryBreakdown from '../../components/analytics/CategoryBreakdown';
+import MonthlyComparisonChart from '../../components/charts/MonthlyComparisonChart';
+import CashFlowChart from '../../components/charts/CashFlowChart';
+import DailySpendingHeatmap from '../../components/charts/DailySpendingHeatmap';
+import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
+import ExpenseTrendChart from '../../components/charts/ExpenseTrendChart';
+import SpendingInsights from '../../components/analytics/SpendingInsights';
+import TransactionTable from '../../components/analytics/TransactionTable';
+
 export default function AnalyticsPro() {
-  const [incomes, setIncomes] = useState([]);
-  const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { theme, setTheme, toggleTheme } = useTheme();
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [incRes, expRes] = await Promise.all([
-        api.get('/income'),
-        api.get('/expenses')
-      ]);
-      setIncomes(incRes.data.data.incomes || []);
-      setExpenses(expRes.data.data.expenses || []);
-    } catch {
-      toast.error('Failed to load transaction data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Format cash flow (Group by month name)
-  const getCashFlowData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const flow = months.map(m => ({ name: m, Income: 0, Expense: 0 }));
-
-    incomes.forEach(i => {
-      const date = new Date(i.date);
-      if (date.getFullYear() === 2026) {
-        flow[date.getMonth()].Income += i.amount;
-      }
-    });
-
-    expenses.forEach(e => {
-      const date = new Date(e.date);
-      if (date.getFullYear() === 2026) {
-        flow[date.getMonth()].Expense += e.amount;
-      }
-    });
-
-    // Filter months with actual activities
-    return flow.filter(f => f.Income > 0 || f.Expense > 0);
-  };
-
-  const cashFlowData = getCashFlowData();
-
-  // Simulated heatmap cells (30 days of spending counts)
-  const heatmapData = Array.from({ length: 30 }, (_, i) => {
-    const day = i + 1;
-    const dayTransactions = expenses.filter(e => {
-      const d = new Date(e.date);
-      return d.getDate() === day && d.getMonth() === new Date().getMonth();
-    });
-    return {
-      day,
-      count: dayTransactions.length,
-      amount: dayTransactions.reduce((sum, e) => sum + e.amount, 0)
-    };
+  // Timeframe date states (Default: Current Month)
+  const [timeframe, setTimeframe] = useState('Month');
+  
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   });
 
-  // Simple Forecast logic (Next 3 months based on average)
-  const getForecastData = () => {
-    const avgExpense = expenses.length > 0 ? expenses.reduce((sum, e) => sum + e.amount, 0) / 3 : 18000;
-    const avgIncome = incomes.length > 0 ? incomes.reduce((sum, i) => sum + i.amount, 0) / 3 : 25000;
+  // Selected Category filter from Donut Chart
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
-    return [
+  // Parse string ISO dates for API query
+  const queryParams = {
+    startDate: startDate?.toISOString() || '',
+    endDate: endDate?.toISOString() || ''
+  };
+
+  // 1. Fetch Summary statistics (caching enabled)
+  const { data: summaryRes, isLoading: isSummaryLoading, refetch: refetchSummary } = useQuery({
+    queryKey: ['analyticsSummary', queryParams],
+    queryFn: async () => {
+      const res = await api.get('/analytics/summary', { params: queryParams });
+      return res.data.data;
+    }
+  });
+
+  // 2. Fetch Monthly bar totals
+  const { data: monthlyRes, isLoading: isMonthlyLoading, refetch: refetchMonthly } = useQuery({
+    queryKey: ['analyticsMonthly'],
+    queryFn: async () => {
+      const res = await api.get('/analytics/monthly');
+      return res.data.data;
+    }
+  });
+
+  // 3. Fetch Category breakdown totals
+  const { data: categoryRes, isLoading: isCategoryLoading, refetch: refetchCategory } = useQuery({
+    queryKey: ['analyticsCategory', queryParams],
+    queryFn: async () => {
+      const res = await api.get('/analytics/category', { params: queryParams });
+      return res.data.data;
+    }
+  });
+
+  // 4. Fetch Trend curves
+  const { data: trendRes, isLoading: isTrendLoading, refetch: refetchTrend } = useQuery({
+    queryKey: ['analyticsTrend', queryParams],
+    queryFn: async () => {
+      const res = await api.get('/analytics/trend', { params: queryParams });
+      return res.data.data;
+    }
+  });
+
+  // 5. Fetch Cashflow curves
+  const { data: cashflowRes, isLoading: isCashflowLoading, refetch: refetchCashflow } = useQuery({
+    queryKey: ['analyticsCashflow', queryParams],
+    queryFn: async () => {
+      const res = await api.get('/analytics/cashflow', { params: queryParams });
+      return res.data.data;
+    }
+  });
+
+  // 6. Fetch Heatmap cells
+  const { data: heatmapRes, isLoading: isHeatmapLoading, refetch: refetchHeatmap } = useQuery({
+    queryKey: ['analyticsHeatmap'],
+    queryFn: async () => {
+      const res = await api.get('/analytics/heatmap');
+      return res.data.data;
+    }
+  });
+
+  // 7. Fetch Income sources pie
+  const { data: incomeRes, isLoading: isIncomeLoading, refetch: refetchIncome } = useQuery({
+    queryKey: ['analyticsIncome', queryParams],
+    queryFn: async () => {
+      const res = await api.get('/analytics/income', { params: queryParams });
+      return res.data.data;
+    }
+  });
+
+  // Fetch all user category definitions for filter select lists
+  const { data: categoriesRes } = useQuery({
+    queryKey: ['categoriesList'],
+    queryFn: async () => {
+      const res = await api.get('/categories');
+      return res.data.data;
+    }
+  });
+
+  // Fetch raw transactional details for table listing
+  const { data: rawExpensesRes, isLoading: isRawExpensesLoading, refetch: refetchRawExpenses } = useQuery({
+    queryKey: ['rawExpensesList'],
+    queryFn: async () => {
+      const res = await api.get('/expenses?limit=1000');
+      return res.data.data.expenses || [];
+    }
+  });
+
+  const { data: rawIncomesRes, isLoading: isRawIncomesLoading, refetch: refetchRawIncomes } = useQuery({
+    queryKey: ['rawIncomesList'],
+    queryFn: async () => {
+      const res = await api.get('/income?limit=1000');
+      return res.data.data.incomes || [];
+    }
+  });
+
+  const handleRefreshAll = () => {
+    toast.promise(
+      Promise.all([
+        refetchSummary(),
+        refetchMonthly(),
+        refetchCategory(),
+        refetchTrend(),
+        refetchCashflow(),
+        refetchHeatmap(),
+        refetchIncome(),
+        refetchRawExpenses(),
+        refetchRawIncomes()
+      ]),
       {
-        name: 'Current Month',
-        Income: Number(avgIncome.toFixed(2)),
-        Expense: Number(avgExpense.toFixed(2))
-      },
-      {
-        name: 'Next Month (Est)',
-        Income: Number((avgIncome * 1.02).toFixed(2)),
-        Expense: Number((avgExpense * 0.96).toFixed(2))
-      },
-      {
-        name: 'Month 3 (Est)',
-        Income: Number((avgIncome * 1.05).toFixed(2)),
-        Expense: Number((avgExpense * 0.94).toFixed(2))
+        loading: 'Refreshing analytics ledger...',
+        success: 'Financial data successfully updated!',
+        error: 'Failed to refresh financial metrics.'
       }
-    ];
+    );
   };
 
-  const forecastData = getForecastData();
-
-  const getHeatmapColor = (count) => {
-    if (count === 0) return 'bg-slate-800/40 border border-slate-800';
-    if (count <= 2) return 'bg-indigo-900/40 border border-indigo-900/60 text-indigo-400';
-    if (count <= 4) return 'bg-indigo-700/50 border border-indigo-700 text-indigo-200';
-    return 'bg-indigo-500 border border-indigo-400 text-white font-bold';
-  };
+  const isLoading =
+    isSummaryLoading ||
+    isMonthlyLoading ||
+    isCategoryLoading ||
+    isTrendLoading ||
+    isCashflowLoading ||
+    isHeatmapLoading ||
+    isIncomeLoading ||
+    isRawExpensesLoading ||
+    isRawIncomesLoading;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100">Advanced Analytics</h1>
-        <p className="text-xs text-slate-400 mt-0.5">Explore cash flows, forecasts, category matrices, and spending calendars</p>
+    <div className="space-y-6 pb-12 p-1 max-w-[1600px] mx-auto transition-colors duration-300">
+      
+      {/* Title Header with Theme toggles */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/40 pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <Layers className="text-primary-500" size={24} />
+            <h1 className="text-2xl font-black text-slate-100 tracking-tight">Executive Analytics</h1>
+          </div>
+          <p className="text-xs text-slate-400 mt-1">
+            Realtime balance sheets, allocation projections, and predictive algorithms.
+          </p>
+        </div>
+
+        {/* Global Controls */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefreshAll}
+            className="p-2.5 bg-dark-800 border border-slate-700/60 rounded-xl text-slate-355 hover:text-white transition-all hover:bg-slate-800 cursor-pointer"
+            title="Refresh All Data"
+          >
+            <RefreshCw size={15} />
+          </button>
+
+          {/* Theme custom selector */}
+          <div className="flex items-center gap-1 bg-dark-800/80 p-1 border border-slate-700/60 rounded-xl">
+            <button
+              onClick={() => setTheme('light')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                theme === 'light' ? 'bg-primary-500 text-white shadow' : 'text-slate-500 hover:text-slate-350'
+              }`}
+              title="Light theme"
+            >
+              <Sun size={14} />
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-primary-500 text-white shadow' : 'text-slate-500 hover:text-slate-355'
+              }`}
+              title="Dark theme"
+            >
+              <Moon size={14} />
+            </button>
+            <button
+              onClick={() => setTheme('midnight')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                theme === 'midnight' ? 'bg-primary-500 text-white shadow' : 'text-slate-500 hover:text-slate-355'
+              }`}
+              title="Midnight theme"
+            >
+              <Sparkles size={14} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="card h-64 animate-pulse bg-slate-800/40" />
-          <div className="card h-64 animate-pulse bg-slate-800/40" />
+      {/* 1. FILTER BAR */}
+      <FilterBar
+        timeframe={timeframe}
+        setTimeframe={setTimeframe}
+        startDate={startDate}
+        setStartDate={setStartDate}
+        endDate={endDate}
+        setEndDate={setEndDate}
+      />
+
+      {/* Loading Skeleton States */}
+      {isLoading ? (
+        <div className="space-y-6 animate-pulse">
+          {/* Card grid skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="h-28 bg-dark-800/60 border border-slate-800 rounded-2xl" />
+            ))}
+          </div>
+          {/* Charts grid skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="h-80 lg:col-span-2 bg-dark-800/60 border border-slate-800 rounded-3xl" />
+            <div className="h-80 bg-dark-800/60 border border-slate-800 rounded-3xl" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-80 bg-dark-800/60 border border-slate-800 rounded-3xl" />
+            <div className="h-80 bg-dark-800/60 border border-slate-800 rounded-3xl" />
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Cash Flow Line Chart */}
-          <div className="card space-y-4">
-            <h3 className="text-sm font-bold text-slate-200">2026 Monthly Cash Flow</h3>
-            <div className="h-64 mt-4">
-              {cashFlowData.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-20">Log transactions to trace curves</p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={cashFlowData}>
-                    <defs>
-                      <linearGradient id="incomeColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="expenseColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                    <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
-                    <YAxis stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
-                    <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }} />
-                    <Legend />
-                    <Area type="monotone" dataKey="Income" stroke="#10b981" fillOpacity={1} fill="url(#incomeColor)" />
-                    <Area type="monotone" dataKey="Expense" stroke="#ef4444" fillOpacity={1} fill="url(#expenseColor)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
+        <div className="space-y-6">
+          {/* 2. SUMMARY CARDS */}
+          <SummaryCards summary={summaryRes} />
 
-          {/* AI Projections & Forecast */}
-          <div className="card space-y-4">
-            <h3 className="text-sm font-bold text-slate-200">AI Expense & Savings Forecast</h3>
-            <div className="h-64 mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={forecastData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
-                  <YAxis stroke="var(--chart-text)" fontSize={11} tick={{ fill: 'var(--chart-text)' }} />
-                  <Tooltip
-                    formatter={(value) => `₹${value.toFixed(2)}`}
-                    contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }}
-                  />
-                  <Legend />
-                  <Bar dataKey="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Expense" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Core Analytics Line & Donut */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* 3. EXPENSE LINE CHART */}
+            <div className="lg:col-span-2">
+              <ExpenseLineChart trendData={trendRes} />
             </div>
-          </div>
-
-          {/* Spending Heatmap Calendar */}
-          <div className="card lg:col-span-2 space-y-4">
+            
+            {/* 4. DONUT CHART */}
             <div>
-              <h3 className="text-sm font-bold text-slate-200">Current Month Daily Spending Heatmap</h3>
-              <p className="text-[10px] text-slate-500 mt-0.5">Visual representation of transactions density over the calendar days</p>
-            </div>
-            <div className="grid grid-cols-5 sm:grid-cols-10 gap-3 pt-2">
-              {heatmapData.map((d) => (
-                <div
-                  key={d.day}
-                  title={`Day ${d.day}: ${d.count} transactions, ₹${d.amount}`}
-                  className={`h-12 flex flex-col justify-between p-1.5 rounded-lg transition-all text-[9px] font-semibold cursor-default ${getHeatmapColor(d.count)}`}
-                >
-                  <span className="text-slate-400">Day {d.day}</span>
-                  <span className="text-right text-[10px] font-extrabold">{d.count > 0 ? `${d.count}x` : ''}</span>
-                </div>
-              ))}
+              <DonutChart
+                categoryData={categoryRes?.breakdown || []}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+              />
             </div>
           </div>
+
+          {/* Allocation Details Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 6. CATEGORY BREAKDOWN */}
+            <CategoryBreakdown categoryData={categoryRes?.breakdown || []} />
+
+            {/* 5. PIE CHART */}
+            <PieChart incomeData={incomeRes} />
+          </div>
+
+          {/* Annual trends Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 7. MONTHLY COMPARISON */}
+            <MonthlyComparisonChart monthlyData={monthlyRes} />
+
+            {/* 8. CASH FLOW CHART */}
+            <CashFlowChart cashflowData={cashflowRes} />
+          </div>
+
+          {/* Heatmaps & Toptens Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* 9. DAILY SPENDING HEATMAP */}
+            <div className="lg:col-span-2">
+              <DailySpendingHeatmap heatmapData={heatmapRes} />
+            </div>
+
+            {/* 10. TOP SPENDING CATEGORIES */}
+            <div>
+              <TopCategoriesChart categoryData={categoryRes?.breakdown || []} />
+            </div>
+          </div>
+
+          {/* Forecast Predictions & Highlights */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* 11. EXPENSE TREND */}
+            <div className="lg:col-span-2">
+              <ExpenseTrendChart trendData={trendRes} />
+            </div>
+
+            {/* 12. SPENDING INSIGHTS */}
+            <div>
+              <SpendingInsights
+                summary={summaryRes}
+                categoryData={categoryRes?.breakdown || []}
+                trendData={trendRes}
+              />
+            </div>
+          </div>
+
+          {/* 13. TRANSACTION TABLE */}
+          <TransactionTable
+            incomes={rawIncomesRes}
+            expenses={rawExpensesRes}
+            categories={categoriesRes}
+            startDate={startDate}
+            endDate={endDate}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
         </div>
       )}
     </div>

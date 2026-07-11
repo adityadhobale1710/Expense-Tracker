@@ -23,6 +23,7 @@ import splitRoutes from './routes/splitRoutes.js';
 import familyRoutes from './routes/familyRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -54,6 +55,7 @@ app.use('/api/splits', splitRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
