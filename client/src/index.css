@@ -69,6 +69,11 @@ html[data-theme="midnight"] {
   --slate-200: 129 140 248;
   --slate-300: 99 102 241;
   --slate-400: 79 70 229;
+  --slate-500: 99 102 241;
+  --slate-600: 79 70 229;
+  --slate-700: 67 56 202;
+  --slate-800: 12 14 35;
+  --slate-900: 6 7 20;
 }
 
 /* Ocean Theme */
@@ -84,6 +89,11 @@ html[data-theme="ocean"] {
   --slate-200: 125 211 252;
   --slate-300: 56 189 248;
   --slate-400: 14 165 233;
+  --slate-500: 14 165 233;
+  --slate-600: 2 132 199;
+  --slate-700: 30 50 80;
+  --slate-800: 10 25 50;
+  --slate-900: 4 15 35;
 }
 
 /* Forest Theme */
@@ -99,6 +109,11 @@ html[data-theme="forest"] {
   --slate-200: 134 239 172;
   --slate-300: 74 222 128;
   --slate-400: 34 197 94;
+  --slate-500: 34 197 94;
+  --slate-600: 22 163 74;
+  --slate-700: 30 60 40;
+  --slate-800: 10 28 16;
+  --slate-900: 4 16 8;
 }
 
 /* Purple Neon Theme */
@@ -114,6 +129,11 @@ html[data-theme="purple-neon"] {
   --slate-200: 232 121 249;
   --slate-300: 217 70 239;
   --slate-400: 192 38 211;
+  --slate-500: 192 38 211;
+  --slate-600: 162 28 175;
+  --slate-700: 55 10 80;
+  --slate-800: 22 3 36;
+  --slate-900: 12 1 20;
 }
 
 /* Dark Blue Theme */
@@ -129,6 +149,11 @@ html[data-theme="dark-blue"] {
   --slate-200: 147 197 253;
   --slate-300: 96 165 250;
   --slate-400: 59 130 246;
+  --slate-500: 59 130 246;
+  --slate-600: 37 99 235;
+  --slate-700: 29 78 216;
+  --slate-800: 20 40 80;
+  --slate-900: 10 25 55;
 }
 
 

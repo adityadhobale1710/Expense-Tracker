@@ -3,6 +3,17 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExpenseProvider } from './context/ExpenseContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes cache stale
+    },
+  },
+});
 
 import Layout from './components/common/Layout';
 import Login from './pages/Auth/Login';
@@ -75,21 +86,23 @@ const AppRoutes = () => (
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <ExpenseProvider>
-            <AppRoutes />
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
-                success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
-              }}
-            />
-          </ExpenseProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <ExpenseProvider>
+              <AppRoutes />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
+                  success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+                }}
+              />
+            </ExpenseProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
