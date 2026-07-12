@@ -2,7 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import dns from 'dns';
 import connectDB from './config/db.js';
+
+// Set public DNS servers to resolve MongoDB SRV records
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 import errorHandler from './middleware/errorHandler.js';
 
 import authRoutes from './routes/authRoutes.js';
