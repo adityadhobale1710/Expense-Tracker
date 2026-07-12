@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import SplitExpense from '../models/SplitExpense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
+import { env } from '../config/env.js';
 
 // @desc    Get all split expenses for user
 // @route   GET /api/splits
@@ -34,6 +35,7 @@ export const createSplit = asyncHandler(async (req, res) => {
     const currency = req.user.currency || 'INR';
 
     members.forEach((m) => {
+      const clientUrl = env.CLIENT_URLS[0] || 'http://localhost:5173';
       const emailHtml = getHtmlTemplate({
         title: 'New Split Bill Notification',
         greeting: `Hello,`,
@@ -41,7 +43,7 @@ export const createSplit = asyncHandler(async (req, res) => {
               `Total Bill Amount: <strong>${currency} ${amount}</strong><br/>` +
               `Your Share: <strong>${currency} ${m.share}</strong>`,
         ctaText: 'View Split Bills',
-        ctaUrl: `${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`,
+        ctaUrl: `${clientUrl}/dashboard`,
         footerText: 'Log in to My Expense Pro to manage and settle your active split bills.',
       });
 
@@ -49,7 +51,7 @@ export const createSplit = asyncHandler(async (req, res) => {
         to: m.userEmail.toLowerCase(),
         subject: `New Split Bill: "${title}" by ${creatorName} - My Expense Pro`,
         html: emailHtml,
-        text: `Hello!\n\n${creatorName} shared a split bill with you.\n\nBill: "${title}"\nTotal Amount: ${currency} ${amount}\nYour Share: ${currency} ${m.share}\n\nView and settle your split bills on My Expense Pro: ${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`,
+        text: `Hello!\n\n${creatorName} shared a split bill with you.\n\nBill: "${title}"\nTotal Amount: ${currency} ${amount}\nYour Share: ${currency} ${m.share}\n\nView and settle your split bills on My Expense Pro: ${clientUrl}/dashboard`,
       }).catch((err) => console.error(`Split bill email notify failed for ${m.userEmail}:`, err));
     });
   }

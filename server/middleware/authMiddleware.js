@@ -14,7 +14,28 @@ export const protect = asyncHandler(async (req, res, next) => {
         res.status(401);
         throw new Error('User not found');
       }
-      next();
+      return next();
+    } catch (error) {
+      res.status(401);
+      throw new Error('Not authorized, token failed');
+    }
+  } else if (req.query.token) {
+    // strict check: allow query parameter authentication ONLY for analytics file download paths
+    const isDownloadRoute = req.originalUrl.includes('/api/analytics/export/');
+    if (!isDownloadRoute) {
+      res.status(401);
+      throw new Error('Not authorized, query token only permitted for export requests');
+    }
+
+    try {
+      token = req.query.token;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select('-password -refreshToken');
+      if (!req.user) {
+        res.status(401);
+        throw new Error('User not found');
+      }
+      return next();
     } catch (error) {
       res.status(401);
       throw new Error('Not authorized, token failed');
