@@ -3,12 +3,9 @@ import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { to: '/dashboard',   icon: '📊', label: 'Dashboard' },
-  { to: '/wallets',     icon: '💳', label: 'Wallets' },
   { to: '/income',      icon: '💰', label: 'Income' },
   { to: '/expenses',    icon: '💸', label: 'Expenses' },
   { to: '/budget',      icon: '🎯', label: 'Budget' },
-  { to: '/goals',       icon: '🥅', label: 'Savings Goals' },
-  { to: '/investments', icon: '📈', label: 'Investments' },
   { to: '/loans',       icon: '🏛️', label: 'Loans & EMIs' },
   { to: '/subscriptions',icon: '🔁', label: 'Subscriptions' },
   { to: '/split-bills', icon: '🍕', label: 'Split Bills' },
