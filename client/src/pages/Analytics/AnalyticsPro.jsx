@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../services/api';
+import api, { API_URL } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 import { Layers, Sparkles, Plus, Database, AlertCircle, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -238,7 +238,7 @@ export default function AnalyticsPro() {
   };
 
   const handleExport = (format) => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const baseUrl = API_URL;
     const sStr = startDate ? startDate.toISOString() : '';
     const eStr = endDate ? endDate.toISOString() : '';
     const token = localStorage.getItem('accessToken');

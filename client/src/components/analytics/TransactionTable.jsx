@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Settings2, Trash2, CheckSquare, Square, Columns, 
   Layers, Sliders, ChevronDownSquare, Calendar, Tag, CreditCard, ExternalLink
 } from 'lucide-react';
-import api from '../../services/api';
+import api, { API_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -178,7 +178,7 @@ export default function TransactionTable({
   };
 
   const handleExport = (format) => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const baseUrl = API_URL;
     const sStr = startDate ? startDate.toISOString() : '';
     const eStr = endDate ? endDate.toISOString() : '';
     const token = localStorage.getItem('accessToken');
