@@ -10,7 +10,7 @@ import mongoSanitize from 'express-mongo-sanitize';
 import cookieParser from 'cookie-parser';
 
 // Validate Env vars first
-import { env } from './config/env.js';
+import './config/env.js';
 import connectDB from './config/db.js';
 import logger from './utils/logger.js';
 import { xssSanitizer } from './middleware/xssSanitizer.js';
@@ -50,7 +50,7 @@ app.set('trust proxy', 1);
 app.use(helmet()); // Secure HTTP headers
 app.use(compression()); // Compress text-based responses
 app.use(express.json({ limit: '50kb' })); // Body parser with small limit to prevent payload attacks
-app.use(cookieParser(env.COOKIE_SECRET)); // Cookie parser with secret key
+app.use(cookieParser(process.env.COOKIE_SECRET)); // Cookie parser with secret key
 app.use(mongoSanitize()); // Prevent NoSQL injection
 app.use(hpp()); // Prevent HTTP Parameter Pollution
 app.use(xssSanitizer); // Sanitize XSS payloads in request body/query/params
@@ -59,7 +59,7 @@ app.use(xssSanitizer); // Sanitize XSS payloads in request body/query/params
 app.disable('x-powered-by');
 
 // ─── Winston request logging via Morgan ──────────────────────────────────────────
-const morganFormat = env.NODE_ENV === 'production' ? 'combined' : 'dev';
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
 app.use(morgan(morganFormat, {
   stream: {
     write: (message) => logger.info(message.trim())
@@ -67,23 +67,24 @@ app.use(morgan(morganFormat, {
 }));
 
 // ─── CORS Policy ───────────────────────────────────────────────────────────────
-const allowedOrigins = env.CLIENT_URLS;
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    const isAllowed = allowedOrigins.includes(origin) ||
-      (env.NODE_ENV === 'development' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
+    // Standardize client URL (remove trailing slash)
+    const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+
+    const isAllowed = (origin === clientUrl) ||
+      (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
 
     if (isAllowed) {
       return callback(null, true);
     }
 
     // Dynamic verification for Vercel preview environments
-    const prodDomain = allowedOrigins.find(url => url.includes('vercel.app'));
-    if (prodDomain) {
+    if (clientUrl && clientUrl.includes('vercel.app')) {
       try {
-        const prodHost = new URL(prodDomain).hostname;
+        const prodHost = new URL(clientUrl).hostname;
         const projectPrefix = prodHost.split('.vercel.app')[0].split('-').slice(0, 2).join('-');
         const originHost = new URL(origin).hostname;
         if (originHost.startsWith(projectPrefix) && originHost.endsWith('.vercel.app')) {
@@ -97,7 +98,7 @@ app.use(cors({
     logger.warn(`CORS block triggered for origin: ${origin}`);
     callback(null, false); // Reject CORS request
   },
-  credentials: true,
+  credentials: true, // Required to allow cookies in production
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
   optionsSuccessStatus: 200
@@ -146,7 +147,7 @@ app.use((req, res) => {
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use(errorHandler);
 
-const PORT = env.PORT;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 app.listen(PORT, () => {
-  logger.info(`🚀 Server running in ${env.NODE_ENV} mode on http://localhost:${PORT}`);
+  logger.info(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on http://localhost:${PORT}`);
 });

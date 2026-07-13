@@ -3,7 +3,6 @@ import Family from '../models/Family.js';
 import Expense from '../models/Expense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
-import { env } from '../config/env.js';
 
 // @desc    Get family hub for current user
 // @route   GET /api/family
@@ -59,7 +58,7 @@ export const inviteMember = asyncHandler(async (req, res) => {
 
   await family.save();
 
-  const clientUrl = env.CLIENT_URLS[0] || 'http://localhost:5173';
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const inviteHtml = getHtmlTemplate({
     title: 'Family Hub Invitation',
     greeting: 'Hello!',
