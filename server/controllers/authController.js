@@ -5,7 +5,6 @@ import Category from '../models/Category.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
-import { env } from '../config/env.js';
 
 const DEFAULT_CATEGORIES = [
   { name: 'Food & Dining', icon: '🍔', color: '#f97316', type: 'expense' },
@@ -216,7 +215,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = null;
   await user.save();
 
-  const clientUrl = env.CLIENT_URLS[0] || 'http://localhost:5173';
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const confirmHtml = getHtmlTemplate({
     title: 'Password Successfully Reset',
     greeting: `Hello, ${user.name}`,

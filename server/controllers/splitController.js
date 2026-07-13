@@ -2,7 +2,6 @@ import asyncHandler from 'express-async-handler';
 import SplitExpense from '../models/SplitExpense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
-import { env } from '../config/env.js';
 
 // @desc    Get all split expenses for user
 // @route   GET /api/splits
@@ -35,7 +34,7 @@ export const createSplit = asyncHandler(async (req, res) => {
     const currency = req.user.currency || 'INR';
 
     members.forEach((m) => {
-      const clientUrl = env.CLIENT_URLS[0] || 'http://localhost:5173';
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
       const emailHtml = getHtmlTemplate({
         title: 'New Split Bill Notification',
         greeting: `Hello,`,
