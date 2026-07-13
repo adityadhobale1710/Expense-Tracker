@@ -161,7 +161,7 @@ export default function Subscriptions() {
                 <label className="label">Subscription Service</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Netflix, Spotify Premium, Adobe Creative Cloud" className="input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Billing Cycle</label>
                   <select value={billingCycle} onChange={(e) => setBillingCycle(e.target.value)} className="select">
@@ -174,7 +174,7 @@ export default function Subscriptions() {
                   <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0.00" className="input" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Renewal / Billing Date</label>
                   <input type="date" value={renewalDate} onChange={(e) => setRenewalDate(e.target.value)} className="input" />

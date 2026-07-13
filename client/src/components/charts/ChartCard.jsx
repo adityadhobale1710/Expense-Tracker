@@ -80,7 +80,7 @@ export default function ChartCard({
       </div>
 
       {/* Main Chart Body Container */}
-      <div className={`flex-1 w-full min-h-0 ${isFullscreen ? 'h-[75vh]' : 'h-72'}`}>
+      <div className={`flex-1 w-full min-h-0 ${isFullscreen ? 'h-[75dvh]' : 'h-64 sm:h-72'}`}>
         {children}
       </div>
 
@@ -96,10 +96,10 @@ export default function ChartCard({
         </div>
       ) : (
         /* Fullscreen Overlay Render */
-        <div className="fixed inset-0 bg-dark-900/90 z-50 p-6 backdrop-blur-md overflow-hidden flex flex-col justify-center">
+        <div className="fixed inset-0 bg-dark-900/90 z-50 p-4 md:p-6 backdrop-blur-md overflow-hidden flex flex-col justify-center">
           <motion.div
             layoutId={`fullscreen-chart-${title}`}
-            className="bg-dark-900 border border-slate-700/60 rounded-3xl p-6 shadow-2xl w-full max-w-5xl mx-auto h-[90vh] flex flex-col justify-between"
+            className="bg-dark-900 border border-slate-700/60 rounded-3xl p-4 md:p-6 shadow-2xl w-full max-w-5xl mx-auto h-[90dvh] flex flex-col justify-between"
           >
             {cardContent}
           </motion.div>

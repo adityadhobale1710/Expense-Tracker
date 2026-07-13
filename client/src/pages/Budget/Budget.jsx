@@ -127,7 +127,7 @@ export default function Budget() {
               {categories.map((c) => <option key={c._id} value={c._id}>{c.icon} {c.name}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Budget Limit (₹) *</label>
               <input type="number" className="input" value={form.limit} onChange={(e) => setForm({ ...form, limit: e.target.value })} required min="0" placeholder="0" />
