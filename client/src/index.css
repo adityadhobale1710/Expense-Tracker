@@ -275,12 +275,13 @@ html[data-theme="dark-blue"] {
     @apply border-b-0;
   }
 
-  /* ── Page Header ────────────────────────────────────── */
+  /* ── Page Header ────────────────────────────────────────── */
   .page-header {
     @apply flex items-center justify-between mb-6;
   }
   .page-title {
-    @apply text-2xl font-bold text-slate-100;
+    /* Phase 8 prep: scale heading down on phones */
+    @apply text-xl md:text-2xl font-bold text-slate-100;
   }
   .page-subtitle {
     @apply text-sm text-slate-400 mt-0.5;
@@ -288,28 +289,57 @@ html[data-theme="dark-blue"] {
 
   /* ── Sidebar ────────────────────────────────────────── */
   .nav-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer;
+    /* Default (tablet rail): center the icon, no gap */
+    @apply flex items-center justify-center gap-0 px-0 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer;
+  }
+  /* Desktop (≥1024px): left-aligned with label gap */
+  @media (min-width: 1024px) {
+    .nav-link {
+      @apply justify-start gap-3 px-3;
+    }
   }
   .nav-link.active {
     @apply bg-primary-600/20 text-primary-400 border border-primary-500/20;
   }
 
-  /* Responsive sidebar — desktop: always visible static column */
-  .sidebar {
-    @apply w-60 bg-dark-800 border-r border-slate-700/50 flex flex-col flex-shrink-0 relative;
+  /* ── App shell: h-dvh with 100vh fallback for older browsers ── */
+  .app-shell {
+    height: 100vh;      /* fallback */
+    height: 100dvh;     /* dynamic viewport height — fixes iOS/Android address-bar clip */
   }
 
-  /* Mobile close button — hidden on desktop */
+  /* ── Sidebar ─────────────────────────────────────────────────── */
+
+  /* Tablet default (768px–1023px): icon-only rail */
+  .sidebar {
+    width: 4.5rem;  /* ~72px — icon rail */
+    background-color: rgb(var(--dark-800));
+    border-right: 1px solid rgba(var(--slate-700), 0.5);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Desktop (≥1024px): full labeled sidebar */
+  @media (min-width: 1024px) {
+    .sidebar {
+      width: 15rem; /* 240px — matches Tailwind w-60 */
+    }
+  }
+
+  /* Mobile close button — hidden on tablet/desktop */
   .sidebar-close-btn {
     @apply hidden;
   }
 
-  /* Mobile overlay backdrop */
+  /* Mobile overlay backdrop — hidden on tablet/desktop */
   .sidebar-overlay {
     @apply hidden;
   }
 
-  /* ── Mobile (< md) ── */
+  /* ── Mobile (<768px): slide-in drawer ── */
   @media (max-width: 767px) {
     /* Sidebar becomes a fixed slide-in drawer */
     .sidebar {
@@ -317,7 +347,8 @@ html[data-theme="dark-blue"] {
       top: 0;
       left: 0;
       height: 100%;
-      width: 16rem; /* 256px / w-64 */
+      height: 100dvh;
+      width: 15rem; /* 240px — unified with desktop */
       z-index: 60;
       transform: translateX(-100%);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
