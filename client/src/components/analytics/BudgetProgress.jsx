@@ -114,7 +114,7 @@ export default function BudgetProgress({
       </div>
 
       {/* Stack Legends */}
-      <div className="grid grid-cols-5 gap-1.5 text-center">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-center">
         <div className="flex flex-col items-center">
           <div className="w-2 h-2 rounded-full bg-[#6366f1] mb-1" />
           <span className="text-[9px] font-bold text-slate-400">Needs ({allocationData[0].Needs}%)</span>

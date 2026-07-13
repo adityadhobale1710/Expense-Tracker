@@ -171,8 +171,8 @@ export default function Loans() {
 
       {/* CREATE LOAN MODAL */}
       {showCreate && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card w-full max-w-md space-y-4">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="card w-full max-w-md space-y-4 max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl my-auto">
             <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
               <h3 className="font-bold text-slate-100">Log Loan Account</h3>
               <button onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-slate-100">✕</button>

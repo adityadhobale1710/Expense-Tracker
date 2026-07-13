@@ -271,7 +271,7 @@ export default function DonutChart({
                     style={{ backgroundColor: cat.color }}
                   />
                   <span className="text-xs flex-shrink-0">{cat.icon}</span>
-                  <span className="truncate max-w-[80px]">{cat.name}</span>
+                  <span className="truncate max-w-[80px] sm:max-w-[120px]">{cat.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 font-mono text-right">
                   <span className="font-bold text-slate-205">{currencySymbol}{Math.round(cat.total).toLocaleString()}</span>
