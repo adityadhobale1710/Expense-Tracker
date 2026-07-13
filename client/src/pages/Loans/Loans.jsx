@@ -182,7 +182,7 @@ export default function Loans() {
                 <label className="label">Loan Account Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. SBI Home Loan, Apple iPhone EMI" className="input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Loan Type</label>
                   <select value={type} onChange={(e) => setType(e.target.value)} className="select">
@@ -198,7 +198,7 @@ export default function Loans() {
                   <input type="number" step="0.1" value={interestRate} onChange={(e) => setInterestRate(e.target.value)} placeholder="e.g. 8.5" className="input" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="form-group">
                   <label className="label">Duration (m)</label>
                   <input type="number" value={durationMonths} onChange={(e) => setDurationMonths(e.target.value)} placeholder="Months" className="input" />
@@ -212,7 +212,7 @@ export default function Loans() {
                   <input type="number" value={emiAmount} onChange={(e) => setEmiAmount(e.target.value)} placeholder="Installment" className="input" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Remaining Balance (₹)</label>
                   <input type="number" value={remainingBalance} onChange={(e) => setRemainingBalance(e.target.value)} placeholder="Principal left" className="input" />

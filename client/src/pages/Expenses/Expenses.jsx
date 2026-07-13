@@ -103,11 +103,11 @@ export default function Expenses() {
 
       {/* Filters */}
       <div className="card-sm flex flex-wrap gap-3">
-        <select className="select max-w-[160px]" value={filter.paymentMethod} onChange={(e) => setFilter({ ...filter, paymentMethod: e.target.value })}>
+        <select className="select flex-1 min-w-[140px]" value={filter.paymentMethod} onChange={(e) => setFilter({ ...filter, paymentMethod: e.target.value })}>
           <option value="">All Payment Methods</option>
           {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m.toUpperCase()}</option>)}
         </select>
-        <select className="select max-w-[180px]" value={filter.category} onChange={(e) => setFilter({ ...filter, category: e.target.value })}>
+        <select className="select flex-1 min-w-[140px]" value={filter.category} onChange={(e) => setFilter({ ...filter, category: e.target.value })}>
           <option value="">All Categories</option>
           {categories.map((c) => <option key={c._id} value={c._id}>{c.icon} {c.name}</option>)}
         </select>
@@ -168,7 +168,7 @@ export default function Expenses() {
 
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'add' ? 'Add Expense' : 'Edit Expense'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Title *</label>
               <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Grocery shopping" />
@@ -178,7 +178,7 @@ export default function Expenses() {
               <input type="number" className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0" placeholder="0" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Date *</label>
               <input type="date" className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
@@ -188,7 +188,7 @@ export default function Expenses() {
               <input type="time" className="input" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Category</label>
               <select className="select" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>

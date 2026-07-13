@@ -205,7 +205,7 @@ export default function FamilySharing() {
                 <label className="label">Item Name / Title</label>
                 <input type="text" value={reqTitle} onChange={(e) => setReqTitle(e.target.value)} placeholder="e.g. Science Class Books, Weekly Groceries" className="input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Category</label>
                   <select value={reqCategory} onChange={(e) => setReqCategory(e.target.value)} className="select">

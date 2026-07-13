@@ -586,7 +586,7 @@ export default function Achievements() {
         <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[180px]">
           <div>
             <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Currency & Streak Tracker</span>
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               
               {/* Coins Widget */}
               <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 flex items-center gap-3">

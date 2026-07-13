@@ -163,7 +163,7 @@ export default function SplitBills() {
                 <label className="label">Bill Title</label>
                 <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Olive Garden Dinner, Airbnb Cabin rent" className="input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Group Category</label>
                   <select value={groupName} onChange={(e) => setGroupName(e.target.value)} className="select">

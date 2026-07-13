@@ -137,7 +137,7 @@ export default function Income() {
 
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'add' ? 'Add Income' : 'Edit Income'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Title *</label>
               <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Monthly Salary" />
@@ -147,7 +147,7 @@ export default function Income() {
               <input type="number" className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0" placeholder="0" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Date *</label>
               <input type="date" className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
@@ -157,7 +157,7 @@ export default function Income() {
               <input type="time" className="input" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Category</label>
               <input className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="e.g. Salary" />
