@@ -55,7 +55,7 @@ export default function Sidebar({ isOpen, onClose }) {
               </svg>
             </div>
             {/* Brand name: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
-            <div className="hidden lg:block">
+            <div className="block md:hidden lg:block">
               <h1 className="font-bold text-slate-100 text-base leading-tight">My Expense</h1>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Pro Edition</p>
             </div>
@@ -65,7 +65,7 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Navigation */}
         <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
           {/* Section label: only on desktop */}
-          <p className="hidden lg:block text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-3">Main Menu</p>
+          <p className="block md:hidden lg:block text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-3">Main Menu</p>
           {NAV_ITEMS.map(({ to, icon, label }) => (
             <NavLink
               key={to}
@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen, onClose }) {
             >
               <span className="text-lg flex-shrink-0">{icon}</span>
               {/* Label: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
-              <span className="hidden lg:inline">{label}</span>
+              <span className="inline md:hidden lg:inline">{label}</span>
             </NavLink>
           ))}
           {user?.role === 'admin' && (
@@ -87,7 +87,7 @@ export default function Sidebar({ isOpen, onClose }) {
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               <span className="text-lg flex-shrink-0">🛡️</span>
-              <span className="hidden lg:inline">Admin Portal</span>
+              <span className="inline md:hidden lg:inline">Admin Portal</span>
             </NavLink>
           )}
         </nav>
@@ -99,7 +99,7 @@ export default function Sidebar({ isOpen, onClose }) {
               {initials}
             </div>
             {/* Name & role: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
-            <div className="hidden lg:block flex-1 min-w-0">
+            <div className="block md:hidden lg:block flex-1 min-w-0">
               <h4 className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Guest User'}</h4>
               <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mt-0.5">
                 {user?.role === 'premium' ? '👑 Premium User' : user?.role === 'admin' ? '🛡️ Admin User' : 'Standard Tier'}
