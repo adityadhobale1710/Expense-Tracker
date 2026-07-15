@@ -107,7 +107,7 @@ export default function BillCalendar() {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-400 mb-3">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[9px] sm:text-xs font-semibold text-slate-400 mb-3">
             <div>SUN</div>
             <div>MON</div>
             <div>TUE</div>
@@ -117,11 +117,11 @@ export default function BillCalendar() {
             <div>SAT</div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {calendarDays.map((item, index) => (
               <div
                 key={index}
-                className={`min-h-[70px] p-2 border border-slate-700/30 rounded-xl flex flex-col justify-between text-left transition-all duration-200 ${
+                className={`min-h-[44px] sm:min-h-[70px] p-1 sm:p-2 border border-slate-700/30 rounded-lg sm:rounded-xl flex flex-col justify-between text-left transition-all duration-200 ${
                   item.isCurrentMonth
                     ? 'bg-dark-900/40 hover:bg-slate-800/40'
                     : 'bg-dark-900/10 opacity-30 cursor-not-allowed'

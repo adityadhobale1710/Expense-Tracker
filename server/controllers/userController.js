@@ -1,7 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { seedDataForUser } from '../utils/seeder.js';
 
 // @desc  Get current user profile
 // @route GET /api/users/me
@@ -61,10 +60,4 @@ export const deleteMe = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Account deleted successfully');
 });
 
-// @desc  Seed mock data for current user
-// @route POST /api/users/seed
-export const seedUserMockData = asyncHandler(async (req, res) => {
-  await seedDataForUser(req.user._id);
-  sendSuccess(res, 200, 'Mock data seeded successfully');
-});
 

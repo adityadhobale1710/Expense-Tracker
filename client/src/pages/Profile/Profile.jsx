@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -34,7 +34,6 @@ export default function Profile() {
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
-  const [seeding, setSeeding] = useState(false);
 
   // Global theme context
   const { theme, setTheme } = useTheme();
@@ -53,6 +52,74 @@ export default function Profile() {
     { id: 1, name: 'Windows 11 PC (Chrome browser) - Current', ip: '192.168.1.42', time: 'Active Session' },
     { id: 2, name: 'OnePlus 11 Smartphone (Mobile App)', ip: '103.54.21.90', time: 'Yesterday, 9:24 PM' }
   ]);
+
+  // Interactive Currency Converter states
+  const [convAmount, setConvAmount] = useState('1');
+  const [fromCurr, setFromCurr] = useState(user?.currency || 'USD');
+  const [toCurr, setToCurr] = useState(user?.currency === 'USD' ? 'INR' : 'USD');
+  const [exchangeRates, setExchangeRates] = useState({});
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+
+  // Fetch exchange rates from free open API
+  const fetchRates = async (base) => {
+    if (!liveCurrencySync) return;
+    setIsLoadingRates(true);
+    try {
+      const response = await fetch(`https://open.er-api.com/v6/latest/${base}`);
+      const data = await response.json();
+      if (data && data.rates) {
+        setExchangeRates(data.rates);
+      }
+    } catch (err) {
+      console.error('Failed to fetch live currency rates:', err);
+      // Fallback rates if API fails or offline
+      const staticFallbacks = {
+        USD: { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.78 },
+        INR: { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0093 },
+        EUR: { EUR: 1, USD: 1.09, INR: 90.7, GBP: 0.85 },
+        GBP: { GBP: 1, USD: 1.28, INR: 106.8, EUR: 1.18 }
+      };
+      setExchangeRates(staticFallbacks[base] || staticFallbacks['USD']);
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRates(fromCurr);
+  }, [fromCurr, liveCurrencySync]);
+
+  const getConvertedVal = () => {
+    if (exchangeRates[toCurr]) {
+      const rate = exchangeRates[toCurr];
+      const val = parseFloat(convAmount);
+      if (isNaN(val)) return '0.00';
+      return (val * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const fallbackRates = {
+      USD: { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.78 },
+      INR: { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0093 },
+      EUR: { EUR: 1, USD: 1.09, INR: 90.7, GBP: 0.85 },
+      GBP: { GBP: 1, USD: 1.28, INR: 106.8, EUR: 1.18 }
+    };
+    const rate = fallbackRates[fromCurr]?.[toCurr] || 1;
+    const val = parseFloat(convAmount);
+    if (isNaN(val)) return '0.00';
+    return (val * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const getActiveRate = () => {
+    if (exchangeRates[toCurr]) {
+      return exchangeRates[toCurr].toFixed(4);
+    }
+    const fallbackRates = {
+      USD: { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.78 },
+      INR: { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0093 },
+      EUR: { EUR: 1, USD: 1.09, INR: 90.7, GBP: 0.85 },
+      GBP: { GBP: 1, USD: 1.28, INR: 106.8, EUR: 1.18 }
+    };
+    return (fallbackRates[fromCurr]?.[toCurr] || 1).toFixed(4);
+  };
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
@@ -101,21 +168,7 @@ export default function Profile() {
     }
   };
 
-  const handleSeedData = async () => {
-    if (!window.confirm('Are you sure you want to seed demo data? This will clear all your current income, expenses, and budget entries.')) {
-      return;
-    }
-    setSeeding(true);
-    try {
-      await api.post('/users/seed');
-      toast.success('Successfully seeded 3 months of raw mock data! 🎉');
-      navigate('/dashboard');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to seed demo data');
-    } finally {
-      setSeeding(false);
-    }
-  };
+
 
   const toggle2FA = async (enabled) => {
     setTwoFactorEnabled(enabled);
@@ -210,9 +263,6 @@ export default function Profile() {
           </button>
 
           <div className="border-t border-slate-700/50 my-2 pt-2 space-y-2">
-            <button onClick={handleSeedData} disabled={seeding} className="w-full btn-secondary text-xs py-2 bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
-              {seeding ? 'Seeding Data...' : '⚙️ Seed Demo Data'}
-            </button>
             <button onClick={logout} className="w-full btn-danger text-xs py-2">
               🚪 Logout Session
             </button>
@@ -346,6 +396,7 @@ export default function Profile() {
                       value={profileForm.currency}
                       onChange={(e) => {
                         setProfileForm({ ...profileForm, currency: e.target.value });
+                        setFromCurr(e.target.value);
                         toast.success(`Base currency updated to ${e.target.value}`);
                       }}
                     >
@@ -384,41 +435,99 @@ export default function Profile() {
                       <option value="ocean">🌊 Deep Ocean</option>
                       <option value="forest">🌲 Forest Greens</option>
                       <option value="purple-neon">🔮 Purple Neon</option>
+                      <option value="dark-blue">🔵 Dark Blue</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl space-y-3">
-                  <div className="flex justify-between items-center">
+                <div className="p-4 bg-dark-800 border border-slate-700/50 rounded-xl space-y-4 shadow-md">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-700/30">
                     <div>
-                      <h4 className="font-bold text-slate-300">Live API Currency sync</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Automate real-time conversion rates polling (USD/INR).</p>
+                      <h4 className="font-bold text-slate-200 text-sm">Currency Converter & Rates</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Convert currencies with live or fallback exchange rates.</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={liveCurrencySync}
-                        onChange={(e) => {
-                          setLiveCurrencySync(e.target.checked);
-                          toast.success(`Live sync ${e.target.checked ? 'enabled' : 'disabled'}`);
-                        }}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
-                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold text-slate-400">Live Sync</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={liveCurrencySync}
+                          onChange={(e) => {
+                            setLiveCurrencySync(e.target.checked);
+                            toast.success(`Live sync ${e.target.checked ? 'enabled' : 'disabled'}`);
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
                   </div>
-                  {liveCurrencySync && (
-                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800 text-[10px] text-slate-400">
-                      <div>
-                        <span>Convert From (1 USD):</span>
-                        <span className="block font-bold text-slate-200 mt-0.5">1.00 USD</span>
-                      </div>
-                      <div>
-                        <span>Convert To (Live Rate):</span>
-                        <span className="block font-bold text-primary-400 mt-0.5">83.42 INR</span>
-                      </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Amount Input */}
+                    <div className="form-group">
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Amount</label>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Enter amount"
+                        value={convAmount}
+                        onChange={(e) => setConvAmount(e.target.value)}
+                        className="input py-2 text-xs"
+                      />
                     </div>
-                  )}
+                    {/* From Currency Selection */}
+                    <div className="form-group">
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">From</label>
+                      <select
+                        className="select py-2 text-xs"
+                        value={fromCurr}
+                        onChange={(e) => setFromCurr(e.target.value)}
+                      >
+                        {CURRENCIES.map(c => (
+                          <option key={c.code} value={c.code}>
+                            {c.code} ({c.symbol})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* To Currency Selection */}
+                    <div className="form-group">
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">To</label>
+                      <select
+                        className="select py-2 text-xs"
+                        value={toCurr}
+                        onChange={(e) => setToCurr(e.target.value)}
+                      >
+                        {CURRENCIES.map(c => (
+                          <option key={c.code} value={c.code}>
+                            {c.code} ({c.symbol})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Result Panel */}
+                  <div className="p-3 bg-dark-900/50 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs transition-all">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Converted Amount</p>
+                      <p className="text-base font-extrabold text-slate-200 mt-1">
+                        {CURRENCIES.find(c => c.code === toCurr)?.symbol || ''} {getConvertedVal()} <span className="text-[10px] text-slate-400 font-normal">{toCurr}</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Exchange Rate</p>
+                      <p className="text-xs font-bold text-primary-400 mt-1">
+                        1 {fromCurr} = {getActiveRate()} {toCurr}
+                      </p>
+                      {liveCurrencySync && (
+                        <p className="text-[9px] text-slate-600 mt-0.5">
+                          {isLoadingRates ? 'Updating...' : 'Live Rate Connected'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

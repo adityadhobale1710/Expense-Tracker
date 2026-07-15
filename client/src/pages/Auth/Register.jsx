@@ -48,14 +48,14 @@ export default function Register() {
   const strength = getPasswordStrength();
 
   return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-dark-900 flex items-start justify-center p-4 overflow-y-auto">
       {/* Background gradient orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-92 h-92 bg-primary-600/20 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-92 h-92 bg-indigo-600/20 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md animate-fade-in">
+      <div className="relative w-full max-w-md animate-fade-in my-auto">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl shadow-lg shadow-primary-600/30 mb-4 glow-primary">
@@ -69,7 +69,7 @@ export default function Register() {
         </div>
 
         {/* Card */}
-        <div className="glass p-8">
+        <div className="glass p-6 sm:p-8">
           <h2 className="text-xl font-semibold text-slate-100 mb-6">Create Account</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="form-group">

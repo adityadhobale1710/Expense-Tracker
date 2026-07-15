@@ -215,13 +215,13 @@ export const resetPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = null;
   await user.save();
 
-  // Send confirmation email
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const confirmHtml = getHtmlTemplate({
     title: 'Password Successfully Reset',
     greeting: `Hello, ${user.name}`,
     body: 'Your password for My Expense Pro has been successfully updated. You can now log in using your new password.',
     ctaText: 'Go to Login',
-    ctaUrl: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`,
+    ctaUrl: `${clientUrl}/login`,
     footerText: 'If you did not perform this action, please contact support immediately to secure your account.',
   });
 
