@@ -52,6 +52,11 @@ export default function Achievements() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [simulatedActions, setSimulatedActions] = useState(() => {
+    const saved = localStorage.getItem('game_simulated_actions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -178,10 +183,11 @@ export default function Achievements() {
     localStorage.setItem('game_streak', streak.toString());
     localStorage.setItem('game_longest_streak', longestStreak.toString());
     localStorage.setItem('game_achievements', JSON.stringify(achievements));
+    localStorage.setItem('game_simulated_actions', JSON.stringify(simulatedActions));
     if (recentUnlock) {
       localStorage.setItem('game_recent_unlock', JSON.stringify(recentUnlock));
     }
-  }, [xp, coins, streak, longestStreak, achievements, recentUnlock]);
+  }, [xp, coins, streak, longestStreak, achievements, recentUnlock, simulatedActions]);
 
   // Sync gamification parameters to backend database with 2s debounce
   useEffect(() => {
@@ -230,7 +236,7 @@ export default function Achievements() {
   
   // XP progress ratio
   const getLevelProgressPercentage = () => {
-    if (currentLvl.level === 30) return 100;
+    if (currentLvl.level === 15) return 100;
     const base = currentLvl.xpRequired;
     const target = nextLvl.xpRequired;
     const earned = xp - base;
@@ -257,6 +263,12 @@ export default function Achievements() {
 
   // Perform a sandbox action
   const handleAction = (actionId, label, actionXp, actionCoins, e) => {
+    if (simulatedActions.includes(actionId)) {
+      toast.error(`Action "${label}" has already been simulated!`);
+      return;
+    }
+    setSimulatedActions(prev => [...prev, actionId]);
+
     // Add XP & Coins
     const oldLevel = getCurrentLevelInfo(xp).currentLvl.level;
     const newXp = xp + actionXp;
@@ -397,6 +409,7 @@ export default function Achievements() {
       setLongestStreak(24);
       setAchievements(INITIAL_ACHIEVEMENTS);
       setRecentUnlock(null);
+      setSimulatedActions([]);
       localStorage.clear();
       toast.success("Game data reset successfully!");
     }
@@ -553,7 +566,7 @@ export default function Achievements() {
               <div className="flex justify-between text-xs font-semibold">
                 <span className="text-slate-400">XP Progress</span>
                 <span className="text-slate-200">
-                  {xp.toLocaleString()} / {currentLvl.level === 30 ? 'Max' : nextLvl.xpRequired.toLocaleString()} XP
+                  {xp.toLocaleString()} / {currentLvl.level === 15 ? 'Max' : nextLvl.xpRequired.toLocaleString()} XP
                 </span>
               </div>
               <div className="w-full bg-slate-900 h-3.5 border border-slate-800 rounded-full overflow-hidden p-0.5">
@@ -563,7 +576,7 @@ export default function Achievements() {
                 />
               </div>
               <p className="text-[10px] text-slate-500 text-right italic font-medium">
-                {currentLvl.level === 30 ? 'Max progression reached!' : `${(nextLvl.xpRequired - xp).toLocaleString()} XP needed for level ${nextLvl.level}`}
+                {currentLvl.level === 15 ? 'Max progression reached!' : `${(nextLvl.xpRequired - xp).toLocaleString()} XP needed for level ${nextLvl.level}`}
               </p>
             </div>
           </div>
@@ -573,7 +586,7 @@ export default function Achievements() {
         <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[180px]">
           <div>
             <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Currency & Streak Tracker</span>
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               
               {/* Coins Widget */}
               <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
@@ -652,7 +665,7 @@ export default function Achievements() {
 
           <div className="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-700/30">
             <span>Next Level Reward:</span>
-            <span className="font-bold text-indigo-400">{currentLvl.level === 30 ? 'Max Level!' : nextLvl.reward}</span>
+            <span className="font-bold text-indigo-400">{currentLvl.level === 15 ? 'Max Level!' : nextLvl.reward}</span>
           </div>
         </div>
 
@@ -712,19 +725,29 @@ export default function Achievements() {
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-4">
-          {XP_ACTIONS.map(action => (
-            <button
-              key={action.id}
-              onClick={(e) => handleAction(action.id, action.label, action.xp, action.coins, e)}
-              className="bg-slate-900/40 border border-slate-800 hover:border-primary-500/30 hover:bg-slate-800/40 p-2.5 rounded-xl text-left text-xs font-semibold transition-all hover:scale-105 active:scale-95 flex flex-col justify-between h-[85px] group text-slate-300 hover:text-slate-100"
-            >
-              <span className="line-clamp-2 leading-tight group-hover:text-primary-400">{action.label}</span>
-              <div className="flex justify-between items-center w-full mt-2 pt-1 border-t border-slate-800/60">
-                <span className="text-[10px] text-indigo-400 font-bold">+{action.xp} XP</span>
-                <span className="text-[10px] text-yellow-500 font-bold">+{action.coins}🪙</span>
-              </div>
-            </button>
-          ))}
+          {XP_ACTIONS.map(action => {
+            const isCompleted = simulatedActions.includes(action.id);
+            return (
+              <button
+                key={action.id}
+                disabled={isCompleted}
+                onClick={(e) => handleAction(action.id, action.label, action.xp, action.coins, e)}
+                className={`p-2.5 rounded-xl text-left text-xs font-semibold transition-all flex flex-col justify-between h-[85px] group text-slate-300 hover:text-slate-100 ${
+                  isCompleted
+                    ? 'bg-slate-900/10 border-slate-900/30 opacity-40 cursor-not-allowed'
+                    : 'bg-slate-900/40 border-slate-800 hover:border-primary-500/30 hover:bg-slate-800/40 hover:scale-105 active:scale-95 cursor-pointer'
+                }`}
+              >
+                <span className={`line-clamp-2 leading-tight ${isCompleted ? 'text-slate-500' : 'group-hover:text-primary-400'}`}>
+                  {action.label} {isCompleted && '✓'}
+                </span>
+                <div className="flex justify-between items-center w-full mt-2 pt-1 border-t border-slate-800/60">
+                  <span className={`text-[10px] font-bold ${isCompleted ? 'text-slate-600' : 'text-indigo-400'}`}>+{action.xp} XP</span>
+                  <span className={`text-[10px] font-bold ${isCompleted ? 'text-slate-600' : 'text-yellow-500'}`}>+{action.coins}🪙</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 

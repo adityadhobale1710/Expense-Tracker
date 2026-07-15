@@ -3,6 +3,17 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExpenseProvider } from './context/ExpenseContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes cache stale
+    },
+  },
+});
 
 import Layout from './components/common/Layout';
 import Login from './pages/Auth/Login';
@@ -16,9 +27,6 @@ import Profile from './pages/Profile/Profile';
 import BillCalendar from './pages/Calendar/BillCalendar';
 import AIInsights from './pages/AIInsights/AIInsights';
 import Achievements from './pages/Achievements/Achievements';
-import Wallets from './pages/Wallets/Wallets';
-import Goals from './pages/Goals/Goals';
-import Investments from './pages/Investments/Investments';
 import Loans from './pages/Loans/Loans';
 import Subscriptions from './pages/Subscriptions/Subscriptions';
 import SplitBills from './pages/Split/SplitBills';
@@ -58,9 +66,6 @@ const AppRoutes = () => (
       <Route path="calendar" element={<BillCalendar />} />
       <Route path="ai-insights" element={<AIInsights />} />
       <Route path="achievements" element={<Achievements />} />
-      <Route path="wallets" element={<Wallets />} />
-      <Route path="goals" element={<Goals />} />
-      <Route path="investments" element={<Investments />} />
       <Route path="loans" element={<Loans />} />
       <Route path="subscriptions" element={<Subscriptions />} />
       <Route path="split-bills" element={<SplitBills />} />
@@ -75,21 +80,23 @@ const AppRoutes = () => (
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <ExpenseProvider>
-            <AppRoutes />
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
-                success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
-              }}
-            />
-          </ExpenseProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <ExpenseProvider>
+              <AppRoutes />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
+                  success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+                }}
+              />
+            </ExpenseProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }

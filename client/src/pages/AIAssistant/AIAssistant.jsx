@@ -90,7 +90,7 @@ export default function AIAssistant() {
   ];
 
   return (
-    <div className="card h-[calc(100vh-140px)] flex flex-col justify-between overflow-hidden animate-fade-in">
+    <div className="card h-[calc(100dvh-140px)] flex flex-col justify-between overflow-hidden animate-fade-in">
       <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🤖</span>

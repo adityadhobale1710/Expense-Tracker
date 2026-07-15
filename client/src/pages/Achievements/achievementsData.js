@@ -14,24 +14,7 @@ export const PROGRESSION_LEVELS = [
   { level: 12, name: "Interest Accumulator", xpRequired: 25000, icon: "🪙", color: "from-yellow-500 to-amber-600", reward: "Interest Calculator Widget & 'Saver Pro' Title" },
   { level: 13, name: "Portfolio Architect", xpRequired: 31000, icon: "📂", color: "from-sky-500 to-blue-600", reward: "Premium Portfolio Theme & 'Architect' Badge" },
   { level: 14, name: "Dividend Baron", xpRequired: 38000, icon: "👑", color: "from-fuchsia-500 to-purple-600", reward: "+300 Coins & 'Baron' Title" },
-  { level: 15, name: "Financial Ninja", xpRequired: 46000, icon: "🥷", color: "from-red-500 to-rose-600", reward: "Dark Mode Ninja Theme & Ninja Avatar Frame" },
-  { level: 16, name: "Market Wizard", xpRequired: 55000, icon: "🧙", color: "from-purple-500 to-indigo-600", reward: "+500 Coins & 'Wizard' Title" },
-  { level: 17, name: "Asset Emperor", xpRequired: 65000, icon: "🏛️", color: "from-amber-600 to-yellow-600", reward: "Platinum Avatar Frame & Asset Badge" },
-  { level: 18, name: "Freedom Seeker", xpRequired: 76000, icon: "🕊️", color: "from-slate-500 to-gray-600", reward: "Financial Freedom Dashboard Skin & 'Free' Title" },
-  { level: 19, name: "Wealth Tycoon", xpRequired: 88000, icon: "🚀", color: "from-pink-500 to-rose-600", reward: "+1000 Coins & 'Tycoon' Title" },
-  { level: 20, name: "Financial Legend", xpRequired: 100000, icon: "👑", color: "from-purple-600 via-pink-500 to-orange-500", reward: "Cosmic Avatar Frame & 'Legend' Title" },
-  
-  // Levels 21 to 50 Extension
-  { level: 21, name: "Savings Voyager", xpRequired: 115000, icon: "🪐", color: "from-blue-600 to-cyan-500", reward: "+350 Coins & 'Voyager' Title" },
-  { level: 22, name: "Capital Pioneer", xpRequired: 131000, icon: "🛰️", color: "from-indigo-600 to-violet-500", reward: "+400 Coins & 'Pioneer' Badge" },
-  { level: 23, name: "Frugal Alchemist", xpRequired: 148000, icon: "⚗️", color: "from-emerald-600 to-teal-500", reward: "Ocean Theme & 'Alchemist' Title" },
-  { level: 24, name: "Audit Chancellor", xpRequired: 166000, icon: "⚖️", color: "from-amber-600 to-red-500", reward: "+450 Coins & 'Chancellor' Badge" },
-  { level: 25, name: "Equity Captain", xpRequired: 185000, icon: "⚓", color: "from-sky-600 to-indigo-500", reward: "Captain Avatar Frame & 'Captain' Title" },
-  { level: 26, name: "Bull-Market Rider", xpRequired: 205000, icon: "🐂", color: "from-green-600 to-lime-500", reward: "+500 Coins & 'Bull Rider' Title" },
-  { level: 27, name: "NPS Guardian", xpRequired: 226000, icon: "🛡️", color: "from-teal-600 to-emerald-500", reward: "Forest Theme & 'Pensioner' Sticker" },
-  { level: 28, name: "Debt Conqueror", xpRequired: 248000, icon: "⚔️", color: "from-rose-600 to-pink-500", reward: "+600 Coins & 'Conqueror' Title" },
-  { level: 29, name: "Compound General", xpRequired: 271000, icon: "🎖️", color: "from-purple-600 to-indigo-500", reward: "General Avatar Frame & 'General' Title" },
-  { level: 30, name: "Sovereign Investor", xpRequired: 295000, icon: "👑", color: "from-amber-500 via-orange-500 to-red-500", reward: "Purple Neon Theme & 'Sovereign' Badge" }
+  { level: 15, name: "Financial Ninja", xpRequired: 46000, icon: "🥷", color: "from-red-500 to-rose-600", reward: "Dark Mode Ninja Theme & Ninja Avatar Frame" }
 ];
 
 // XP rewards for actions
@@ -168,8 +151,8 @@ export const INITIAL_ACHIEVEMENTS = [
   { id: "l1", title: "Half-Million Net Worth", description: "Aggregate a Net Worth of ₹5,00,000", requirement: "Net worth ₹5L", xpReward: 2000, coinsReward: 200, icon: "🏛️", category: "Legendary", tier: "Legendary", progressNeeded: 500000, currentProgress: 200000, unlocked: false },
   { id: "l2", title: "Millionaire Club", description: "Aggregate a Net Worth of ₹10,00,000", requirement: "Net worth ₹10L", xpReward: 5000, coinsReward: 500, icon: "👑", category: "Legendary", tier: "Legendary", progressNeeded: 1000000, currentProgress: 200000, unlocked: false },
   { id: "l3", title: "Level 10 Accomplishment", description: "Ascend past Progression Level 10", requirement: "Reach Level 10", xpReward: 1000, coinsReward: 100, icon: "🎖️", category: "Legendary", tier: "Rare", progressNeeded: 10, currentProgress: 5, unlocked: false },
-  { id: "l4", title: "Level 20 Ascent", description: "Ascend past Progression Level 20", requirement: "Reach Level 20", xpReward: 2500, coinsReward: 250, icon: "🛸", category: "Legendary", tier: "Epic", progressNeeded: 20, currentProgress: 5, unlocked: false },
-  { id: "l5", title: "Ultimate Wealth God", description: "Ascend to Progression Level 30", requirement: "Reach Level 30", xpReward: 10000, coinsReward: 1000, icon: "🌌", category: "Legendary", tier: "Legendary", progressNeeded: 30, currentProgress: 5, unlocked: false },
+  { id: "l4", title: "Level 12 Ascent", description: "Ascend past Progression Level 12", requirement: "Reach Level 12", xpReward: 2500, coinsReward: 250, icon: "🛸", category: "Legendary", tier: "Epic", progressNeeded: 12, currentProgress: 5, unlocked: false },
+  { id: "l5", title: "Ultimate Wealth God", description: "Ascend to Progression Level 15", requirement: "Reach Level 15", xpReward: 10000, coinsReward: 1000, icon: "🌌", category: "Legendary", tier: "Legendary", progressNeeded: 15, currentProgress: 5, unlocked: false },
   { id: "l6", title: "Perfect Budget Month", description: "Spent exactly within 5% of budget allocations", requirement: "95% budget matching", xpReward: 2000, coinsReward: 200, icon: "🎯", category: "Legendary", tier: "Epic", progressNeeded: 1, currentProgress: 0, unlocked: false },
   { id: "l7", title: "Zero Liability", description: "Pay off remaining balances of all loan accounts", requirement: "Repay all loans", xpReward: 3000, coinsReward: 300, icon: "🛡️", category: "Legendary", tier: "Legendary", progressNeeded: 1, currentProgress: 0, unlocked: false },
   { id: "l8", title: "Financial Freedom", description: "Liquidity balance exceeds yearly subscription sums", requirement: "Free from dues", xpReward: 1500, coinsReward: 150, icon: "🕊️", category: "Legendary", tier: "Rare", progressNeeded: 1, currentProgress: 0, unlocked: false },

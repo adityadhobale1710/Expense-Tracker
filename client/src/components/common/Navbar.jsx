@@ -15,9 +15,6 @@ const PAGE_TITLES = {
   '/ai-insights':   { title: 'AI Insights', subtitle: 'Smart savings recommendations' },
   '/achievements':  { title: 'Achievements', subtitle: 'Earn XP, level up, and unlock rewards' },
   '/profile':       { title: 'Profile',   subtitle: 'Manage your account' },
-  '/wallets':       { title: 'Wallets Hub', subtitle: 'Track multiple accounts' },
-  '/goals':         { title: 'Savings Goals', subtitle: 'Grow your reserves' },
-  '/investments':   { title: 'Investments', subtitle: 'Grow your assets portfolio' },
   '/loans':         { title: 'Loans & EMIs', subtitle: 'Audit credit and debt balance' },
   '/subscriptions': { title: 'Subscriptions', subtitle: 'Manage recurring services' },
   '/split-bills':   { title: 'Split Bills', subtitle: 'Share costs with friends' },
@@ -34,6 +31,7 @@ const THEME_ICONS = {
   ocean: '🌊',
   forest: '🌲',
   'purple-neon': '🔮',
+  'dark-blue': '🔵',
 };
 
 const THEMES = [
@@ -43,9 +41,10 @@ const THEMES = [
   { id: 'ocean', name: 'Deep Ocean', icon: '🌊' },
   { id: 'forest', name: 'Forest Greens', icon: '🌲' },
   { id: 'purple-neon', name: 'Purple Neon', icon: '🔮' },
+  { id: 'dark-blue', name: 'Dark Blue', icon: '🔵' },
 ];
 
-export default function Navbar() {
+export default function Navbar({ onMenuToggle }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const page = PAGE_TITLES[pathname] || { title: 'My Expense', subtitle: '' };
@@ -83,10 +82,23 @@ export default function Navbar() {
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <header className="h-16 bg-dark-800 border-b border-slate-700/50 flex items-center justify-between px-6 flex-shrink-0 relative z-40">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-100">{page.title}</h2>
-        <p className="text-xs text-slate-500">{page.subtitle}</p>
+    <header className="h-16 bg-dark-800 border-b border-slate-700/50 flex items-center justify-between px-4 md:px-6 flex-shrink-0 relative z-40">
+      <div className="flex items-center gap-3">
+        {/* Hamburger button — mobile only */}
+        <button
+          id="sidebar-menu-toggle"
+          onClick={onMenuToggle}
+          className="md:hidden p-2 rounded-xl bg-slate-900 border border-slate-700/50 hover:bg-slate-800 text-slate-300 hover:text-slate-100 transition-all duration-200 cursor-pointer flex items-center justify-center"
+          aria-label="Toggle menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-100">{page.title}</h2>
+          <p className="text-xs text-slate-500">{page.subtitle}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

@@ -152,8 +152,8 @@ export default function SplitBills() {
 
       {/* CREATE SPLIT BILL MODAL */}
       {showCreate && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card w-full max-w-md space-y-4">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="card w-full max-w-md space-y-4 max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl my-auto">
             <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
               <h3 className="font-bold text-slate-100">Create Split Bill</h3>
               <button onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-slate-100">✕</button>
@@ -163,7 +163,7 @@ export default function SplitBills() {
                 <label className="label">Bill Title</label>
                 <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Olive Garden Dinner, Airbnb Cabin rent" className="input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Group Category</label>
                   <select value={groupName} onChange={(e) => setGroupName(e.target.value)} className="select">

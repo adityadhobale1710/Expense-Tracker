@@ -150,8 +150,8 @@ export default function Subscriptions() {
 
       {/* CREATE SUB MODAL */}
       {showCreate && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card w-full max-w-md space-y-4">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="card w-full max-w-md space-y-4 max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl my-auto">
             <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
               <h3 className="font-bold text-slate-100">Add Subscription</h3>
               <button onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-slate-100">✕</button>
@@ -161,7 +161,7 @@ export default function Subscriptions() {
                 <label className="label">Subscription Service</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Netflix, Spotify Premium, Adobe Creative Cloud" className="input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Billing Cycle</label>
                   <select value={billingCycle} onChange={(e) => setBillingCycle(e.target.value)} className="select">
@@ -174,7 +174,7 @@ export default function Subscriptions() {
                   <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0.00" className="input" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label">Renewal / Billing Date</label>
                   <input type="date" value={renewalDate} onChange={(e) => setRenewalDate(e.target.value)} className="input" />
