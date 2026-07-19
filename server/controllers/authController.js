@@ -74,9 +74,29 @@ export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
-  if (!user || !(await user.matchPassword(password))) {
+  if (!user) {
     res.status(401);
-    throw new Error('Invalid email or password');
+    return res.json({
+      success: false,
+      message: 'No account found with this email address.'
+    });
+  }
+
+  if (user.isDisabled || user.isBlocked || user.status === 'disabled' || user.status === 'blocked') {
+    res.status(403);
+    return res.json({
+      success: false,
+      message: 'Your account has been temporarily disabled. Please contact support.'
+    });
+  }
+
+  const isMatch = await user.matchPassword(password);
+  if (!isMatch) {
+    res.status(401);
+    return res.json({
+      success: false,
+      message: 'Incorrect password.'
+    });
   }
 
   const accessToken = generateAccessToken(user._id);

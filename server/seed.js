@@ -1,9 +1,11 @@
 import dotenv from 'dotenv';
+import dns from 'dns';
 import connectDB from './config/db.js';
 import User from './models/User.js';
 import { seedDataForUser } from './utils/seeder.js';
 
 dotenv.config();
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const seed = async () => {
   try {
