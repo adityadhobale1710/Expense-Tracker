@@ -9,6 +9,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -74,6 +76,32 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    setEmailError(false);
+    setPasswordError(false);
+
+    // Scenario 3: Empty email
+    if (!form.email) {
+      setEmailError(true);
+      toast.error('Please enter your email.');
+      return;
+    }
+
+    // Scenario 5: Invalid email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setEmailError(true);
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+
+    // Scenario 4: Empty password
+    if (!form.password) {
+      setPasswordError(true);
+      toast.error('Please enter your password.');
+      return;
+    }
+
     setLoading(true);
     try {
       await login(form.email, form.password);
@@ -84,7 +112,22 @@ export default function Login() {
       }
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      let errMsg = err.response?.data?.message || 'Login failed';
+      
+      // Highlight invalid fields where appropriate
+      if (errMsg.includes('email') || errMsg.includes('No account found')) {
+        setEmailError(true);
+      }
+      if (errMsg.includes('password') || errMsg.includes('Incorrect password')) {
+        setPasswordError(true);
+      }
+
+      // Map incorrect password message
+      if (errMsg === 'Incorrect password.') {
+        errMsg = 'Incorrect password. Please try again.';
+      }
+
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -141,12 +184,11 @@ export default function Login() {
               <label className="label">Email Address</label>
               <input
                 id="login-email"
-                type="email"
-                className="input"
+                type="text"
+                className={`input ${emailError ? '!border-red-500 focus:!ring-red-500' : ''}`}
                 placeholder="name@company.com"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
               />
             </div>
             
@@ -156,11 +198,10 @@ export default function Login() {
                 <input
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
-                  className="input pr-10"
+                  className={`input pr-10 ${passwordError ? '!border-red-500 focus:!ring-red-500' : ''}`}
                   placeholder="••••••••"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required
                 />
                 <button
                   type="button"

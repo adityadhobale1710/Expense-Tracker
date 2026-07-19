@@ -22,6 +22,8 @@ const userSchema = new mongoose.Schema(
     backupCodes: { type: [String], default: [] },
     otpVerified: { type: Boolean, default: false },
     isEmailVerified: { type: Boolean, default: false },
+    isDisabled: { type: Boolean, default: false },
+    isBlocked: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpire: { type: Date, default: null },

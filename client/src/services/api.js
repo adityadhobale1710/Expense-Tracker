@@ -33,7 +33,12 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // 1. Handle Token Refresh on 401 Unauthorized
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 && 
+      !originalRequest._retry && 
+      !originalRequest.url?.includes('/auth/login') && 
+      !originalRequest.url?.includes('/auth/register')
+    ) {
       originalRequest._retry = true; // Retry only once
       try {
         const refreshToken = localStorage.getItem('refreshToken');
@@ -67,27 +72,30 @@ api.interceptors.response.use(
     if (error.response) {
       const status = error.response.status;
       const message = error.response.data?.message || error.message || 'An error occurred';
+      const isAuthRoute = originalRequest.url?.includes('/auth/');
 
-      switch (status) {
-        case 403:
-          toast.error('Forbidden: You do not have permission to perform this action.');
-          break;
-        case 404:
-          // Silent log to prevent popup spam for normal 404 route checks if any
-          console.warn(`Resource not found: ${originalRequest.url}`);
-          break;
-        case 429:
-          toast.error('Too many requests. Please slow down and try again later.');
-          break;
-        case 500:
-          toast.error('Internal Server Error. Please contact support or try again later.');
-          break;
-        case 503:
-          toast.error('Service Unavailable. The server is temporarily overloaded or down.');
-          break;
-        default:
-          // Other client errors can be handled downstream, log them here
-          console.error(`API Error [${status}]:`, message);
+      if (!isAuthRoute) {
+        switch (status) {
+          case 403:
+            toast.error('Forbidden: You do not have permission to perform this action.');
+            break;
+          case 404:
+            // Silent log to prevent popup spam for normal 404 route checks if any
+            console.warn(`Resource not found: ${originalRequest.url}`);
+            break;
+          case 429:
+            toast.error('Too many requests. Please slow down and try again later.');
+            break;
+          case 500:
+            toast.error('Internal Server Error. Please contact support or try again later.');
+            break;
+          case 503:
+            toast.error('Service Unavailable. The server is temporarily overloaded or down.');
+            break;
+          default:
+            // Other client errors can be handled downstream, log them here
+            console.error(`API Error [${status}]:`, message);
+        }
       }
     } else if (error.code === 'ECONNABORTED') {
       toast.error('Request timed out. Please check your internet connection.');
