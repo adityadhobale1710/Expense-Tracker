@@ -14,7 +14,7 @@ export const getMe = asyncHandler(async (req, res) => {
 export const updateMe = asyncHandler(async (req, res) => {
   const {
     name, avatar, currency, phone, company, twoFactorEnabled, role,
-    xp, coins, level, streak, longestStreak, unlockedTitles, unlockedAvatars, unlockedThemes, achievements
+    xp, coins, level, streak, longestStreak, unlockedTitles, unlockedAvatars, unlockedThemes, achievements, simulatedActions
   } = req.body;
 
   const updateFields = { name, avatar, currency, phone, company, twoFactorEnabled, role };
@@ -28,6 +28,7 @@ export const updateMe = asyncHandler(async (req, res) => {
   if (unlockedAvatars !== undefined) updateFields.unlockedAvatars = unlockedAvatars;
   if (unlockedThemes !== undefined) updateFields.unlockedThemes = unlockedThemes;
   if (achievements !== undefined) updateFields.achievements = achievements;
+  if (simulatedActions !== undefined) updateFields.simulatedActions = simulatedActions;
 
   const user = await User.findByIdAndUpdate(
     req.user._id,

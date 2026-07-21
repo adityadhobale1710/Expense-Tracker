@@ -207,7 +207,11 @@ export default function Profile() {
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-xs font-bold text-slate-200 truncate">{user?.name}</h3>
-              <p className="text-[10px] text-slate-500 uppercase font-semibold">{user?.role || 'Standard User'}</p>
+              {user?.role && user.role !== 'user' && (
+                <p className="text-[10px] text-slate-500 uppercase font-semibold">
+                  {user.role === 'premium' ? 'Premium User' : user.role === 'admin' ? 'Admin User' : user.role}
+                </p>
+              )}
             </div>
           </div>
 

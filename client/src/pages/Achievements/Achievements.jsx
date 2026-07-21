@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { PROGRESSION_LEVELS, XP_ACTIONS, INITIAL_ACHIEVEMENTS } from './achievementsData';
 import api from '../../services/api';
@@ -53,6 +53,7 @@ export default function Achievements() {
   });
 
   const [simulatedActions, setSimulatedActions] = useState(() => {
+    if (user?.simulatedActions !== undefined) return user.simulatedActions;
     const saved = localStorage.getItem('game_simulated_actions');
     return saved ? JSON.parse(saved) : [];
   });
@@ -64,6 +65,14 @@ export default function Achievements() {
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatyTexts, setFloatyTexts] = useState([]); // Array of { id, text, x, y }
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Dynamic filter options generated from active achievements to remove empty categories
+  const filterOptions = useMemo(() => {
+    const baseFilters = ['All', 'Unlocked', 'Locked', 'Common', 'Rare', 'Epic', 'Legendary'];
+    const categoryFilters = Array.from(new Set(achievements.map(ach => ach.category)))
+      .filter(cat => cat && !baseFilters.includes(cat));
+    return [...baseFilters, ...categoryFilters];
+  }, [achievements]);
   
   useEffect(() => {
     setCurrentPage(1);
@@ -204,7 +213,8 @@ export default function Achievements() {
             id: a.id,
             currentProgress: a.currentProgress,
             unlocked: a.unlocked,
-          }))
+          })),
+          simulatedActions
         });
         if (data.success && data.data) {
           updateUser(data.data);
@@ -214,7 +224,7 @@ export default function Achievements() {
       }
     }, 2000);
     return () => clearTimeout(delayDebounce);
-  }, [xp, coins, streak, longestStreak, achievements]);
+  }, [xp, coins, streak, longestStreak, achievements, simulatedActions]);
 
   // Calculate level based on XP
   const getCurrentLevelInfo = (xpVal) => {
@@ -400,20 +410,7 @@ export default function Achievements() {
     setAchievements(newAchievements);
   };
 
-  // Reset simulator
-  const handleResetGame = () => {
-    if (window.confirm("Are you sure you want to reset your gamification progression statistics? This will reset XP to 3,450 and lock standard achievements.")) {
-      setXp(3450);
-      setCoins(640);
-      setStreak(18);
-      setLongestStreak(24);
-      setAchievements(INITIAL_ACHIEVEMENTS);
-      setRecentUnlock(null);
-      setSimulatedActions([]);
-      localStorage.clear();
-      toast.success("Game data reset successfully!");
-    }
-  };
+
 
   // Filter & search achievements logic
   const filteredAchievements = achievements.filter(ach => {
@@ -430,14 +427,10 @@ export default function Achievements() {
     if (activeFilter === 'Common') return ach.tier === 'Common';
     if (activeFilter === 'Rare') return ach.tier === 'Rare';
     if (activeFilter === 'Epic') return ach.tier === 'Epic';
-    if (activeFilter === 'Legendary') return ach.tier === 'Legendary';
-    if (activeFilter === 'Savings') return ach.category === 'Savings';
-    if (activeFilter === 'Budget') return ach.category === 'Budget';
-    if (activeFilter === 'Investments') return ach.category === 'Investments';
-    if (activeFilter === 'Streaks') return ach.category === 'Streaks';
-    if (activeFilter === 'Special Events') return ach.category === 'Special Events';
+    if (activeFilter === 'Legendary') return ach.tier === 'Legendary' || ach.category === 'Legendary';
     
-    return true;
+    // Dynamically filter categories that are not handled by the state/tier checks
+    return ach.category === activeFilter;
   });
   
   // Pagination calculations
@@ -521,7 +514,6 @@ export default function Achievements() {
         }
       `}</style>
 
-      {/* Header section with Reset button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
@@ -531,12 +523,6 @@ export default function Achievements() {
             Complete milestones, earn XP & coins, and build financial legends!
           </p>
         </div>
-        <button
-          onClick={handleResetGame}
-          className="btn bg-red-600/10 border border-red-500/20 hover:bg-red-600 hover:text-white text-red-400 text-xs px-3 py-1.5 rounded-lg active:scale-95"
-        >
-          Reset Progress Data 🔄
-        </button>
       </div>
 
       {/* Grid of Main Dashboard Widgets */}
@@ -771,7 +757,7 @@ export default function Achievements() {
 
           {/* Categories/State filters scroll area */}
           <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-thin">
-            {['All', 'Unlocked', 'Locked', 'Common', 'Rare', 'Epic', 'Legendary', 'Savings', 'Budget', 'Investments', 'Streaks', 'Special Events'].map(filter => (
+            {filterOptions.map(filter => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
