@@ -431,10 +431,6 @@ export default function Profile() {
                     >
                       <option value="light">☀️ Light Theme</option>
                       <option value="dark">🌙 Classic Dark</option>
-                      <option value="midnight">🪐 Midnight Neon</option>
-                      <option value="ocean">🌊 Deep Ocean</option>
-                      <option value="forest">🌲 Forest Greens</option>
-                      <option value="purple-neon">🔮 Purple Neon</option>
                       <option value="dark-blue">🔵 Dark Blue</option>
                     </select>
                   </div>

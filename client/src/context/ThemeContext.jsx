@@ -2,9 +2,12 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
 
+const VALID_THEMES = ['light', 'dark', 'dark-blue'];
+
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => {
-    return localStorage.getItem('theme') || 'light';
+    const saved = localStorage.getItem('theme');
+    return VALID_THEMES.includes(saved) ? saved : 'light';
   });
 
   useEffect(() => {
