@@ -121,11 +121,7 @@ expense-tracker/
 └── README.md
 ```
 
-## Deployment
 
--   Frontend: Vercel
--   Backend: Render/Railway
--   Database: MongoDB Atlas
 
 ## Tech Stack
 
