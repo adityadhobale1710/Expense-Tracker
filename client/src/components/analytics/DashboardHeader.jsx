@@ -201,11 +201,11 @@ export default function DashboardHeader({
               <Moon size={13} />
             </button>
             <button
-              onClick={() => setTheme('midnight')}
+              onClick={() => setTheme('dark-blue')}
               className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                theme === 'midnight' ? 'bg-primary-500 text-white shadow' : 'text-slate-500 hover:text-slate-355'
+                theme === 'dark-blue' ? 'bg-primary-500 text-white shadow' : 'text-slate-500 hover:text-slate-300'
               }`}
-              title="Midnight Theme (OLED)"
+              title="Dark Blue theme"
             >
               <Sparkles size={13} />
             </button>

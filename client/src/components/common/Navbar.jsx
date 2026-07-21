@@ -27,20 +27,12 @@ const PAGE_TITLES = {
 const THEME_ICONS = {
   light: '☀️',
   dark: '🌙',
-  midnight: '🪐',
-  ocean: '🌊',
-  forest: '🌲',
-  'purple-neon': '🔮',
   'dark-blue': '🔵',
 };
 
 const THEMES = [
   { id: 'light', name: 'Light Theme', icon: '☀️' },
   { id: 'dark', name: 'Classic Dark', icon: '🌙' },
-  { id: 'midnight', name: 'Midnight Neon', icon: '🪐' },
-  { id: 'ocean', name: 'Deep Ocean', icon: '🌊' },
-  { id: 'forest', name: 'Forest Greens', icon: '🌲' },
-  { id: 'purple-neon', name: 'Purple Neon', icon: '🔮' },
   { id: 'dark-blue', name: 'Dark Blue', icon: '🔵' },
 ];
 
