@@ -46,7 +46,7 @@ export default function Dashboard() {
   // Widget Order state (12 widgets)
   const [widgetOrder, setWidgetOrder] = useState(() => {
     const defaultWidgets = [
-      'todaySpend', 'weeklySpend', 'monthlySpend', 'remainingBudget',
+      'todayOverview', 'todaySpend', 'todayIncome', 'weeklySpend', 'monthlySpend', 'remainingBudget',
       'savingsProgress', 'largestExpense', 'mostUsedCategory',
       'health', 'bills', 'notifications',
       'tipOfTheDay', 'cashFlow'
@@ -56,7 +56,9 @@ export default function Dashboard() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(w => defaultWidgets.includes(w));
+          const validSaved = parsed.filter(w => defaultWidgets.includes(w));
+          const missing = defaultWidgets.filter(w => !validSaved.includes(w));
+          return [...validSaved, ...missing];
         }
       } catch (e) {
         console.error('Error parsing dashboard_widget_order', e);
@@ -67,9 +69,6 @@ export default function Dashboard() {
 
   // Modals state
   const [activeModal, setActiveModal] = useState(null);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [qrScanning, setQrScanning] = useState(false);
-  const [qrMerchant, setQrMerchant] = useState('');
 
   // Notifications state
   const [recentNotifications, setRecentNotifications] = useState([
@@ -119,8 +118,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchSummary();
-    fetchExpenses({ limit: 10 });
-    fetchIncomes({ limit: 10 });
+    fetchExpenses({ limit: 50 });
+    fetchIncomes({ limit: 50 });
     fetchCategories();
     fetchBudgets();
     fetchGamification();
@@ -150,54 +149,7 @@ export default function Dashboard() {
     setDraggedWidget(null);
   };
 
-  // OCR Pre-fill simulation
-  const simulateOCR = (brand) => {
-    setOcrLoading(true);
-    setTimeout(() => {
-      setOcrLoading(false);
-      setActiveModal(null);
-      let prefill = {};
-      if (brand === 'starbucks') {
-        prefill = { title: 'Starbucks Coffee', amount: '450', type: 'expense', description: 'Caramel Macchiato' };
-      } else if (brand === 'uber') {
-        prefill = { title: 'Uber Trip', amount: '1200', type: 'expense', description: 'commute' };
-      } else if (brand === 'walmart') {
-        prefill = { title: 'Grocery Shopping', amount: '5400', type: 'expense', description: 'Walmart groceries' };
-      }
 
-      const categoryMatch = categories.find(c => c.type === 'expense' && (c.name.toLowerCase().includes('food') || c.name.toLowerCase().includes('transport') || c.name.toLowerCase().includes('shop')));
-      setTxForm(prev => ({
-        ...prev,
-        ...prefill,
-        category: categoryMatch ? categoryMatch._id : prev.category
-      }));
-      setActiveModal('addTx');
-      toast.success('Mock receipt text extracted successfully!');
-    }, 1200);
-  };
-
-
-
-  const simulateQR = () => {
-    setQrScanning(true);
-    setTimeout(() => {
-      setQrScanning(false);
-      setQrMerchant('Zara Store Merchant • ₹3,800.00');
-      setTimeout(() => {
-        const categoryMatch = categories.find(c => c.type === 'expense' && c.name.toLowerCase().includes('shop'));
-        setTxForm(prev => ({
-          ...prev,
-          title: 'Zara Purchase',
-          amount: '3800',
-          type: 'expense',
-          description: 'UPI QR Payment Scan',
-          category: categoryMatch ? categoryMatch._id : prev.category
-        }));
-        setActiveModal('addTx');
-        toast.success('QR merchant metadata captured!');
-      }, 800);
-    }, 1200);
-  };
 
   const handleSaveTransaction = async (e) => {
     e.preventDefault();
@@ -219,8 +171,8 @@ export default function Dashboard() {
 
       setActiveModal(null);
       fetchSummary();
-      fetchExpenses({ limit: 10 });
-      fetchIncomes({ limit: 10 });
+      fetchExpenses({ limit: 50 });
+      fetchIncomes({ limit: 50 });
       setTxForm({
         title: '',
         amount: '',
@@ -241,6 +193,12 @@ export default function Dashboard() {
   const todaySpend = expenses
     .filter(e => new Date(e.date).toDateString() === todayDateString)
     .reduce((sum, e) => sum + e.amount, 0);
+
+  const todayIncome = incomes
+    .filter(i => new Date(i.date).toDateString() === todayDateString)
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const todayNet = todayIncome - todaySpend;
 
   const weeklySpend = expenses
     .filter(e => (new Date() - new Date(e.date)) / (1000 * 60 * 60 * 24) <= 7)
@@ -295,20 +253,99 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Today Quick Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="card p-4 flex items-center justify-between border-emerald-500/20 bg-emerald-500/5">
+          <div>
+            <span className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider">Today's Income</span>
+            <p className="text-xl font-extrabold text-emerald-300 mt-1">₹{todayIncome.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg font-bold">
+            💰
+          </div>
+        </div>
+
+        <div className="card p-4 flex items-center justify-between border-rose-500/20 bg-rose-500/5">
+          <div>
+            <span className="text-[11px] font-medium text-rose-400 uppercase tracking-wider">Today's Expenses</span>
+            <p className="text-xl font-extrabold text-rose-300 mt-1">₹{todaySpend.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 text-lg font-bold">
+            💸
+          </div>
+        </div>
+
+        <div className="card p-4 flex items-center justify-between border-indigo-500/20 bg-indigo-500/5">
+          <div>
+            <span className="text-[11px] font-medium text-indigo-400 uppercase tracking-wider">Today's Net Flow</span>
+            <p className={`text-xl font-extrabold mt-1 ${todayNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {todayNet >= 0 ? '+' : ''}₹{todayNet.toLocaleString('en-IN')}
+            </p>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-lg font-bold">
+            ⚖️
+          </div>
+        </div>
+      </div>
+
       {/* Rearrangeable Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {widgetOrder.map((widgetId) => {
-          // 1. Today Spend
+          // Today Overview
+          if (widgetId === 'todayOverview') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/30 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">📊 Today's Overview</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-3 space-y-2.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-medium">Today's Income:</span>
+                    <span className="font-extrabold text-emerald-400">+₹{todayIncome.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-medium">Today's Expense:</span>
+                    <span className="font-extrabold text-rose-400">-₹{todaySpend.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-xs font-bold">
+                    <span className="text-slate-300">Net Flow:</span>
+                    <span className={todayNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                      {todayNet >= 0 ? '+' : ''}₹{todayNet.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Today Spend
           if (widgetId === 'todaySpend') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-rose-500/30 transition-all cursor-move">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300">📅 Today's Spending</h3>
+                  <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">💸 Today's Spending</h3>
                   <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
-                  <p className="text-2xl font-extrabold text-slate-100">₹{todaySpend.toLocaleString('en-IN')}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Aggregated logs for today</p>
+                  <p className="text-2xl font-extrabold text-rose-400">₹{todaySpend.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Aggregated expenses logged today</p>
+                </div>
+              </div>
+            );
+          }
+
+          // Today Income
+          if (widgetId === 'todayIncome') {
+            return (
+              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-emerald-500/30 transition-all cursor-move">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">💰 Today's Income</h3>
+                  <span className="text-[10px] text-slate-500">≡ Drag</span>
+                </div>
+                <div className="py-4">
+                  <p className="text-2xl font-extrabold text-emerald-400">₹{todayIncome.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Total earnings & credits today</p>
                 </div>
               </div>
             );
@@ -553,103 +590,12 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Floating Utilities (QR Code) */}
-      <div className="fixed bottom-6 left-6 flex flex-col gap-2 z-40">
-        <button
-          onClick={() => setActiveModal('qr')}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-          title="Scan QR Merchant"
-        >
-          📱
-        </button>
-      </div>
-
-      {/* OCR Receipt Scanner Floater */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button
-          onClick={() => setActiveModal('ocr')}
-          className="btn-primary flex items-center gap-2 h-12 px-5 rounded-full shadow-lg cursor-pointer"
-        >
-          📷 Scan Receipt
-        </button>
-      </div>
-
-      {/* ─── OCR MODAL ─── */}
-      {activeModal === 'ocr' && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card max-w-md w-full p-6 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
-              <h3 className="font-bold text-slate-100 flex items-center gap-2">📷 Receipt OCR Scanner</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-            </div>
-            <p className="text-xs text-slate-400 leading-normal">
-              Select one of the mock receipt objects below to simulate automatic transaction scanning and parsing.
-            </p>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => simulateOCR('starbucks')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
-                <span>☕ Starbucks Coffee receipt</span>
-                <span className="text-slate-400">₹450.00</span>
-              </button>
-              <button onClick={() => simulateOCR('uber')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
-                <span>🚗 Uber Ride invoice</span>
-                <span className="text-slate-400">₹1,200.00</span>
-              </button>
-              <button onClick={() => simulateOCR('walmart')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
-                <span>🛍️ Walmart grocery bill</span>
-                <span className="text-slate-400">₹5,400.00</span>
-              </button>
-            </div>
-            {ocrLoading && (
-              <div className="flex flex-col items-center justify-center py-4 space-y-2 border-t border-slate-800">
-                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs font-medium text-slate-300">AI parsing receipt structures...</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-
-
-      {/* ─── QR SCANNER MODAL ─── */}
-      {activeModal === 'qr' && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card max-w-sm w-full p-6 text-center space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-700/50 pb-3 text-left">
-              <h3 className="font-bold text-slate-100">📱 UPI QR Payment Scanner</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-            </div>
-            <p className="text-xs text-slate-400">Simulates capturing merchant code detail structures.</p>
-            <div className="relative w-48 h-48 mx-auto border-4 border-indigo-500 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-              <div className="absolute top-0 w-full h-1 bg-indigo-500 shadow-md shadow-indigo-500/50 animate-bounce" style={{ animationDuration: '3s' }} />
-              <span className="text-8xl opacity-15 text-white">🔳</span>
-              {qrScanning && (
-                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center space-y-2">
-                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[10px] text-slate-300">Scanning metadata...</span>
-                </div>
-              )}
-              {qrMerchant && (
-                <div className="absolute inset-0 bg-emerald-600 flex flex-col items-center justify-center text-white p-3">
-                  <span className="text-3xl">✅</span>
-                  <p className="text-xs font-bold mt-2">QR Scanned</p>
-                  <p className="text-[9px] opacity-90 mt-1 break-all">{qrMerchant}</p>
-                </div>
-              )}
-            </div>
-            <button onClick={simulateQR} disabled={qrScanning || qrMerchant} className="btn-primary text-xs w-full py-2.5 cursor-pointer">
-              Simulate QR Scan
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ─── ADD TRANSACTION MODAL ─── */}
       {activeModal === 'addTx' && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
           <div className="card max-w-md w-full p-6 my-8 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
-              <h3 className="font-bold text-slate-100">Add Scanned Transaction</h3>
+              <h3 className="font-bold text-slate-100">Add Transaction</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
             </div>
             <form onSubmit={handleSaveTransaction} className="space-y-3 text-xs">
