@@ -78,7 +78,7 @@ export const login = asyncHandler(async (req, res) => {
     res.status(401);
     return res.json({
       success: false,
-      message: 'No account found with this email address.'
+      message: 'User is not registered'
     });
   }
 
@@ -179,7 +179,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
   if (!user) {
     res.status(404);
-    throw new Error('No user found with that email address');
+    throw new Error('User is not registered');
   }
 
   // Generate 6-digit random token/OTP

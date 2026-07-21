@@ -43,22 +43,31 @@ export default function Dashboard() {
   const [gameStreak, setGameStreak] = useState(18);
   const [unlockedBadgesCount, setUnlockedBadgesCount] = useState(13);
 
-  // Widget Order state (16 widgets)
+  // Widget Order state (12 widgets)
   const [widgetOrder, setWidgetOrder] = useState(() => {
-    const saved = localStorage.getItem('dashboard_widget_order');
-    return saved ? JSON.parse(saved) : [
+    const defaultWidgets = [
       'todaySpend', 'weeklySpend', 'monthlySpend', 'remainingBudget',
-      'currentSavings', 'savingsProgress', 'largestExpense', 'mostUsedCategory',
-      'health', 'bills', 'notifications', 'heatmap',
-      'tipOfTheDay', 'cashFlow', 'wealth', 'investmentSummary'
+      'savingsProgress', 'largestExpense', 'mostUsedCategory',
+      'health', 'bills', 'notifications',
+      'tipOfTheDay', 'cashFlow'
     ];
+    const saved = localStorage.getItem('dashboard_widget_order');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(w => defaultWidgets.includes(w));
+        }
+      } catch (e) {
+        console.error('Error parsing dashboard_widget_order', e);
+      }
+    }
+    return defaultWidgets;
   });
 
   // Modals state
   const [activeModal, setActiveModal] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
-  const [voiceRecording, setVoiceRecording] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState('"Your voice transcript will appear here..."');
   const [qrScanning, setQrScanning] = useState(false);
   const [qrMerchant, setQrMerchant] = useState('');
 
@@ -167,73 +176,7 @@ export default function Dashboard() {
     }, 1200);
   };
 
-  // Voice command parsing using Web Speech API
-  const handleVoiceRecording = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      // Simulate if speech not supported
-      setVoiceRecording(true);
-      setVoiceTranscript('Listening...');
-      setTimeout(() => {
-        setVoiceTranscript('"Spent 650 rupees on dinner at Dominos today"');
-        setVoiceRecording(false);
-      }, 1500);
-      return;
-    }
 
-    const rec = new SpeechRecognition();
-    rec.lang = 'en-IN';
-    rec.interimResults = false;
-
-    rec.onstart = () => {
-      setVoiceRecording(true);
-      setVoiceTranscript('Listening for transaction...');
-    };
-
-    rec.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setVoiceTranscript(`"${transcript}"`);
-    };
-
-    rec.onerror = () => {
-      toast.error('Voice capture failed');
-      setVoiceRecording(false);
-    };
-
-    rec.onend = () => {
-      setVoiceRecording(false);
-    };
-
-    rec.start();
-  };
-
-  const processVoice = () => {
-    const text = voiceTranscript.toLowerCase();
-    let amount = '0';
-    let title = 'Voice Transaction';
-
-    const matchAmount = text.match(/(\d+)\s*(?:rupees|rs|inr)/i) || text.match(/(?:rs\.?|₹)\s*(\d+)/i) || text.match(/\b\d{2,5}\b/);
-    if (matchAmount) {
-      amount = matchAmount[1] || matchAmount[0];
-    }
-
-    if (text.includes('starbucks')) title = 'Starbucks Coffee';
-    else if (text.includes('uber')) title = 'Uber Ride';
-    else if (text.includes('dominos') || text.includes('dinner') || text.includes('coffee')) title = 'Dinner at Dominos';
-    
-    const categoryMatch = categories.find(c => c.type === 'expense' && (c.name.toLowerCase().includes('food') || c.name.toLowerCase().includes('transport')));
-
-    setTxForm(prev => ({
-      ...prev,
-      title,
-      amount,
-      type: 'expense',
-      description: 'Voice entries',
-      category: categoryMatch ? categoryMatch._id : prev.category
-    }));
-    setActiveModal('addTx');
-    toast.success('Voice transcription processed successfully!');
-  };
 
   const simulateQR = () => {
     setQrScanning(true);
@@ -419,21 +362,6 @@ export default function Dashboard() {
             );
           }
 
-          // 5. Current Savings
-          if (widgetId === 'currentSavings') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300">🏦 Liquid Savings Balance</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4">
-                  <p className="text-2xl font-extrabold text-emerald-400">₹{Number(summary?.balance || 0).toLocaleString('en-IN')}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Net wallet cash balances</p>
-                </div>
-              </div>
-            );
-          }
 
           // 6. Savings Goal Progress
           if (widgetId === 'savingsProgress') {
@@ -566,33 +494,6 @@ export default function Dashboard() {
             );
           }
 
-          // 12. Expense Heatmap
-          if (widgetId === 'heatmap') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300">📅 Spending Density</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4">
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {Array.from({ length: 28 }, (_, i) => {
-                      const day = i + 1;
-                      let shade = 'bg-slate-800/40';
-                      if ([2, 5, 8, 12, 18, 22].includes(day)) shade = 'bg-red-500/70';
-                      else if ([3, 6, 14, 25].includes(day)) shade = 'bg-primary-500/50';
-                      else if ([1, 10, 15].includes(day)) shade = 'bg-emerald-500/60';
-                      return (
-                        <div key={day} className={`w-full aspect-square rounded-md text-[8px] font-bold flex items-center justify-center text-slate-400 ${shade}`}>
-                          {day}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          }
 
           // 13. AI Tip of the Day
           if (widgetId === 'tipOfTheDay') {
@@ -646,61 +547,14 @@ export default function Dashboard() {
             );
           }
 
-          // 15. Net Worth
-          if (widgetId === 'wealth') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300">👑 Net Worth Tracker</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Aggregate Net Worth</p>
-                  <p className="text-3xl font-black text-amber-400 mt-1">₹{(Number(summary?.balance || 0) + 200000).toLocaleString('en-IN')}</p>
-                </div>
-              </div>
-            );
-          }
 
-          // 16. Investment Summary
-          if (widgetId === 'investmentSummary') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300">💼 Investment Portfolio Summary</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-3 space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">Mutual Index Funds:</span>
-                    <span className="font-bold text-slate-200">₹1,20,000</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">Equity/Stocks:</span>
-                    <span className="font-bold text-slate-200">₹45,000</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">Crypto Ledger:</span>
-                    <span className="font-bold text-slate-200">₹35,000</span>
-                  </div>
-                </div>
-              </div>
-            );
-          }
 
           return null;
         })}
       </div>
 
-      {/* Floating Utilities (Mic, QR Code) */}
+      {/* Floating Utilities (QR Code) */}
       <div className="fixed bottom-6 left-6 flex flex-col gap-2 z-40">
-        <button
-          onClick={() => setActiveModal('voice')}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-          title="Voice entry"
-        >
-          🎙️
-        </button>
         <button
           onClick={() => setActiveModal('qr')}
           className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
@@ -755,43 +609,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ─── VOICE ENTRY MODAL ─── */}
-      {activeModal === 'voice' && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card max-w-sm w-full p-6 text-center space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-700/50 pb-3 text-left">
-              <h3 className="font-bold text-slate-100">🎙️ Voice transaction logger</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-            </div>
-            <p className="text-xs text-slate-400 leading-normal">
-              Click the mic button and say: "Spent 650 rupees on dinner at Dominos today."
-            </p>
-            <div className="flex justify-center py-6">
-              <button
-                onClick={handleVoiceRecording}
-                className={`h-20 w-20 rounded-full flex items-center justify-center text-3xl shadow-xl transition-all cursor-pointer ${
-                  voiceRecording ? 'bg-red-600 animate-pulse scale-105 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-                }`}
-              >
-                🎙️
-              </button>
-            </div>
-            <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-xl text-xs font-mono italic text-slate-300 break-words">
-              {voiceTranscript}
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setActiveModal(null)} className="btn-secondary text-xs px-3 py-1.5">Cancel</button>
-              <button
-                onClick={processVoice}
-                disabled={voiceTranscript.startsWith('"Your')}
-                className="btn-primary text-xs px-3 py-1.5"
-              >
-                Confirm log
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* ─── QR SCANNER MODAL ─── */}
       {activeModal === 'qr' && (
