@@ -115,7 +115,7 @@ export default function Login() {
       let errMsg = err.response?.data?.message || 'Login failed';
       
       // Highlight invalid fields where appropriate
-      if (errMsg.includes('email') || errMsg.includes('No account found')) {
+      if (errMsg.includes('email') || errMsg.includes('No account found') || errMsg.includes('not registered') || errMsg.includes('registered')) {
         setEmailError(true);
       }
       if (errMsg.includes('password') || errMsg.includes('Incorrect password')) {
