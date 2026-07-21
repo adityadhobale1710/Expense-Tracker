@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema(
     unlockedTitles: { type: [String], default: ['Novice', 'Tracker', 'Thrifty'] },
     unlockedAvatars: { type: [String], default: [] },
     unlockedThemes: { type: [String], default: ['light', 'dark'] },
+    simulatedActions: { type: [String], default: [] },
     achievements: [{
       id: { type: String },
       currentProgress: { type: Number, default: 0 },

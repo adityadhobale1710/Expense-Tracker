@@ -101,9 +101,11 @@ export default function Sidebar({ isOpen, onClose }) {
             {/* Name & role: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
             <div className="block md:hidden lg:block flex-1 min-w-0">
               <h4 className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Guest User'}</h4>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mt-0.5">
-                {user?.role === 'premium' ? '👑 Premium User' : user?.role === 'admin' ? '🛡️ Admin User' : 'Standard Tier'}
-              </p>
+              {user?.role && user.role !== 'user' && (
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mt-0.5">
+                  {user.role === 'premium' ? '👑 Premium User' : user.role === 'admin' ? '🛡️ Admin User' : user.role}
+                </p>
+              )}
             </div>
           </div>
         </div>
