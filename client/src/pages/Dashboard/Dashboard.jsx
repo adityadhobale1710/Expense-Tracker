@@ -4,9 +4,6 @@ import { useExpense } from '../../context/ExpenseContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { PROGRESSION_LEVELS } from '../Achievements/achievementsData';
-import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
-} from 'recharts';
 import toast from 'react-hot-toast';
 
 const getLocalTodayString = () => {
@@ -24,15 +21,6 @@ const getLocalTimeString = () => {
   return `${hh}:${mm}`;
 };
 
-const NET_WORTH_HISTORY = [
-  { name: "Jan", Wealth: 120000 },
-  { name: "Feb", Wealth: 135000 },
-  { name: "Mar", Wealth: 150000 },
-  { name: "Apr", Wealth: 165000 },
-  { name: "May", Wealth: 180000 },
-  { name: "Jun", Wealth: 200000 }
-];
-
 export default function Dashboard() {
   const { summary, fetchSummary, expenses, fetchExpenses, incomes, fetchIncomes, categories, fetchCategories, budgets, fetchBudgets, addExpense, addIncome } = useExpense();
   const { user } = useAuth();
@@ -48,7 +36,7 @@ export default function Dashboard() {
     'weeklySpend', 'monthlySpend', 'remainingBudget',
     'savingsProgress', 'largestExpense', 'mostUsedCategory',
     'health', 'bills', 'notifications',
-    'tipOfTheDay', 'cashFlow'
+    'tipOfTheDay'
   ];
 
   // Modals state
@@ -406,34 +394,6 @@ export default function Dashboard() {
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          }
-
-          // 14. Monthly Cash Flow
-          if (widgetId === 'cashFlow') {
-            return (
-              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all md:col-span-2 xl:col-span-3">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50 mb-3">
-                  <h3 className="text-xs font-bold text-slate-300">📈 Monthly Cash Flow Projections</h3>
-                </div>
-                <div className="h-40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={NET_WORTH_HISTORY} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                      <XAxis dataKey="name" tick={{ fill: 'var(--chart-text)', fontSize: 10 }} />
-                      <YAxis tick={{ fill: 'var(--chart-text)', fontSize: 10 }} />
-                      <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }} />
-                      <Area type="monotone" dataKey="Wealth" stroke="#10b981" fillOpacity={1} fill="url(#colorCash)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
                 </div>
               </div>
             );

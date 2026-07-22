@@ -204,10 +204,6 @@ export default function Expenses() {
             </div>
           </div>
           <div className="form-group">
-            <label className="label">Tags (comma-separated)</label>
-            <input className="input" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="e.g. food, weekend, family" />
-          </div>
-          <div className="form-group">
             <label className="label">Description</label>
             <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional note" />
           </div>
