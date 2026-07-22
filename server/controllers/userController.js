@@ -12,23 +12,17 @@ export const getMe = asyncHandler(async (req, res) => {
 // @desc  Update profile
 // @route PUT /api/users/me
 export const updateMe = asyncHandler(async (req, res) => {
-  const {
-    name, avatar, currency, phone, company, twoFactorEnabled, role,
-    xp, coins, level, streak, longestStreak, unlockedTitles, unlockedAvatars, unlockedThemes, achievements, simulatedActions
-  } = req.body;
+  // Issue #3 fix: only allow safe, user-writable fields.
+  // Sensitive fields (role, twoFactorEnabled) and all gamification data
+  // (xp, coins, level, streak, achievements, etc.) are NEVER user-writable.
+  const { name, avatar, currency, phone, company } = req.body;
 
-  const updateFields = { name, avatar, currency, phone, company, twoFactorEnabled, role };
-  
-  if (xp !== undefined) updateFields.xp = xp;
-  if (coins !== undefined) updateFields.coins = coins;
-  if (level !== undefined) updateFields.level = level;
-  if (streak !== undefined) updateFields.streak = streak;
-  if (longestStreak !== undefined) updateFields.longestStreak = longestStreak;
-  if (unlockedTitles !== undefined) updateFields.unlockedTitles = unlockedTitles;
-  if (unlockedAvatars !== undefined) updateFields.unlockedAvatars = unlockedAvatars;
-  if (unlockedThemes !== undefined) updateFields.unlockedThemes = unlockedThemes;
-  if (achievements !== undefined) updateFields.achievements = achievements;
-  if (simulatedActions !== undefined) updateFields.simulatedActions = simulatedActions;
+  const updateFields = {};
+  if (name !== undefined)     updateFields.name     = name;
+  if (avatar !== undefined)   updateFields.avatar   = avatar;
+  if (currency !== undefined) updateFields.currency = currency;
+  if (phone !== undefined)    updateFields.phone    = phone;
+  if (company !== undefined)  updateFields.company  = company;
 
   const user = await User.findByIdAndUpdate(
     req.user._id,

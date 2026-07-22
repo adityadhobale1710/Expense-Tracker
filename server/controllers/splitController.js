@@ -62,11 +62,20 @@ export const createSplit = asyncHandler(async (req, res) => {
 // @route   POST /api/splits/:id/settle
 export const settleMember = asyncHandler(async (req, res) => {
   const { memberEmail } = req.body;
+  // Issue #3 fix: fetch with no filter first, then check ownership
   const split = await SplitExpense.findById(req.params.id);
 
   if (!split) {
     res.status(404);
     throw new Error('Split bill not found');
+  }
+
+  // Authorization: only the creator OR the member themselves can settle a share
+  const isCreator = split.creator.toString() === req.user._id.toString();
+  const isSelf    = req.user.email === memberEmail;
+  if (!isCreator && !isSelf) {
+    res.status(403);
+    throw new Error('Not authorized to settle this member share');
   }
 
   const member = split.members.find((m) => m.userEmail === memberEmail);
@@ -92,14 +101,15 @@ export const settleMember = asyncHandler(async (req, res) => {
 // @route   PUT /api/splits/:id
 export const updateSplit = asyncHandler(async (req, res) => {
   const { title, amount, groupName, members, status } = req.body;
-  const split = await SplitExpense.findByIdAndUpdate(
-    req.params.id,
+  // Issue #3 fix: only the creator can update a split (ownership filter)
+  const split = await SplitExpense.findOneAndUpdate(
+    { _id: req.params.id, creator: req.user._id },
     { title, amount, groupName, members, status },
     { new: true, runValidators: true }
   );
   if (!split) {
     res.status(404);
-    throw new Error('Split bill not found');
+    throw new Error('Split bill not found or you are not the creator');
   }
   sendSuccess(res, 200, 'Split updated', split);
 });
