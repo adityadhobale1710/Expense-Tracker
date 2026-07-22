@@ -43,29 +43,13 @@ export default function Dashboard() {
   const [gameStreak, setGameStreak] = useState(18);
   const [unlockedBadgesCount, setUnlockedBadgesCount] = useState(13);
 
-  // Widget Order state (12 widgets)
-  const [widgetOrder, setWidgetOrder] = useState(() => {
-    const defaultWidgets = [
-      'todayOverview', 'todaySpend', 'todayIncome', 'weeklySpend', 'monthlySpend', 'remainingBudget',
-      'savingsProgress', 'largestExpense', 'mostUsedCategory',
-      'health', 'bills', 'notifications',
-      'tipOfTheDay', 'cashFlow'
-    ];
-    const saved = localStorage.getItem('dashboard_widget_order');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const validSaved = parsed.filter(w => defaultWidgets.includes(w));
-          const missing = defaultWidgets.filter(w => !validSaved.includes(w));
-          return [...validSaved, ...missing];
-        }
-      } catch (e) {
-        console.error('Error parsing dashboard_widget_order', e);
-      }
-    }
-    return defaultWidgets;
-  });
+  // Widgets list
+  const widgets = [
+    'weeklySpend', 'monthlySpend', 'remainingBudget',
+    'savingsProgress', 'largestExpense', 'mostUsedCategory',
+    'health', 'bills', 'notifications',
+    'tipOfTheDay', 'cashFlow'
+  ];
 
   // Modals state
   const [activeModal, setActiveModal] = useState(null);
@@ -88,8 +72,7 @@ export default function Dashboard() {
     description: ''
   });
 
-  // Drag and Drop state
-  const [draggedWidget, setDraggedWidget] = useState(null);
+
 
   const fetchGamification = async () => {
     if (!user) return;
@@ -135,19 +118,7 @@ export default function Dashboard() {
     }
   }, [txForm.type, categories]);
 
-  const handleDragStart = (id) => setDraggedWidget(id);
-  const handleDragOver = (e) => e.preventDefault();
-  const handleDrop = (targetId) => {
-    if (!draggedWidget || draggedWidget === targetId) return;
-    const newOrder = [...widgetOrder];
-    const draggedIdx = newOrder.indexOf(draggedWidget);
-    const targetIdx = newOrder.indexOf(targetId);
-    newOrder.splice(draggedIdx, 1);
-    newOrder.splice(targetIdx, 0, draggedWidget);
-    setWidgetOrder(newOrder);
-    localStorage.setItem('dashboard_widget_order', JSON.stringify(newOrder));
-    setDraggedWidget(null);
-  };
+
 
 
 
@@ -189,16 +160,6 @@ export default function Dashboard() {
   };
 
   // ─── WIDGETS DATA CALCULATIONS ───
-  const todayDateString = new Date().toDateString();
-  const todaySpend = expenses
-    .filter(e => new Date(e.date).toDateString() === todayDateString)
-    .reduce((sum, e) => sum + e.amount, 0);
-
-  const todayIncome = incomes
-    .filter(i => new Date(i.date).toDateString() === todayDateString)
-    .reduce((sum, i) => sum + i.amount, 0);
-
-  const todayNet = todayIncome - todaySpend;
 
   const weeklySpend = expenses
     .filter(e => (new Date() - new Date(e.date)) / (1000 * 60 * 60 * 24) <= 7)
@@ -231,7 +192,7 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Hello, {user?.name?.split(' ')[0]}</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Here is your financial drag-and-drop dashboard panel today.</p>
+          <p className="text-xs text-slate-400 mt-0.5">Here is your financial dashboard panel today.</p>
         </div>
         <button
           onClick={() => {
@@ -253,111 +214,15 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Today Quick Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card p-4 flex items-center justify-between border-emerald-500/20 bg-emerald-500/5">
-          <div>
-            <span className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider">Today's Income</span>
-            <p className="text-xl font-extrabold text-emerald-300 mt-1">₹{todayIncome.toLocaleString('en-IN')}</p>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg font-bold">
-            💰
-          </div>
-        </div>
-
-        <div className="card p-4 flex items-center justify-between border-rose-500/20 bg-rose-500/5">
-          <div>
-            <span className="text-[11px] font-medium text-rose-400 uppercase tracking-wider">Today's Expenses</span>
-            <p className="text-xl font-extrabold text-rose-300 mt-1">₹{todaySpend.toLocaleString('en-IN')}</p>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 text-lg font-bold">
-            💸
-          </div>
-        </div>
-
-        <div className="card p-4 flex items-center justify-between border-indigo-500/20 bg-indigo-500/5">
-          <div>
-            <span className="text-[11px] font-medium text-indigo-400 uppercase tracking-wider">Today's Net Flow</span>
-            <p className={`text-xl font-extrabold mt-1 ${todayNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {todayNet >= 0 ? '+' : ''}₹{todayNet.toLocaleString('en-IN')}
-            </p>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-lg font-bold">
-            ⚖️
-          </div>
-        </div>
-      </div>
-
-      {/* Rearrangeable Dashboard Grid */}
+      {/* Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {widgetOrder.map((widgetId) => {
-          // Today Overview
-          if (widgetId === 'todayOverview') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/30 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">📊 Today's Overview</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-3 space-y-2.5">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">Today's Income:</span>
-                    <span className="font-extrabold text-emerald-400">+₹{todayIncome.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">Today's Expense:</span>
-                    <span className="font-extrabold text-rose-400">-₹{todaySpend.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-xs font-bold">
-                    <span className="text-slate-300">Net Flow:</span>
-                    <span className={todayNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                      {todayNet >= 0 ? '+' : ''}₹{todayNet.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // Today Spend
-          if (widgetId === 'todaySpend') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-rose-500/30 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">💸 Today's Spending</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4">
-                  <p className="text-2xl font-extrabold text-rose-400">₹{todaySpend.toLocaleString('en-IN')}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Aggregated expenses logged today</p>
-                </div>
-              </div>
-            );
-          }
-
-          // Today Income
-          if (widgetId === 'todayIncome') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-emerald-500/30 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">💰 Today's Income</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4">
-                  <p className="text-2xl font-extrabold text-emerald-400">₹{todayIncome.toLocaleString('en-IN')}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Total earnings & credits today</p>
-                </div>
-              </div>
-            );
-          }
-
+        {widgets.map((widgetId) => {
           // 2. Weekly Spend
           if (widgetId === 'weeklySpend') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">📊 Weekly Spending</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-2xl font-extrabold text-slate-100">₹{weeklySpend.toLocaleString('en-IN')}</p>
@@ -370,10 +235,9 @@ export default function Dashboard() {
           // 3. Monthly Spend
           if (widgetId === 'monthlySpend') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">💸 Monthly Spending</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-2xl font-extrabold text-slate-100">₹{monthlySpend.toLocaleString('en-IN')}</p>
@@ -386,10 +250,9 @@ export default function Dashboard() {
           // 4. Remaining Budget
           if (widgetId === 'remainingBudget') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🎯 Remaining Budget</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-2xl font-extrabold text-indigo-400">₹{remainingBudget.toLocaleString('en-IN')}</p>
@@ -403,10 +266,9 @@ export default function Dashboard() {
           // 6. Savings Goal Progress
           if (widgetId === 'savingsProgress') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🥅 Goal Progress</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4 space-y-2">
                   <div className="flex justify-between text-xs font-bold">
@@ -424,10 +286,9 @@ export default function Dashboard() {
           // 7. Largest Expense
           if (widgetId === 'largestExpense') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">💥 Largest Expense</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   {largestExpenseObj ? (
@@ -446,10 +307,9 @@ export default function Dashboard() {
           // 8. Most Used Category
           if (widgetId === 'mostUsedCategory') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🗂️ Top Category</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-xl font-extrabold text-indigo-300 uppercase">{mostUsedCategory}</p>
@@ -462,10 +322,9 @@ export default function Dashboard() {
           // 9. Financial Health Score
           if (widgetId === 'health') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🏥 Health Score</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="flex flex-col items-center py-4">
                   <div className="relative w-28 h-28 flex items-center justify-center">
@@ -486,10 +345,9 @@ export default function Dashboard() {
           // 10. Upcoming Bills
           if (widgetId === 'bills') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">⏳ Upcoming Obligations</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-2.5 space-y-2">
                   <div className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
@@ -514,10 +372,9 @@ export default function Dashboard() {
           // 11. Recent Notifications
           if (widgetId === 'notifications') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🔔 Recent Notifications</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-2 space-y-2">
                   {recentNotifications.map((n, idx) => (
@@ -535,10 +392,9 @@ export default function Dashboard() {
           // 13. AI Tip of the Day
           if (widgetId === 'tipOfTheDay') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">💡 AI Tip of the Day</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4 space-y-3">
                   <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex gap-3">
@@ -558,10 +414,9 @@ export default function Dashboard() {
           // 14. Monthly Cash Flow
           if (widgetId === 'cashFlow') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move md:col-span-2 xl:col-span-3">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all md:col-span-2 xl:col-span-3">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50 mb-3">
                   <h3 className="text-xs font-bold text-slate-300">📈 Monthly Cash Flow Projections</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="h-40">
                   <ResponsiveContainer width="100%" height="100%">
@@ -583,8 +438,6 @@ export default function Dashboard() {
               </div>
             );
           }
-
-
 
           return null;
         })}
