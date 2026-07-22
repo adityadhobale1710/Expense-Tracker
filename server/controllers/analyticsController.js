@@ -7,6 +7,15 @@ import PDFDocument from 'pdfkit';
 import XLSX from 'xlsx';
 
 /**
+ * Issue #5 fix: sanitize cell values to prevent CSV/Excel formula injection.
+ * Prefixes dangerous-leading characters (=, +, -, @, TAB, CR) with a single quote.
+ */
+const sanitizeCell = (val) => {
+  if (typeof val !== 'string') return val;
+  return /^[=+\-@\t\r]/.test(val) ? `'${val}` : val;
+};
+
+/**
  * Helper: Parses query parameters for start and end dates
  * Fallback is current month
  */
@@ -505,19 +514,19 @@ export const exportExcel = asyncHandler(async (req, res) => {
 
   const expenseRows = expenses.map((exp) => ({
     Date: exp.date.toISOString().split('T')[0],
-    Category: exp.category?.name || 'Uncategorized',
-    Title: exp.title,
+    Category: sanitizeCell(exp.category?.name || 'Uncategorized'),
+    Title: sanitizeCell(exp.title),
     Amount: exp.amount,
-    'Payment Method': exp.paymentMethod,
-    Description: exp.description || ''
+    'Payment Method': sanitizeCell(exp.paymentMethod),
+    Description: sanitizeCell(exp.description || '')
   }));
 
   const incomeRows = incomes.map((inc) => ({
     Date: inc.date.toISOString().split('T')[0],
-    Source: inc.category || 'Other',
-    Title: inc.title,
+    Source: sanitizeCell(inc.category || 'Other'),
+    Title: sanitizeCell(inc.title),
     Amount: inc.amount,
-    Description: inc.description || ''
+    Description: sanitizeCell(inc.description || '')
   }));
 
   const wsExpenses = XLSX.utils.json_to_sheet(expenseRows);

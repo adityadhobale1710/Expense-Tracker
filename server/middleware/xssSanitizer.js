@@ -8,12 +8,13 @@ const clean = (obj) => {
       const val = obj[key];
       if (typeof val === 'string') {
         // Basic escaping to block <script> and HTML tags
+        // Issue #5 fix: forward-slash (/) is NOT dangerous in HTML text contexts and
+        // must NOT be encoded — it would corrupt URLs, JWT tokens, and ISO dates.
         obj[key] = val
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#x27;')
-          .replace(/\//g, '&#x2F;');
+          .replace(/'/g, '&#x27;');
       } else if (typeof val === 'object') {
         clean(val);
       }

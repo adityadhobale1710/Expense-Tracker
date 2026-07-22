@@ -2,6 +2,8 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { register, login, logout, refreshToken, forgotPassword, resetPassword } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { validate } from '../middleware/validate.js';
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../middleware/schemas.js';
 
 const router = express.Router();
 
@@ -19,11 +21,11 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post('/register', register);
-router.post('/login', loginLimiter, login);
+router.post('/register', validate(registerSchema), register);
+router.post('/login', loginLimiter, validate(loginSchema), login);
 router.post('/logout', protect, logout);
 router.post('/refresh-token', refreshToken);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 
 export default router;
