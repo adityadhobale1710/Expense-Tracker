@@ -27,6 +27,10 @@ api.interceptors.request.use(
 );
 
 // Response Interceptor: Auto Token Refresh and Global Error Handling
+// Issue #6 fix: module-level semaphore prevents race condition where concurrent
+// 401 errors each trigger their own /refresh-token call (token rotation failure).
+let refreshingPromise = null;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -35,8 +39,8 @@ api.interceptors.response.use(
     // 1. Handle Token Refresh on 401 Unauthorized
     if (
       error.response?.status === 401 && 
-      !originalRequest._retry && 
-      !originalRequest.url?.includes('/auth/login') && 
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
       !originalRequest.url?.includes('/auth/register')
     ) {
       originalRequest._retry = true; // Retry only once
@@ -44,13 +48,17 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) throw new Error('No refresh token available');
 
-        // Use base axios to call refresh to prevent infinite loops
-        const { data } = await axios.post(`${API_URL}/auth/refresh-token`, {
-          refreshToken,
-        });
+        // Serialize all concurrent refresh attempts — only one call to /refresh-token
+        if (!refreshingPromise) {
+          refreshingPromise = axios
+            .post(`${API_URL}/auth/refresh-token`, { refreshToken })
+            .then((res) => res.data.data)
+            .finally(() => { refreshingPromise = null; });
+        }
 
-        const newAccessToken = data.data.accessToken;
-        const newRefreshToken = data.data.refreshToken;
+        const tokens = await refreshingPromise;
+        const newAccessToken = tokens.accessToken;
+        const newRefreshToken = tokens.refreshToken;
 
         localStorage.setItem('accessToken', newAccessToken);
         if (newRefreshToken) {
@@ -62,6 +70,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Clear storage and force logout
+        refreshingPromise = null;
         localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
