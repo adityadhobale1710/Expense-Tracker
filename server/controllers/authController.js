@@ -1,10 +1,15 @@
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
 import Category from '../models/Category.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
+
+// Account lockout constants
+const MAX_LOGIN_ATTEMPTS = 10;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 const DEFAULT_CATEGORIES = [
   { name: 'Food & Dining', icon: '🍔', color: '#f97316', type: 'expense' },
@@ -91,14 +96,35 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
+  // Check account lockout
+  if (user.lockoutUntil && user.lockoutUntil > Date.now()) {
+    const minutesLeft = Math.ceil((user.lockoutUntil - Date.now()) / 60000);
+    res.status(403);
+    return res.json({
+      success: false,
+      message: `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`
+    });
+  }
+
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
+    // Increment failed attempts and possibly lock account
+    user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+    if (user.failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
+      user.lockoutUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+      user.failedLoginAttempts = 0;
+    }
+    await user.save({ validateBeforeSave: false });
     res.status(401);
     return res.json({
       success: false,
       message: 'Incorrect password.'
     });
   }
+
+  // Reset lockout on successful login
+  user.failedLoginAttempts = 0;
+  user.lockoutUntil = null;
 
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
@@ -150,12 +176,18 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new Error('No refresh token provided');
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET, { algorithms: ['HS256'] });
   const user = await User.findById(decoded.id);
 
   if (!user || user.refreshToken !== token) {
     res.status(401);
     throw new Error('Invalid refresh token');
+  }
+
+  // Block disabled/locked accounts from refreshing session
+  if (user.isDisabled || user.isBlocked || user.status === 'disabled' || user.status === 'blocked') {
+    res.status(403);
+    throw new Error('Account is disabled. Please contact support.');
   }
 
   const newAccessToken = generateAccessToken(user._id);
@@ -185,7 +217,8 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   }
 
   // Generate 6-digit random token/OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // Use cryptographically secure random integer (Issue #2 fix)
+  const otp = crypto.randomInt(100000, 1000000).toString();
 
   // Token expires in 15 minutes
   user.resetPasswordToken = otp;

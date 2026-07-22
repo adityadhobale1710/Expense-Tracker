@@ -27,6 +27,9 @@ const userSchema = new mongoose.Schema(
     refreshToken: { type: String, default: null },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpire: { type: Date, default: null },
+    // Account lockout (Issue #2)
+    failedLoginAttempts: { type: Number, default: 0 },
+    lockoutUntil: { type: Date, default: null },
     
     // Gamification properties
     xp: { type: Number, default: 3450 },

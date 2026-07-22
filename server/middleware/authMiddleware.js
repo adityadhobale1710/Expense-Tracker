@@ -8,11 +8,16 @@ export const protect = asyncHandler(async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
       req.user = await User.findById(decoded.id).select('-password -refreshToken');
       if (!req.user) {
         res.status(401);
         throw new Error('User not found');
+      }
+      // Check if account is disabled (Issue #2)
+      if (req.user.isDisabled || req.user.isBlocked) {
+        res.status(403);
+        throw new Error('Account is disabled. Please contact support.');
       }
       return next();
     } catch (error) {
@@ -29,11 +34,16 @@ export const protect = asyncHandler(async (req, res, next) => {
 
     try {
       token = req.query.token;
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
       req.user = await User.findById(decoded.id).select('-password -refreshToken');
       if (!req.user) {
         res.status(401);
         throw new Error('User not found');
+      }
+      // Check if account is disabled (Issue #2)
+      if (req.user.isDisabled || req.user.isBlocked) {
+        res.status(403);
+        throw new Error('Account is disabled. Please contact support.');
       }
       return next();
     } catch (error) {
