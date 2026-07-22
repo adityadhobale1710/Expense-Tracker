@@ -179,8 +179,8 @@ export default function Login() {
           <div>
             {/* App Logo & Header */}
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-9 h-9 rounded-xl bg-[#5B4CF0] flex items-center justify-center text-white shadow-sm shadow-[#5B4CF0]/30">
-                <Wallet className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 bg-white">
+                <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <span className="text-lg font-bold tracking-tight text-[#1E293B] font-jakarta">
                 My Expense Pro
