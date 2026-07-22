@@ -143,27 +143,9 @@ export default function Login() {
     }
   };
 
-  const simulateSocialLogin = (provider) => {
-    toast.success(`Simulating Single-Sign-On with ${provider}...`);
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      // Create a dummy user
-      const dummyUser = {
-        name: 'Aditya Dhobale',
-        email: `aditya@${provider.toLowerCase()}.com`,
-        currency: 'INR',
-        role: 'user',
-        phone: '+91 9876543210',
-        company: 'SSO Account',
-        twoFactorEnabled: false
-      };
-      localStorage.setItem('accessToken', 'mock-sso-token');
-      localStorage.setItem('user', JSON.stringify(dummyUser));
-      // Reload page state or update auth
-      window.location.href = '/dashboard';
-    }, 1200);
-  };
+  // Issue #6 fix: removed simulateSocialLogin — it wrote fake mock tokens to
+  // localStorage (mock-sso-token) without any real server authentication,
+  // creating a false sense of logged-in state. SSO is not yet implemented.
 
   return (
     <div className="min-h-screen bg-[#F3F4FE] text-[#475569] flex items-center justify-center p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#5B4CF0]/20 selection:text-[#5B4CF0]">
@@ -302,10 +284,12 @@ export default function Login() {
 
             {/* Social Login Buttons */}
             <div className="flex">
+              {/* Issue #6 fix: SSO button is disabled — real OAuth not yet implemented */}
               <button
                 type="button"
-                onClick={() => simulateSocialLogin('Google')}
-                className="w-full h-[46px] px-3 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#334155] text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2 transition-all shadow-xs"
+                disabled
+                title="Google Sign-In coming soon"
+                className="w-full h-[46px] px-3 bg-[#F1F5F9] text-[#94A3B8] text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
               >
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                   <path
@@ -325,7 +309,7 @@ export default function Login() {
                     d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.7 1.28 6.58l4 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                   />
                 </svg>
-                <span>Google</span>
+                <span>Google (Coming Soon)</span>
               </button>
             </div>
           </div>
