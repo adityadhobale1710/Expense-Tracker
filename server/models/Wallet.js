@@ -9,7 +9,7 @@ const walletSchema = new mongoose.Schema(
       enum: ['cash', 'bank', 'upi', 'credit_card', 'debit_card', 'business', 'crypto', 'gift_card'],
       required: true,
     },
-    balance: { type: Number, default: 0 },
+    balance: { type: Number, default: 0, min: [0, 'Balance cannot be negative'] },
     color: { type: String, default: '#6366f1' },
     icon: { type: String, default: '💳' },
   },

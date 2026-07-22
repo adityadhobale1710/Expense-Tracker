@@ -58,12 +58,35 @@ export const getExpense = asyncHandler(async (req, res) => {
 // @desc  Update expense
 // @route PUT /api/expenses/:id
 export const updateExpense = asyncHandler(async (req, res) => {
+  // Issue #4 fix: fetch old expense first to compute amount delta for budget
+  const oldExpense = await Expense.findOne({ _id: req.params.id, user: req.user._id });
+  if (!oldExpense) { res.status(404); throw new Error('Expense not found'); }
+
   const expense = await Expense.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
     req.body,
     { new: true, runValidators: true }
   ).populate('category', 'name icon color');
-  if (!expense) { res.status(404); throw new Error('Expense not found'); }
+
+  // Adjust budget.spent by the delta (new amount - old amount)
+  const newCategoryId = expense.category?._id || expense.category;
+  const oldCategoryId = oldExpense.category;
+
+  if (oldCategoryId) {
+    const oldBudget = await Budget.findOne({ user: req.user._id, category: oldCategoryId });
+    if (oldBudget) {
+      oldBudget.spent = Math.max(0, oldBudget.spent - oldExpense.amount);
+      await oldBudget.save();
+    }
+  }
+  if (newCategoryId) {
+    const newBudget = await Budget.findOne({ user: req.user._id, category: newCategoryId });
+    if (newBudget) {
+      newBudget.spent = Math.max(0, newBudget.spent + expense.amount);
+      await newBudget.save();
+    }
+  }
+
   sendSuccess(res, 200, 'Expense updated', expense);
 });
 
@@ -72,6 +95,16 @@ export const updateExpense = asyncHandler(async (req, res) => {
 export const deleteExpense = asyncHandler(async (req, res) => {
   const expense = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user._id });
   if (!expense) { res.status(404); throw new Error('Expense not found'); }
+
+  // Issue #4 fix: decrement budget.spent when expense is deleted
+  if (expense.category) {
+    const budget = await Budget.findOne({ user: req.user._id, category: expense.category });
+    if (budget) {
+      budget.spent = Math.max(0, budget.spent - expense.amount);
+      await budget.save();
+    }
+  }
+
   sendSuccess(res, 200, 'Expense deleted');
 });
 

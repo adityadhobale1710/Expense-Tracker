@@ -5,7 +5,7 @@ const budgetSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     limit: { type: Number, required: [true, 'Budget limit is required'], min: 0 },
-    spent: { type: Number, default: 0 },
+    spent: { type: Number, default: 0, min: [0, 'Spent amount cannot be negative'] },
     period: { type: String, enum: ['weekly', 'monthly', 'yearly'], default: 'monthly' },
     startDate: { type: Date, default: Date.now },
     endDate: { type: Date },
