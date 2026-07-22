@@ -43,33 +43,16 @@ export default function Dashboard() {
   const [gameStreak, setGameStreak] = useState(18);
   const [unlockedBadgesCount, setUnlockedBadgesCount] = useState(13);
 
-  // Widget Order state (12 widgets)
-  const [widgetOrder, setWidgetOrder] = useState(() => {
-    const defaultWidgets = [
-      'todaySpend', 'weeklySpend', 'monthlySpend', 'remainingBudget',
-      'savingsProgress', 'largestExpense', 'mostUsedCategory',
-      'health', 'bills', 'notifications',
-      'tipOfTheDay', 'cashFlow'
-    ];
-    const saved = localStorage.getItem('dashboard_widget_order');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(w => defaultWidgets.includes(w));
-        }
-      } catch (e) {
-        console.error('Error parsing dashboard_widget_order', e);
-      }
-    }
-    return defaultWidgets;
-  });
+  // Widgets list
+  const widgets = [
+    'weeklySpend', 'monthlySpend', 'remainingBudget',
+    'savingsProgress', 'largestExpense', 'mostUsedCategory',
+    'health', 'bills', 'notifications',
+    'tipOfTheDay', 'cashFlow'
+  ];
 
   // Modals state
   const [activeModal, setActiveModal] = useState(null);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [qrScanning, setQrScanning] = useState(false);
-  const [qrMerchant, setQrMerchant] = useState('');
 
   // Notifications state
   const [recentNotifications, setRecentNotifications] = useState([
@@ -89,8 +72,7 @@ export default function Dashboard() {
     description: ''
   });
 
-  // Drag and Drop state
-  const [draggedWidget, setDraggedWidget] = useState(null);
+
 
   const fetchGamification = async () => {
     if (!user) return;
@@ -119,8 +101,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchSummary();
-    fetchExpenses({ limit: 10 });
-    fetchIncomes({ limit: 10 });
+    fetchExpenses({ limit: 50 });
+    fetchIncomes({ limit: 50 });
     fetchCategories();
     fetchBudgets();
     fetchGamification();
@@ -136,68 +118,9 @@ export default function Dashboard() {
     }
   }, [txForm.type, categories]);
 
-  const handleDragStart = (id) => setDraggedWidget(id);
-  const handleDragOver = (e) => e.preventDefault();
-  const handleDrop = (targetId) => {
-    if (!draggedWidget || draggedWidget === targetId) return;
-    const newOrder = [...widgetOrder];
-    const draggedIdx = newOrder.indexOf(draggedWidget);
-    const targetIdx = newOrder.indexOf(targetId);
-    newOrder.splice(draggedIdx, 1);
-    newOrder.splice(targetIdx, 0, draggedWidget);
-    setWidgetOrder(newOrder);
-    localStorage.setItem('dashboard_widget_order', JSON.stringify(newOrder));
-    setDraggedWidget(null);
-  };
-
-  // OCR Pre-fill simulation
-  const simulateOCR = (brand) => {
-    setOcrLoading(true);
-    setTimeout(() => {
-      setOcrLoading(false);
-      setActiveModal(null);
-      let prefill = {};
-      if (brand === 'starbucks') {
-        prefill = { title: 'Starbucks Coffee', amount: '450', type: 'expense', description: 'Caramel Macchiato' };
-      } else if (brand === 'uber') {
-        prefill = { title: 'Uber Trip', amount: '1200', type: 'expense', description: 'commute' };
-      } else if (brand === 'walmart') {
-        prefill = { title: 'Grocery Shopping', amount: '5400', type: 'expense', description: 'Walmart groceries' };
-      }
-
-      const categoryMatch = categories.find(c => c.type === 'expense' && (c.name.toLowerCase().includes('food') || c.name.toLowerCase().includes('transport') || c.name.toLowerCase().includes('shop')));
-      setTxForm(prev => ({
-        ...prev,
-        ...prefill,
-        category: categoryMatch ? categoryMatch._id : prev.category
-      }));
-      setActiveModal('addTx');
-      toast.success('Mock receipt text extracted successfully!');
-    }, 1200);
-  };
 
 
 
-  const simulateQR = () => {
-    setQrScanning(true);
-    setTimeout(() => {
-      setQrScanning(false);
-      setQrMerchant('Zara Store Merchant • ₹3,800.00');
-      setTimeout(() => {
-        const categoryMatch = categories.find(c => c.type === 'expense' && c.name.toLowerCase().includes('shop'));
-        setTxForm(prev => ({
-          ...prev,
-          title: 'Zara Purchase',
-          amount: '3800',
-          type: 'expense',
-          description: 'UPI QR Payment Scan',
-          category: categoryMatch ? categoryMatch._id : prev.category
-        }));
-        setActiveModal('addTx');
-        toast.success('QR merchant metadata captured!');
-      }, 800);
-    }, 1200);
-  };
 
   const handleSaveTransaction = async (e) => {
     e.preventDefault();
@@ -219,8 +142,8 @@ export default function Dashboard() {
 
       setActiveModal(null);
       fetchSummary();
-      fetchExpenses({ limit: 10 });
-      fetchIncomes({ limit: 10 });
+      fetchExpenses({ limit: 50 });
+      fetchIncomes({ limit: 50 });
       setTxForm({
         title: '',
         amount: '',
@@ -237,10 +160,6 @@ export default function Dashboard() {
   };
 
   // ─── WIDGETS DATA CALCULATIONS ───
-  const todayDateString = new Date().toDateString();
-  const todaySpend = expenses
-    .filter(e => new Date(e.date).toDateString() === todayDateString)
-    .reduce((sum, e) => sum + e.amount, 0);
 
   const weeklySpend = expenses
     .filter(e => (new Date() - new Date(e.date)) / (1000 * 60 * 60 * 24) <= 7)
@@ -273,7 +192,7 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Hello, {user?.name?.split(' ')[0]}</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Here is your financial drag-and-drop dashboard panel today.</p>
+          <p className="text-xs text-slate-400 mt-0.5">Here is your financial dashboard panel today.</p>
         </div>
         <button
           onClick={() => {
@@ -295,32 +214,15 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Rearrangeable Dashboard Grid */}
+      {/* Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {widgetOrder.map((widgetId) => {
-          // 1. Today Spend
-          if (widgetId === 'todaySpend') {
-            return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300">📅 Today's Spending</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
-                </div>
-                <div className="py-4">
-                  <p className="text-2xl font-extrabold text-slate-100">₹{todaySpend.toLocaleString('en-IN')}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Aggregated logs for today</p>
-                </div>
-              </div>
-            );
-          }
-
+        {widgets.map((widgetId) => {
           // 2. Weekly Spend
           if (widgetId === 'weeklySpend') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">📊 Weekly Spending</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-2xl font-extrabold text-slate-100">₹{weeklySpend.toLocaleString('en-IN')}</p>
@@ -333,10 +235,9 @@ export default function Dashboard() {
           // 3. Monthly Spend
           if (widgetId === 'monthlySpend') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">💸 Monthly Spending</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-2xl font-extrabold text-slate-100">₹{monthlySpend.toLocaleString('en-IN')}</p>
@@ -349,10 +250,9 @@ export default function Dashboard() {
           // 4. Remaining Budget
           if (widgetId === 'remainingBudget') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🎯 Remaining Budget</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-2xl font-extrabold text-indigo-400">₹{remainingBudget.toLocaleString('en-IN')}</p>
@@ -366,10 +266,9 @@ export default function Dashboard() {
           // 6. Savings Goal Progress
           if (widgetId === 'savingsProgress') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🥅 Goal Progress</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4 space-y-2">
                   <div className="flex justify-between text-xs font-bold">
@@ -387,10 +286,9 @@ export default function Dashboard() {
           // 7. Largest Expense
           if (widgetId === 'largestExpense') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">💥 Largest Expense</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   {largestExpenseObj ? (
@@ -409,10 +307,9 @@ export default function Dashboard() {
           // 8. Most Used Category
           if (widgetId === 'mostUsedCategory') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🗂️ Top Category</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4">
                   <p className="text-xl font-extrabold text-indigo-300 uppercase">{mostUsedCategory}</p>
@@ -425,10 +322,9 @@ export default function Dashboard() {
           // 9. Financial Health Score
           if (widgetId === 'health') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🏥 Health Score</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="flex flex-col items-center py-4">
                   <div className="relative w-28 h-28 flex items-center justify-center">
@@ -449,10 +345,9 @@ export default function Dashboard() {
           // 10. Upcoming Bills
           if (widgetId === 'bills') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">⏳ Upcoming Obligations</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-2.5 space-y-2">
                   <div className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
@@ -477,10 +372,9 @@ export default function Dashboard() {
           // 11. Recent Notifications
           if (widgetId === 'notifications') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🔔 Recent Notifications</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-2 space-y-2">
                   {recentNotifications.map((n, idx) => (
@@ -498,10 +392,9 @@ export default function Dashboard() {
           // 13. AI Tip of the Day
           if (widgetId === 'tipOfTheDay') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">💡 AI Tip of the Day</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="py-4 space-y-3">
                   <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex gap-3">
@@ -521,10 +414,9 @@ export default function Dashboard() {
           // 14. Monthly Cash Flow
           if (widgetId === 'cashFlow') {
             return (
-              <div key={widgetId} draggable onDragStart={() => handleDragStart(widgetId)} onDragOver={handleDragOver} onDrop={() => handleDrop(widgetId)} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all cursor-move md:col-span-2 xl:col-span-3">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all md:col-span-2 xl:col-span-3">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50 mb-3">
                   <h3 className="text-xs font-bold text-slate-300">📈 Monthly Cash Flow Projections</h3>
-                  <span className="text-[10px] text-slate-500">≡ Drag</span>
                 </div>
                 <div className="h-40">
                   <ResponsiveContainer width="100%" height="100%">
@@ -547,109 +439,16 @@ export default function Dashboard() {
             );
           }
 
-
-
           return null;
         })}
       </div>
-
-      {/* Floating Utilities (QR Code) */}
-      <div className="fixed bottom-6 left-6 flex flex-col gap-2 z-40">
-        <button
-          onClick={() => setActiveModal('qr')}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-          title="Scan QR Merchant"
-        >
-          📱
-        </button>
-      </div>
-
-      {/* OCR Receipt Scanner Floater */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button
-          onClick={() => setActiveModal('ocr')}
-          className="btn-primary flex items-center gap-2 h-12 px-5 rounded-full shadow-lg cursor-pointer"
-        >
-          📷 Scan Receipt
-        </button>
-      </div>
-
-      {/* ─── OCR MODAL ─── */}
-      {activeModal === 'ocr' && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card max-w-md w-full p-6 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
-              <h3 className="font-bold text-slate-100 flex items-center gap-2">📷 Receipt OCR Scanner</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-            </div>
-            <p className="text-xs text-slate-400 leading-normal">
-              Select one of the mock receipt objects below to simulate automatic transaction scanning and parsing.
-            </p>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => simulateOCR('starbucks')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
-                <span>☕ Starbucks Coffee receipt</span>
-                <span className="text-slate-400">₹450.00</span>
-              </button>
-              <button onClick={() => simulateOCR('uber')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
-                <span>🚗 Uber Ride invoice</span>
-                <span className="text-slate-400">₹1,200.00</span>
-              </button>
-              <button onClick={() => simulateOCR('walmart')} className="p-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-left text-xs font-semibold rounded-xl flex items-center justify-between cursor-pointer">
-                <span>🛍️ Walmart grocery bill</span>
-                <span className="text-slate-400">₹5,400.00</span>
-              </button>
-            </div>
-            {ocrLoading && (
-              <div className="flex flex-col items-center justify-center py-4 space-y-2 border-t border-slate-800">
-                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs font-medium text-slate-300">AI parsing receipt structures...</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-
-
-      {/* ─── QR SCANNER MODAL ─── */}
-      {activeModal === 'qr' && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="card max-w-sm w-full p-6 text-center space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-700/50 pb-3 text-left">
-              <h3 className="font-bold text-slate-100">📱 UPI QR Payment Scanner</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-            </div>
-            <p className="text-xs text-slate-400">Simulates capturing merchant code detail structures.</p>
-            <div className="relative w-48 h-48 mx-auto border-4 border-indigo-500 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-              <div className="absolute top-0 w-full h-1 bg-indigo-500 shadow-md shadow-indigo-500/50 animate-bounce" style={{ animationDuration: '3s' }} />
-              <span className="text-8xl opacity-15 text-white">🔳</span>
-              {qrScanning && (
-                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center space-y-2">
-                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[10px] text-slate-300">Scanning metadata...</span>
-                </div>
-              )}
-              {qrMerchant && (
-                <div className="absolute inset-0 bg-emerald-600 flex flex-col items-center justify-center text-white p-3">
-                  <span className="text-3xl">✅</span>
-                  <p className="text-xs font-bold mt-2">QR Scanned</p>
-                  <p className="text-[9px] opacity-90 mt-1 break-all">{qrMerchant}</p>
-                </div>
-              )}
-            </div>
-            <button onClick={simulateQR} disabled={qrScanning || qrMerchant} className="btn-primary text-xs w-full py-2.5 cursor-pointer">
-              Simulate QR Scan
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ─── ADD TRANSACTION MODAL ─── */}
       {activeModal === 'addTx' && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
           <div className="card max-w-md w-full p-6 my-8 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
-              <h3 className="font-bold text-slate-100">Add Scanned Transaction</h3>
+              <h3 className="font-bold text-slate-100">Add Transaction</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
             </div>
             <form onSubmit={handleSaveTransaction} className="space-y-3 text-xs">

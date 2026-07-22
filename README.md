@@ -80,10 +80,4 @@ Visit: **http://localhost:5173**
 - ✅ Default expense categories seeded on registration
 - ✅ Dark mode design with glassmorphism
 
-## 🌐 Deployment
 
-| Service | Platform |
-|---------|---------|
-| Frontend | Vercel |
-| Backend | Render |
-| Database | MongoDB Atlas |
