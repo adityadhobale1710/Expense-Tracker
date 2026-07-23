@@ -19,7 +19,6 @@ const PAGE_TITLES = {
   '/subscriptions': { title: 'Subscriptions', subtitle: 'Manage recurring services' },
   '/split-bills':   { title: 'Split Bills', subtitle: 'Share costs with friends' },
   '/family':        { title: 'Family Sharing', subtitle: 'Shared wallet approvals hub' },
-  '/ai-assistant':  { title: 'AI Assistant', subtitle: 'Conversational finance advisor' },
   '/analytics-pro': { title: 'Analytics Pro', subtitle: 'Interactive visual models' },
   '/admin-portal':  { title: 'Admin Control Center', subtitle: 'Server diagnostics & settings' },
 };
