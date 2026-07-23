@@ -14,6 +14,38 @@ import {
   X
 } from 'lucide-react';
 
+const GoldCoin = ({ className }) => (
+  <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="goldCoinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FFE082" />
+        <stop offset="30%" stopColor="#FBBF24" />
+        <stop offset="70%" stopColor="#D97706" />
+        <stop offset="100%" stopColor="#78350F" />
+      </linearGradient>
+      <linearGradient id="goldCoinHighlightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
+        <stop offset="100%" stopColor="#FBBF24" stopOpacity="0" />
+      </linearGradient>
+    </defs>
+    <circle cx="20" cy="20" r="18" fill="url(#goldCoinGrad)" filter="drop-shadow(0px 3px 5px rgba(217, 119, 6, 0.35))" />
+    <circle cx="20" cy="20" r="14" fill="none" stroke="#FBBF24" strokeWidth="1.2" opacity="0.6" />
+    <circle cx="20" cy="20" r="17" fill="none" stroke="url(#goldCoinHighlightGrad)" strokeWidth="1" />
+    <text x="20" y="26" fontFamily="sans-serif" fontWeight="bold" fontSize="18" fill="#FFF" textAnchor="middle" filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.3))">₹</text>
+  </svg>
+);
+
+const Sparkle = ({ className, delay }) => (
+  <motion.svg
+    animate={{ scale: [0.5, 1.2, 0.5], opacity: [0.3, 1, 0.3] }}
+    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay }}
+    className={`${className} text-[#FBBF24] fill-current`}
+    viewBox="0 0 24 24"
+  >
+    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
+  </motion.svg>
+);
+
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
@@ -343,18 +375,233 @@ export default function Login() {
         <div className="hidden md:flex bg-[#F3F4FE] p-8 lg:p-12 flex-col items-center justify-center text-center select-none relative font-sans">
           {/* Dashed Circle Graphic with Tilted 3D Card */}
           <div className="relative w-64 h-64 lg:w-72 lg:h-72 rounded-full border-2 border-dashed border-[#C7D2FE] flex items-center justify-center mb-8">
+            {/* Ambient Glow */}
             <motion.div
-              animate={{ y: [0, -6, 0], rotate: [-5, -7, -5] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-              className="w-48 h-32 bg-white rounded-2xl shadow-[0_15px_35px_rgba(99,102,241,0.08)] border border-slate-100/80 p-4 flex flex-col justify-between text-left"
+              animate={{ scale: [1, 1.06, 1], opacity: [0.15, 0.22, 0.15] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute inset-4 rounded-full bg-gradient-to-tr from-[#6C63FF] via-[#7C4DFF] to-[#8B5CF6] blur-2xl pointer-events-none"
+            />
+
+            {/* Glowing Particles */}
+            <Sparkle className="absolute top-8 left-16 w-3 h-3" delay={0.2} />
+            <Sparkle className="absolute bottom-10 right-14 w-3.5 h-3.5" delay={1.4} />
+            <Sparkle className="absolute top-24 right-10 w-2.5 h-2.5" delay={0.8} />
+
+            {/* Floating Finance Elements */}
+            {/* Pie Chart */}
+            <motion.div
+              animate={{ y: [0, -6, 0], rotate: [0, 10, 0] }}
+              transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+              className="absolute top-10 left-6 w-8 h-8 pointer-events-none"
             >
-              {/* Card Accent Top Bar in Purple */}
-              <div className="w-12 h-2 rounded-full bg-[#5B4CF0]" />
-              {/* Card Lines */}
-              <div className="space-y-2">
-                <div className="w-24 h-2 rounded-full bg-slate-100" />
-                <div className="w-16 h-2 rounded-full bg-slate-100" />
+              <svg viewBox="0 0 24 24" className="w-full h-full filter drop-shadow-[0_4px_8px_rgba(139,92,246,0.15)]">
+                <path d="M12 2 C6.48 2 2 6.48 2 12 C2 17.52 6.48 22 12 22 C17.52 22 22 17.52 22 12 L12 12 Z" fill="#8B5CF6" />
+                <path d="M12 2 A10 10 0 0 1 22 12 L12 12 Z" fill="#FBBF24" />
+                <path d="M12 12 L22 12 A10 10 0 0 1 12 22 Z" fill="#22C55E" fillOpacity={0.85} />
+              </svg>
+            </motion.div>
+
+            {/* Bar Chart */}
+            <motion.div
+              animate={{ y: [0, 6, 0], rotate: [0, -8, 0] }}
+              transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut", delay: 0.7 }}
+              className="absolute top-16 left-28 w-7 h-7 flex items-end justify-center gap-[3px] bg-white/35 backdrop-blur-[4px] border border-white/50 p-1.5 rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.03)] pointer-events-none"
+            >
+              <div className="w-[3px] h-2.5 rounded-full bg-[#8B5CF6]" />
+              <div className="w-[3px] h-4 rounded-full bg-[#6C63FF]" />
+              <div className="w-[3px] h-3.5 rounded-full bg-[#22C55E]" />
+            </motion.div>
+
+            {/* Growth Arrow */}
+            <motion.div
+              animate={{ y: [0, -7, 0], x: [0, 3, 0] }}
+              transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+              className="absolute bottom-12 right-6 w-7 h-7 text-[#22C55E] filter drop-shadow-[0_4px_8px_rgba(34,197,94,0.3)] pointer-events-none"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                <polyline points="17 6 23 6 23 12" />
+              </svg>
+            </motion.div>
+
+            {/* Shield (Security) */}
+            <motion.div
+              animate={{ y: [0, 5, 0], rotate: [0, -6, 0] }}
+              transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut", delay: 1.1 }}
+              className="absolute bottom-10 left-12 w-6 h-6 text-[#7C4DFF] pointer-events-none"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full filter drop-shadow-[0_4px_8px_rgba(124,77,255,0.2)]">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </motion.div>
+
+            {/* Glassmorphism Mini Cards */}
+            {/* Card 1: Income Notification */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -5, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              className="absolute -top-3 -right-2 w-28 p-2 rounded-xl bg-white/40 border border-white/50 shadow-[0_8px_24px_rgba(99,102,241,0.06)] backdrop-blur-[6px] flex flex-col gap-1 text-left pointer-events-none select-none z-10"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-6 h-1.5 rounded-full bg-[#7C4DFF]/70" />
+                <span className="text-[8px] font-bold text-[#22C55E] font-sans">+₹8,450</span>
               </div>
+              <div className="w-14 h-1 rounded-full bg-[#64748B]/15" />
+              <div className="w-9 h-1 rounded-full bg-[#64748B]/10" />
+            </motion.div>
+
+            {/* Card 2: Savings Metric */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1, y: [0, 4, 0] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute -bottom-4 -left-4 w-26 p-2 rounded-xl bg-white/40 border border-white/50 shadow-[0_8px_24px_rgba(99,102,241,0.06)] backdrop-blur-[6px] flex items-center gap-1.5 text-left pointer-events-none select-none z-10"
+            >
+              <div className="w-5 h-5 rounded-md bg-[#6C63FF]/15 flex items-center justify-center text-[#6C63FF]">
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[6.5px] font-semibold text-[#64748B]">Savings</span>
+                <span className="text-[9px] font-bold text-[#1E293B]">64.2%</span>
+              </div>
+            </motion.div>
+
+            {/* Floating Credit Card */}
+            <motion.div
+              animate={{ y: [0, -8, 0], rotate: [6, 10, 6] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
+              className="absolute top-20 -right-8 w-11 h-7 rounded-md bg-gradient-to-br from-[#8B5CF6] to-[#6C63FF] shadow-md border border-white/10 flex flex-col justify-between p-1.5 text-left z-10 pointer-events-none"
+            >
+              <div className="w-2.5 h-1.5 rounded-[1px] bg-[#FBBF24]/80" />
+              <div className="w-6 h-0.5 rounded-full bg-white/30" />
+            </motion.div>
+
+            {/* Floating Gold Coins */}
+            {/* Coin 1 */}
+            <motion.div
+              animate={{ y: [0, -6, 0], rotate: [0, 8, 0] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
+              className="absolute top-6 left-16 w-8 h-8 pointer-events-none z-10"
+            >
+              <GoldCoin className="w-full h-full" />
+            </motion.div>
+            
+            {/* Coin 2 */}
+            <motion.div
+              animate={{ y: [0, -8, 0], rotate: [0, -12, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.7 }}
+              className="absolute bottom-6 right-10 w-9 h-9 pointer-events-none z-10"
+            >
+              <GoldCoin className="w-full h-full" />
+            </motion.div>
+
+            {/* Coin 3 */}
+            <motion.div
+              animate={{ y: [0, -5, 0], rotate: [0, 6, 0] }}
+              transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+              className="absolute top-24 -left-6 w-6 h-6 pointer-events-none z-10"
+            >
+              <GoldCoin className="w-full h-full" />
+            </motion.div>
+
+            {/* Main Wallet Illustration */}
+            <motion.div
+              animate={{ y: [0, -5, 0], rotate: [-2, 2, -2] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+              className="w-40 h-40 lg:w-44 lg:h-44 flex items-center justify-center z-5 pointer-events-none"
+            >
+              <svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="walletBack" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4F46E5" />
+                    <stop offset="100%" stopColor="#1E1B4B" />
+                  </linearGradient>
+                  <linearGradient id="walletFront" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#8B5CF6" />
+                    <stop offset="60%" stopColor="#6C63FF" />
+                    <stop offset="100%" stopColor="#312E81" />
+                  </linearGradient>
+                  <linearGradient id="walletFlap" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#A78BFA" />
+                    <stop offset="50%" stopColor="#7C4DFF" />
+                    <stop offset="100%" stopColor="#4F46E5" />
+                  </linearGradient>
+                  <linearGradient id="goldCoin" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFE082" />
+                    <stop offset="30%" stopColor="#FBBF24" />
+                    <stop offset="70%" stopColor="#D97706" />
+                    <stop offset="100%" stopColor="#78350F" />
+                  </linearGradient>
+                  <linearGradient id="goldCoinHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#FBBF24" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="rupeeNote" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#a7f3d0" />
+                    <stop offset="40%" stopColor="#22C55E" />
+                    <stop offset="100%" stopColor="#15803d" />
+                  </linearGradient>
+                  <linearGradient id="buckle" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFF" />
+                    <stop offset="40%" stopColor="#FBBF24" />
+                    <stop offset="100%" stopColor="#B45309" />
+                  </linearGradient>
+                  <linearGradient id="glassCard" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+                    <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+                  </linearGradient>
+                  <filter id="shadow" x="-10%" y="-10%" width="125%" height="125%">
+                    <feDropShadow dx={1} dy={4} stdDeviation={3} floodColor="#000" floodOpacity={0.2} />
+                  </filter>
+                  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx={0} dy={6} stdDeviation={5} floodColor="#4F46E5" floodOpacity={0.15} />
+                  </filter>
+                </defs>
+
+                {/* Left Note sticking out */}
+                <g transform="translate(62, 50) rotate(-18)" filter="url(#shadow)">
+                  <rect x="0" y="0" width="36" height="52" rx="3" fill="url(#rupeeNote)" stroke="#e8f5e9" strokeWidth={1} />
+                  <rect x="3" y="3" width="30" height="46" rx="1.5" fill="none" stroke="#e8f5e9" strokeWidth={0.5} strokeDasharray="1 1" opacity={0.7} />
+                  <text x="18" y="18" fontFamily="sans-serif" fontWeight="bold" fontSize={11} fill="#e8f5e9" textAnchor="middle">₹</text>
+                  <circle cx="18" cy="35" r="5" fill="#81c784" opacity="0.3" />
+                </g>
+
+                {/* Right Note sticking out */}
+                <g transform="translate(98, 48) rotate(12)" filter="url(#shadow)">
+                  <rect x="0" y="0" width="38" height="54" rx="3" fill="url(#rupeeNote)" stroke="#e8f5e9" strokeWidth={1} />
+                  <rect x="3" y="3" width="32" height="48" rx="1.5" fill="none" stroke="#e8f5e9" strokeWidth={0.5} strokeDasharray="1 1" opacity={0.7} />
+                  <text x="19" y="20" fontFamily="sans-serif" fontWeight="bold" fontSize={11} fill="#e8f5e9" textAnchor="middle">₹</text>
+                  <circle cx="19" cy="37" r="5" fill="#81c784" opacity="0.3" />
+                </g>
+
+                {/* Card in Slot */}
+                <g transform="translate(76, 68) rotate(-4)">
+                  <rect x="0" y="0" width="45" height="28" rx="3" fill="url(#glassCard)" stroke="rgba(255,255,255,0.4)" strokeWidth={0.75} />
+                  <rect x="4" y="5" width="8" height="6" rx="1" fill="#FBBF24" opacity="0.8" />
+                  <rect x="16" y="6" width="22" height="2" rx="0.5" fill="white" opacity="0.4" />
+                </g>
+
+                {/* Wallet Rear Cover */}
+                <rect x="50" y="80" width="100" height="70" rx="14" fill="url(#walletBack)" filter="url(#shadow)" />
+
+                {/* Wallet Front Cover */}
+                <rect x="48" y="90" width="104" height="64" rx="14" fill="url(#walletFront)" filter="url(#softShadow)" />
+
+                {/* Stitching on Front Cover */}
+                <rect x="52" y="94" width="96" height="56" rx="10" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={1.2} strokeDasharray="3 3" />
+
+                {/* Clasp / Strap */}
+                <path d="M 48 112 L 115 112 C 120 112, 124 115, 124 122 L 124 128 C 124 135, 120 138, 115 138 L 48 138 Z" fill="url(#walletFlap)" filter="url(#shadow)" />
+                <path d="M 52 116 L 114 116 C 117 116, 120 118, 120 122 L 120 128 C 120 132, 117 134, 114 134 L 52 134" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={1} strokeDasharray="2 2" />
+
+                {/* Buckle details */}
+                <rect x="110" y="116" width="10" height="18" rx="2" fill="#1e1b4b" opacity="0.6" />
+                <circle cx="115" cy="125" r="4.5" fill="url(#buckle)" filter="url(#shadow)" />
+                <circle cx="115" cy="125" r="1.5" fill="#78350F" />
+              </svg>
             </motion.div>
           </div>
 
