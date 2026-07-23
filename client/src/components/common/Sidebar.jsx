@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
   { to: '/income',       icon: '💰', label: 'Income' },
   { to: '/expenses',     icon: '💸', label: 'Expenses' },
+  { to: '/wallets',      icon: '/wallet.png', label: 'Wallets' },
   { to: '/budget',       icon: '🎯', label: 'Budget' },
   { to: '/loans',        icon: '🏛️', label: 'Loans & EMIs' },
   { to: '/subscriptions',icon: '🔁', label: 'Subscriptions' },

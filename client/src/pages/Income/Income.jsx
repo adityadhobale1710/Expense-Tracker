@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const getLocalTodayString = () => {
@@ -18,15 +19,19 @@ const getLocalTimeString = () => {
   return `${hh}:${mm}`;
 };
 
-const EMPTY = { title: '', amount: '', category: '', source: '', date: getLocalTodayString(), time: getLocalTimeString(), description: '' };
+const EMPTY = { title: '', amount: '', category: '', source: '', date: getLocalTodayString(), time: getLocalTimeString(), description: '', walletId: '' };
 
 export default function Income() {
   const { incomes, fetchIncomes, addIncome, updateIncome, deleteIncome, loading } = useExpense();
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
+  const [wallets, setWallets] = useState([]);
 
-  useEffect(() => { fetchIncomes(); }, []);
+  useEffect(() => {
+    fetchIncomes();
+    api.get('/wallets').then(res => setWallets(res.data.data || [])).catch(() => {});
+  }, []);
 
   const openAdd = () => {
     setForm({
@@ -51,7 +56,8 @@ export default function Income() {
     setForm({
       ...item,
       date: dateStr,
-      time: timeStr
+      time: timeStr,
+      walletId: item.wallet || '',
     });
     setModal({ open: true, mode: 'edit', item });
   };
@@ -171,6 +177,15 @@ export default function Income() {
             <label className="label">Description</label>
             <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional note" />
           </div>
+          {wallets.length > 0 && (
+            <div className="form-group">
+              <label className="label">Wallet (optional)</label>
+              <select className="select" value={form.walletId} onChange={(e) => setForm({ ...form, walletId: e.target.value })}>
+                <option value="">No wallet</option>
+                {wallets.map(w => <option key={w._id} value={w._id}>{w.icon} {w.name} (₹{w.balance.toLocaleString('en-IN')})</option>)}
+              </select>
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={closeModal} className="btn-secondary flex-1">Cancel</button>
             <button type="submit" className="btn-primary flex-1" disabled={submitting}>
