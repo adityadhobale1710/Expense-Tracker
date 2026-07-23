@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import toast from 'react-hot-toast';
 
 const EMPTY_BUDGET = { category: '', limit: '', period: 'monthly', alertThreshold: 80 };
@@ -10,6 +11,8 @@ export default function Budget() {
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_BUDGET);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { fetchBudgets(); fetchCategories('expense'); }, []);
 
@@ -32,9 +35,22 @@ export default function Budget() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this budget?')) return;
-    try { await deleteBudget(id); } catch { toast.error('Failed to delete'); }
+  const handleDeleteClick = (b) => {
+    setDeleteTarget(b);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteBudget(deleteTarget._id);
+      toast.success('Budget deleted successfully');
+      setDeleteTarget(null);
+    } catch {
+      toast.error('Failed to delete budget');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const totalBudgeted = budgets.reduce((s, b) => s + b.limit, 0);
@@ -81,7 +97,7 @@ export default function Budget() {
                   </div>
                   <div className="flex gap-1">
                     <button onClick={() => openEdit(b)} className="btn-icon text-sm">✏️</button>
-                    <button onClick={() => handleDelete(b._id)} className="btn-icon text-sm">🗑️</button>
+                    <button onClick={() => handleDeleteClick(b)} className="btn-icon text-sm">🗑️</button>
                   </div>
                 </div>
 
@@ -153,6 +169,20 @@ export default function Budget() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Budget"
+        message={
+          <span>
+            Are you sure you want to delete budget for <strong className="text-slate-100">{deleteTarget?.category?.name || 'this category'}</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmText={deleting ? 'Deleting...' : 'Delete Budget'}
+        loading={deleting}
+      />
     </div>
   );
 }

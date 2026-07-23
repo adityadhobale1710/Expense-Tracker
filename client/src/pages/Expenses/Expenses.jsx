@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import toast from 'react-hot-toast';
 
 const getLocalTodayString = () => {
@@ -27,6 +28,8 @@ export default function Expenses() {
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState({ paymentMethod: '', category: '' });
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { fetchExpenses(); fetchCategories('expense'); }, []);
 
@@ -78,9 +81,22 @@ export default function Expenses() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this expense?')) return;
-    try { await deleteExpense(id); } catch { toast.error('Failed to delete'); }
+  const handleDeleteClick = (item) => {
+    setDeleteTarget(item);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteExpense(deleteTarget._id);
+      toast.success('Expense deleted successfully');
+      setDeleteTarget(null);
+    } catch {
+      toast.error('Failed to delete expense');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const filtered = expenses.filter((e) => {
@@ -155,7 +171,7 @@ export default function Expenses() {
                     <td>
                       <div className="flex gap-2">
                         <button onClick={() => openEdit(item)} className="btn-ghost text-xs px-2 py-1">Edit</button>
-                        <button onClick={() => handleDelete(item._id)} className="btn-danger text-xs px-2 py-1">Del</button>
+                        <button onClick={() => handleDeleteClick(item)} className="btn-danger text-xs px-2 py-1">Del</button>
                       </div>
                     </td>
                   </tr>
@@ -219,6 +235,20 @@ export default function Expenses() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Expense"
+        message={
+          <span>
+            Are you sure you want to delete <strong className="text-slate-100">{deleteTarget?.title}</strong> ({deleteTarget?.amount ? `₹${deleteTarget.amount.toLocaleString('en-IN')}` : ''})? This action cannot be undone.
+          </span>
+        }
+        confirmText={deleting ? 'Deleting...' : 'Delete Expense'}
+        loading={deleting}
+      />
     </div>
   );
 }

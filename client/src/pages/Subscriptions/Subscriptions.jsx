@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -13,6 +14,9 @@ export default function Subscriptions() {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [renewalDate, setRenewalDate] = useState('');
   const [reminder, setReminder] = useState(true);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchSubscriptions = async () => {
     setLoading(true);
@@ -52,14 +56,22 @@ export default function Subscriptions() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this subscription?')) return;
+  const handleDeleteClick = (sub) => {
+    setDeleteTarget(sub);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await api.delete(`/subscriptions/${id}`);
+      await api.delete(`/subscriptions/${deleteTarget._id}`);
       toast.success('Subscription deleted');
+      setDeleteTarget(null);
       fetchSubscriptions();
     } catch {
       toast.error('Failed to delete subscription');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -127,7 +139,7 @@ export default function Subscriptions() {
             <div key={sub._id} className="card flex flex-col justify-between hover:border-slate-500/20 transition-all relative overflow-hidden">
               <div className="flex justify-between items-start">
                 <span className="text-3xl p-2 bg-slate-900/30 rounded-xl">{getSubLogo(sub.name)}</span>
-                <button onClick={() => handleDelete(sub._id)} className="text-slate-500 hover:text-red-400 text-sm">
+                <button onClick={() => handleDeleteClick(sub)} className="text-slate-500 hover:text-red-400 text-sm">
                   ✕
                 </button>
               </div>
@@ -194,6 +206,20 @@ export default function Subscriptions() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Subscription"
+        message={
+          <span>
+            Are you sure you want to delete <strong className="text-slate-100">{deleteTarget?.name}</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmText={deleting ? 'Deleting...' : 'Delete Subscription'}
+        loading={deleting}
+      />
     </div>
   );
 }

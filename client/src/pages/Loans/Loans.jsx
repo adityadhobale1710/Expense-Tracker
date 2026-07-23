@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 export default function Loans() {
   const [loans, setLoans] = useState([]);
@@ -17,6 +18,9 @@ export default function Loans() {
   const [emiAmount, setEmiAmount] = useState('');
   const [remainingBalance, setRemainingBalance] = useState('');
   const [nextEmiDate, setNextEmiDate] = useState('');
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -40,38 +44,32 @@ export default function Loans() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!name || !amount || !interestRate || !durationMonths || !emiAmount) {
-      return toast.error('Please fill out all required fields');
-    }
+    if (!name || !amount || !emiAmount) return toast.error('Please enter name, amount, and EMI amount');
     try {
       await api.post('/loans', {
         name,
         type,
         amount: Number(amount),
-        interestRate: Number(interestRate),
-        durationMonths: Number(durationMonths),
+        interestRate: Number(interestRate) || 0,
+        durationMonths: Number(durationMonths) || 12,
         emiAmount: Number(emiAmount),
-        remainingBalance: remainingBalance ? Number(remainingBalance) : Number(amount),
-        nextEmiDate
+        remainingBalance: remainingBalance !== '' ? Number(remainingBalance) : Number(amount),
+        nextEmiDate: nextEmiDate || new Date().toISOString()
       });
-      toast.success('Loan logged successfully!');
+      toast.success('Loan account created!');
       setShowCreate(false);
       setName('');
       setAmount('');
-      setInterestRate('');
-      setDurationMonths('');
       setEmiAmount('');
-      setRemainingBalance('');
-      setNextEmiDate('');
       fetchData();
     } catch {
-      toast.error('Failed to log loan account');
+      toast.error('Failed to create loan entry');
     }
   };
 
   const handlePayEmi = async (loanId) => {
     if (wallets.length === 0) {
-      return toast.error('Create a wallet first to execute EMI payments');
+      return toast.error('No wallet available for payment deductions.');
     }
     const wallet = wallets[0]; // pick first wallet by default
     try {
@@ -83,14 +81,22 @@ export default function Loans() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this loan record?')) return;
+  const handleDeleteClick = (loan) => {
+    setDeleteTarget(loan);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await api.delete(`/loans/${id}`);
+      await api.delete(`/loans/${deleteTarget._id}`);
       toast.success('Loan log removed');
+      setDeleteTarget(null);
       fetchData();
     } catch {
       toast.error('Failed to delete loan log');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -139,7 +145,7 @@ export default function Loans() {
                     ) : (
                       <span className="badge badge-green">Paid Off 🎉</span>
                     )}
-                    <button onClick={() => handleDelete(loan._id)} className="text-slate-500 hover:text-red-400 text-sm">
+                    <button onClick={() => handleDeleteClick(loan)} className="text-slate-500 hover:text-red-400 text-sm">
                       ✕
                     </button>
                   </div>
@@ -230,6 +236,20 @@ export default function Loans() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Loan Log"
+        message={
+          <span>
+            Are you sure you want to delete <strong className="text-slate-100">{deleteTarget?.name}</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmText={deleting ? 'Deleting...' : 'Delete Loan Record'}
+        loading={deleting}
+      />
     </div>
   );
 }

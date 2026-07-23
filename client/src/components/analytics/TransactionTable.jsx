@@ -7,6 +7,7 @@ import {
 import api, { API_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmModal from '../common/ConfirmModal';
 
 export default function TransactionTable({ 
   incomes = [], 
@@ -207,13 +208,15 @@ export default function TransactionTable({
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
-    
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} transactions? This action is irreversible.`)) {
-      return;
-    }
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const confirmExecuteBulkDelete = async () => {
+    setShowBulkDeleteConfirm(false);
     setBulkDeleting(true);
     const deletePromises = selectedIds.map(async (id) => {
       // Find transaction item to resolve correct REST endpoint (incomes vs expenses)
@@ -650,6 +653,15 @@ export default function TransactionTable({
         </div>
       )}
 
+      <ConfirmModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={confirmExecuteBulkDelete}
+        title="Delete Transactions"
+        message={`Are you sure you want to delete ${selectedIds.length} selected transactions? This action is irreversible.`}
+        confirmText="Delete Transactions"
+        loading={bulkDeleting}
+      />
     </div>
   );
 }
