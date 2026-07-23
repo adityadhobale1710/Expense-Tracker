@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
@@ -39,6 +40,18 @@ export const register = asyncHandler(async (req, res) => {
   // Seed default categories
   const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
   await Category.insertMany(cats);
+
+  // Seed default primary wallet
+  await Wallet.create({
+    user: user._id,
+    name: `${name.split(' ')[0]}'s Bank Account`,
+    type: 'bank',
+    balance: 0,
+    currency: 'INR',
+    color: '#6366f1',
+    icon: '🏦',
+    isPrimary: true,
+  });
 
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);

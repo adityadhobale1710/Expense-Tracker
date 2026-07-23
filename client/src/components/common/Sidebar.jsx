@@ -5,10 +5,11 @@ const NAV_ITEMS = [
   { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
   { to: '/income',       icon: '💰', label: 'Income' },
   { to: '/expenses',     icon: '💸', label: 'Expenses' },
+  { to: '/wallets',      icon: '/wallet.png', label: 'Wallets' },
   { to: '/budget',       icon: '🎯', label: 'Budget' },
   { to: '/loans',        icon: '🏛️', label: 'Loans & EMIs' },
   { to: '/subscriptions',icon: '🔁', label: 'Subscriptions' },
-  { to: '/split-bills',  icon: '🍕', label: 'Split Bills' },
+  { to: '/split-bills',  icon: '/split-bill.png', label: 'Split Bills' },
   { to: '/family',       icon: '👪', label: 'Family Sharing' },
   { to: '/calendar',     icon: '📅', label: 'Bill Calendar' },
   { to: '/ai-insights',  icon: '💡', label: 'AI Insights' },
@@ -48,16 +49,12 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Logo — full brand on desktop/mobile drawer, icon-only on tablet rail */}
         <div className="p-3 lg:p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-center lg:justify-start gap-3">
-            <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center text-white glow-primary flex-shrink-0">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 7h-8v10h8a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-                <path d="M5 21V5a2 2 0 0 1 2-2h10v4H7a2 2 0 0 0-2 2v12h14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" />
-              </svg>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm border border-slate-700/35 bg-slate-800">
+              <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
             {/* Brand name: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
             <div className="block md:hidden lg:block">
               <h1 className="font-bold text-slate-100 text-base leading-tight">My Expense</h1>
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Pro Edition</p>
             </div>
           </div>
         </div>
@@ -74,7 +71,13 @@ export default function Sidebar({ isOpen, onClose }) {
               title={label}  /* Native tooltip for tablet icon-rail */
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
-              <span className="text-lg flex-shrink-0">{icon}</span>
+              <span className="text-lg flex-shrink-0 flex items-center justify-center">
+                {typeof icon === 'string' && icon.startsWith('/') ? (
+                  <img src={icon} alt="" className="w-5 h-5 object-contain" />
+                ) : (
+                  icon
+                )}
+              </span>
               {/* Label: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
               <span className="inline md:hidden lg:inline">{label}</span>
             </NavLink>
