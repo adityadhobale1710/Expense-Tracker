@@ -58,11 +58,8 @@ export default function Register() {
       <div className="relative w-full max-w-md animate-fade-in my-auto">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl shadow-lg shadow-primary-600/30 mb-4 glow-primary">
-            <svg className="w-9 h-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 7h-8v10h8a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-              <path d="M5 21V5a2 2 0 0 1 2-2h10v4H7a2 2 0 0 0-2 2v12h14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" />
-            </svg>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl overflow-hidden border border-slate-700/50 bg-dark-800 shadow-lg mb-4">
+            <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-gradient">My Expense Pro</h1>
           <p className="text-slate-400 mt-1">Start managing your personal finances</p>
