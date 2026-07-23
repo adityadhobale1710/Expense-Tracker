@@ -156,6 +156,12 @@ export default function Login() {
     } catch (err) {
       let errMsg = err.response?.data?.message || 'Login failed';
       
+      if (err.response?.status === 403 && err.response?.data?.unverified) {
+        toast.error(errMsg);
+        navigate('/register', { state: { step: 'otp', email: form.email } });
+        return;
+      }
+
       // Highlight invalid fields where appropriate
       if (errMsg.includes('email') || errMsg.includes('No account found') || errMsg.includes('not registered') || errMsg.includes('registered')) {
         setEmailError(true);
