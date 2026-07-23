@@ -21,6 +21,8 @@ const DEFAULT_CATEGORIES = [
   { name: 'Freelance', icon: '💻', color: '#3b82f6', type: 'income' },
   { name: 'Investment', icon: '📈', color: '#f59e0b', type: 'income' },
   { name: 'Gift', icon: '🎁', color: '#ec4899', type: 'income' },
+  { name: 'Award', icon: '🏆', color: '#eab308', type: 'income' },
+  { name: 'Tips/Bonus', icon: '💵', color: '#10b981', type: 'income' },
   { name: 'Other Income', icon: '💰', color: '#6366f1', type: 'income' },
 ];
 
@@ -29,13 +31,45 @@ const DEFAULT_CATEGORIES = [
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password, phone } = req.body;
 
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    res.status(400);
-    throw new Error('User already exists with this email');
+  const existingUser = await User.findOne({ email });
+  
+  if (existingUser) {
+    if (existingUser.isEmailVerified === true) {
+      res.status(400);
+      throw new Error('User already exists with this email');
+    }
+    
+    // User exists but is not verified -> Re-registration path
+    existingUser.name = name;
+    existingUser.phone = phone || '';
+    existingUser.password = password;
+    
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    existingUser.registrationOtp = otp;
+    existingUser.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    
+    await existingUser.save();
+
+    const emailHtml = getHtmlTemplate({
+      title: 'Verify Your Email',
+      greeting: `Hello, ${existingUser.name}`,
+      body: 'Thank you for registering with My Expense Pro. Please use the verification code below to confirm your email and activate your account. This code will expire in 10 minutes.',
+      code: otp,
+      footerText: 'If you did not register for an account, please ignore this email.',
+    });
+
+    await sendEmail({
+      to: existingUser.email,
+      subject: 'Verify Your Email - My Expense Pro',
+      html: emailHtml,
+      text: `Hello, ${existingUser.name}.\n\nThank you for registering. Your 6-digit verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+    });
+
+    return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: existingUser.email });
   }
 
-  const user = await User.create({ name, email, password, phone: phone || '' });
+  // Brand new user registration path
+  const user = await User.create({ name, email, password, phone: phone || '', isEmailVerified: false });
 
   // Seed default categories
   const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
@@ -53,33 +87,27 @@ export const register = asyncHandler(async (req, res) => {
     isPrimary: true,
   });
 
-  const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
-  user.refreshToken = refreshToken;
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  user.registrationOtp = otp;
+  user.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
   await user.save();
 
-  sendSuccess(res, 201, 'Registration successful', {
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    currency: user.currency,
-    role: user.role,
-    phone: user.phone,
-    company: user.company,
-    twoFactorEnabled: user.twoFactorEnabled,
-    xp: user.xp,
-    coins: user.coins,
-    level: user.level,
-    streak: user.streak,
-    longestStreak: user.longestStreak,
-    unlockedTitles: user.unlockedTitles,
-    unlockedAvatars: user.unlockedAvatars,
-    unlockedThemes: user.unlockedThemes,
-    simulatedActions: user.simulatedActions,
-    achievements: user.achievements,
-    accessToken,
-    refreshToken,
+  const emailHtml = getHtmlTemplate({
+    title: 'Verify Your Email',
+    greeting: `Hello, ${user.name}`,
+    body: 'Thank you for registering with My Expense Pro. Please use the verification code below to confirm your email and activate your account. This code will expire in 10 minutes.',
+    code: otp,
+    footerText: 'If you did not register for an account, please ignore this email.',
   });
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Verify Your Email - My Expense Pro',
+    html: emailHtml,
+    text: `Hello, ${user.name}.\n\nThank you for registering. Your 6-digit verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+  });
+
+  return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email });
 });
 
 // @desc  Login user
@@ -101,6 +129,15 @@ export const login = asyncHandler(async (req, res) => {
     return res.json({
       success: false,
       message: 'Your account has been temporarily disabled. Please contact support.'
+    });
+  }
+
+  if (user.isEmailVerified === false) {
+    res.status(403);
+    return res.json({
+      success: false,
+      message: 'Please verify your email before logging in.',
+      unverified: true
     });
   }
 
@@ -268,4 +305,93 @@ export const resetPassword = asyncHandler(async (req, res) => {
   });
 
   sendSuccess(res, 200, 'Password has been reset successfully');
+});
+
+// @desc  Verify Registration OTP
+// @route POST /api/auth/verify-registration-otp
+export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  const user = await User.findOne({
+    email,
+    registrationOtp: otp,
+    registrationOtpExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    res.status(400);
+    throw new Error('Invalid or expired OTP');
+  }
+
+  user.isEmailVerified = true;
+  user.registrationOtp = null;
+  user.registrationOtpExpire = null;
+
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  sendSuccess(res, 200, 'Email verified successfully', {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    currency: user.currency,
+    avatar: user.avatar,
+    role: user.role,
+    phone: user.phone,
+    company: user.company,
+    twoFactorEnabled: user.twoFactorEnabled,
+    xp: user.xp,
+    coins: user.coins,
+    level: user.level,
+    streak: user.streak,
+    longestStreak: user.longestStreak,
+    unlockedTitles: user.unlockedTitles,
+    unlockedAvatars: user.unlockedAvatars,
+    unlockedThemes: user.unlockedThemes,
+    simulatedActions: user.simulatedActions,
+    achievements: user.achievements,
+    accessToken,
+    refreshToken,
+  });
+});
+
+// @desc  Resend Registration OTP
+// @route POST /api/auth/resend-registration-otp
+export const resendRegistrationOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (user.isEmailVerified) {
+    res.status(400);
+    throw new Error('Email already verified, please log in');
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  user.registrationOtp = otp;
+  user.registrationOtpExpire = Date.now() + 10 * 60 * 1000;
+  await user.save();
+
+  const emailHtml = getHtmlTemplate({
+    title: 'Verify Your Email',
+    greeting: `Hello, ${user.name}`,
+    body: 'Thank you for registering with My Expense Pro. Please use the verification code below to confirm your email and activate your account. This code will expire in 10 minutes.',
+    code: otp,
+    footerText: 'If you did not register for an account, please ignore this email.',
+  });
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Verify Your Email - My Expense Pro',
+    html: emailHtml,
+    text: `Hello, ${user.name}.\n\nThank you for registering. Your 6-digit verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+  });
+
+  sendSuccess(res, 200, 'A new verification code has been sent');
 });

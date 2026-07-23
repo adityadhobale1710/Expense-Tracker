@@ -20,7 +20,7 @@ const getLocalTimeString = () => {
 };
 
 const PAYMENT_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
-const EMPTY = { title: '', amount: '', category: '', date: getLocalTodayString(), time: getLocalTimeString(), paymentMethod: 'upi', description: '', tags: '', walletId: '' };
+const EMPTY = { title: '', amount: '', category: '', date: getLocalTodayString(), time: getLocalTimeString(), paymentMethod: 'upi', description: '', tags: '' };
 
 export default function Expenses() {
   const { expenses, fetchExpenses, addExpense, updateExpense, deleteExpense, categories, fetchCategories, loading } = useExpense();
@@ -28,12 +28,10 @@ export default function Expenses() {
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState({ paymentMethod: '', category: '' });
-  const [wallets, setWallets] = useState([]);
 
   useEffect(() => {
     fetchExpenses();
     fetchCategories('expense');
-    api.get('/wallets').then(res => setWallets(res.data.data || [])).catch(() => {});
   }, []);
 
   const openAdd = () => {
@@ -62,7 +60,6 @@ export default function Expenses() {
       date: dateStr,
       time: timeStr,
       tags: (item.tags || []).join(', '),
-      walletId: item.wallet || '',
     });
     setModal({ open: true, mode: 'edit', item });
   };
@@ -214,15 +211,7 @@ export default function Expenses() {
             <label className="label">Description</label>
             <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional note" />
           </div>
-          {wallets.length > 0 && (
-            <div className="form-group">
-              <label className="label">Wallet (optional)</label>
-              <select className="select" value={form.walletId} onChange={(e) => setForm({ ...form, walletId: e.target.value })}>
-                <option value="">No wallet</option>
-                {wallets.map(w => <option key={w._id} value={w._id}>{w.icon} {w.name} (₹{w.balance.toLocaleString('en-IN')})</option>)}
-              </select>
-            </div>
-          )}
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={closeModal} className="btn-secondary flex-1">Cancel</button>
             <button type="submit" className="btn-primary flex-1" disabled={submitting}>
