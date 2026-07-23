@@ -216,16 +216,18 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     throw new Error('User is not registered');
   }
 
-  // Generate 6-digit random token/OTP
-  // Use cryptographically secure random integer (Issue #2 fix)
+  // Issue #2 fix: generate a cryptographically secure 6-digit OTP.
+  // Store only its SHA-256 hash in the DB — if the DB is ever exfiltrated,
+  // the raw OTP cannot be recovered and used to reset arbitrary accounts.
   const otp = crypto.randomInt(100000, 1000000).toString();
+  const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
 
   // Token expires in 15 minutes
-  user.resetPasswordToken = otp;
+  user.resetPasswordToken = hashedOtp;
   user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
   await user.save();
 
-  // Send Email
+  // Send the plain OTP to the user's email (not the hash)
   const emailHtml = getHtmlTemplate({
     title: 'Reset Password Verification Code',
     greeting: `Hello, ${user.name}`,
@@ -253,9 +255,13 @@ export const resetPassword = asyncHandler(async (req, res) => {
     throw new Error('Email, code, and new password are required');
   }
 
+  // Issue #2 fix: hash the submitted token before lookup.
+  // The DB stores the SHA-256 hash, never the plain OTP.
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
   const user = await User.findOne({
     email,
-    resetPasswordToken: token,
+    resetPasswordToken: hashedToken,
     resetPasswordExpire: { $gt: Date.now() },
   });
 
@@ -264,7 +270,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
     throw new Error('Invalid code/OTP or code has expired');
   }
 
-  // Set new password
+  // Set new password and clear reset token
   user.password = newPassword;
   user.resetPasswordToken = null;
   user.resetPasswordExpire = null;

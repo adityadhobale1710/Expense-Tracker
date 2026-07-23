@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema(
     isEmailVerified: { type: Boolean, default: false },
     isDisabled: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
+    // Issue #2 fix: add explicit status field that authController checks
+    status: { type: String, enum: ['active', 'disabled', 'blocked'], default: 'active' },
     refreshToken: { type: String, default: null },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpire: { type: Date, default: null },
