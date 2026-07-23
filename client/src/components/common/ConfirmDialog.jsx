@@ -62,7 +62,7 @@ export default function ConfirmDialog({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-5 z-10 my-auto"
+            className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 z-10 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-4">
@@ -73,10 +73,10 @@ export default function ConfirmDialog({
 
               {/* Title & Message */}
               <div className="space-y-1.5 flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
                   {title}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed">
                   {message}
                 </p>
               </div>
@@ -88,7 +88,7 @@ export default function ConfirmDialog({
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {cancelText}
               </button>
@@ -97,7 +97,7 @@ export default function ConfirmDialog({
                 type="button"
                 onClick={onConfirm}
                 disabled={loading}
-                className={`px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer ${getConfirmButtonClasses()}`}
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer ${getConfirmButtonClasses()}`}
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{loading ? 'Deleting...' : confirmText}</span>
