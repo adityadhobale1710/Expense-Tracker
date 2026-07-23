@@ -1,7 +1,9 @@
 import asyncHandler from 'express-async-handler';
 import Loan from '../models/Loan.js';
 import Expense from '../models/Expense.js';
+import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+
 
 // @desc    Get all loans
 // @route   GET /api/loans
@@ -72,8 +74,24 @@ export const payEmi = asyncHandler(async (req, res) => {
   }
 
   const emiPaid = Math.min(loan.emiAmount, loan.remainingBalance);
+
+  // Issue #4 fix: deduct EMI from wallet balance if walletId is provided
+  if (walletId) {
+    const wallet = await Wallet.findOne({ _id: walletId, user: req.user._id });
+    if (!wallet) {
+      res.status(404);
+      throw new Error('Wallet not found');
+    }
+    if (wallet.balance < emiPaid) {
+      res.status(400);
+      throw new Error('Insufficient wallet balance to pay EMI');
+    }
+    wallet.balance = Math.max(0, wallet.balance - emiPaid);
+    await wallet.save();
+  }
+
   loan.remainingBalance -= emiPaid;
-  
+
   // Calculate next EMI date (plus 1 month)
   const currentNext = new Date(loan.nextEmiDate);
   currentNext.setMonth(currentNext.getMonth() + 1);
@@ -97,3 +115,4 @@ export const payEmi = asyncHandler(async (req, res) => {
 
   sendSuccess(res, 200, 'EMI payment registered successfully', loan);
 });
+

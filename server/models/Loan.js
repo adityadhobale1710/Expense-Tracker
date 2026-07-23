@@ -13,7 +13,7 @@ const loanSchema = new mongoose.Schema(
     interestRate: { type: Number, required: [true, 'Interest rate is required'], min: 0 },
     durationMonths: { type: Number, required: [true, 'Duration in months is required'], min: 1 },
     emiAmount: { type: Number, required: [true, 'Monthly EMI payment is required'], min: 0 },
-    remainingBalance: { type: Number, required: true },
+    remainingBalance: { type: Number, required: true, min: [0, 'Remaining balance cannot be negative'] },
     nextEmiDate: { type: Date, required: true },
     paymentStatus: { type: String, enum: ['paid', 'unpaid'], default: 'unpaid' },
   },

@@ -1,4 +1,5 @@
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import Wallet from '../models/Wallet.js';
 import Expense from '../models/Expense.js';
 import Income from '../models/Income.js';
@@ -63,45 +64,64 @@ export const transferFunds = asyncHandler(async (req, res) => {
     throw new Error('Amount must be greater than zero');
   }
 
-  const fromWallet = await Wallet.findOne({ _id: fromWalletId, user: req.user._id });
-  const toWallet = await Wallet.findOne({ _id: toWalletId, user: req.user._id });
+  // Issue #4 fix: use a Mongoose session + transaction to prevent the TOCTOU race
+  // condition where two concurrent transfers from the same wallet can both pass
+  // the balance check but together overdraw it. Atomic $inc ensures correctness.
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    // Atomically deduct — the query filter { balance: { $gte: amount } } ensures
+    // we only deduct if there's enough balance (no overdraw possible).
+    const fromWallet = await Wallet.findOneAndUpdate(
+      { _id: fromWalletId, user: req.user._id, balance: { $gte: amount } },
+      { $inc: { balance: -amount } },
+      { new: true, session, runValidators: true }
+    );
 
-  if (!fromWallet || !toWallet) {
-    res.status(404);
-    throw new Error('One or both wallets not found');
+    if (!fromWallet) {
+      await session.abortTransaction();
+      res.status(400);
+      throw new Error('Insufficient balance or source wallet not found');
+    }
+
+    const toWallet = await Wallet.findOneAndUpdate(
+      { _id: toWalletId, user: req.user._id },
+      { $inc: { balance: amount } },
+      { new: true, session, runValidators: true }
+    );
+
+    if (!toWallet) {
+      await session.abortTransaction();
+      res.status(404);
+      throw new Error('Destination wallet not found');
+    }
+
+    // Record expense and income within the same transaction
+    await Expense.create([{
+      user: req.user._id,
+      title: `Transfer to ${toWallet.name}`,
+      amount,
+      date: new Date(),
+      paymentMethod: fromWallet.type === 'credit_card' ? 'card' : fromWallet.type === 'upi' ? 'upi' : 'other',
+      description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+    }], { session });
+
+    await Income.create([{
+      user: req.user._id,
+      title: `Transfer from ${fromWallet.name}`,
+      amount,
+      date: new Date(),
+      category: 'Other Income',
+      source: toWallet.name,
+      description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+    }], { session });
+
+    await session.commitTransaction();
+    sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
   }
-
-  if (fromWallet.balance < amount) {
-    res.status(400);
-    throw new Error('Insufficient balance in source wallet');
-  }
-
-  // Perform transfer
-  fromWallet.balance -= amount;
-  toWallet.balance += amount;
-
-  await fromWallet.save();
-  await toWallet.save();
-
-  // Create an expense for the source wallet and an income for the target wallet
-  await Expense.create({
-    user: req.user._id,
-    title: `Transfer to ${toWallet.name}`,
-    amount,
-    date: new Date(),
-    paymentMethod: fromWallet.type === 'credit_card' ? 'card' : fromWallet.type === 'upi' ? 'upi' : 'other',
-    description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
-  });
-
-  await Income.create({
-    user: req.user._id,
-    title: `Transfer from ${fromWallet.name}`,
-    amount,
-    date: new Date(),
-    category: 'Other Income',
-    source: toWallet.name,
-    description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
-  });
-
-  sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
 });
