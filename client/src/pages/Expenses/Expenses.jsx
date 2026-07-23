@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -28,6 +29,7 @@ export default function Expenses() {
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState({ paymentMethod: '', category: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, loading: false });
 
   useEffect(() => {
     fetchExpenses();
@@ -82,9 +84,20 @@ export default function Expenses() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this expense?')) return;
-    try { await deleteExpense(id); } catch { toast.error('Failed to delete'); }
+  const handleDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, id, loading: false });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
+    try {
+      await deleteExpense(deleteConfirm.id);
+      setDeleteConfirm({ isOpen: false, id: null, loading: false });
+    } catch {
+      toast.error('Failed to delete');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   const filtered = expenses.filter((e) => {
@@ -220,6 +233,17 @@ export default function Expenses() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, loading: false })}
+      />
     </div>
   );
 }

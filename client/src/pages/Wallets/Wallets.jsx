@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { WalletCards, Wallet, CreditCard, Star, Layers, Plus, Search, Coins, Banknote } from 'lucide-react';
 import api from '../../services/api';
 import Modal from '../../components/common/Modal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
 
 // ─── Constants ──────────────────────────────────────────
@@ -42,14 +44,17 @@ const EMPTY_FORM = {
 
 function WalletEmptyState({ onCreateClick }) {
   return (
-    <div className="card text-center py-16 space-y-4 flex flex-col items-center">
-      <img src="/wallet.png" alt="Wallet Logo" className="w-16 h-16 object-contain" />
+    <div className="card text-center py-16 space-y-4 flex flex-col items-center border border-slate-800">
+      <div className="w-20 h-20 rounded-3xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center p-3 shadow-xl mb-2">
+        <img src="/wallet.png" alt="Wallet Logo" className="w-full h-full object-contain" />
+      </div>
       <h3 className="text-xl font-bold text-slate-100 mt-2">No Wallets Yet</h3>
       <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
         Create your first wallet to manage balances, track spending, and pay EMIs.
       </p>
-      <button onClick={onCreateClick} className="btn-primary text-sm mx-auto">
-        + Create Wallet
+      <button onClick={onCreateClick} className="btn-primary text-sm mx-auto flex items-center gap-2">
+        <Plus size={16} />
+        <span>Create Wallet</span>
       </button>
     </div>
   );
@@ -64,34 +69,42 @@ function WalletSummaryCards({ wallets }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <div className="card hover:border-indigo-500/20 transition-all">
         <div className="flex items-center gap-3">
-          <div className="stat-icon bg-indigo-500/15 text-indigo-400">💰</div>
+          <div className="stat-icon bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
+            <Coins size={22} />
+          </div>
           <div>
             <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Balance</p>
             <p className="text-xl font-extrabold text-slate-100">{cs}{totalBalance.toLocaleString('en-IN')}</p>
           </div>
         </div>
       </div>
-      <div className="card hover:border-indigo-500/20 transition-all">
+      <div className="card hover:border-purple-500/20 transition-all">
         <div className="flex items-center gap-3">
-          <div className="stat-icon bg-purple-500/15 text-purple-400">👛</div>
+          <div className="stat-icon bg-purple-500/15 text-purple-400 flex items-center justify-center">
+            <WalletCards size={22} />
+          </div>
           <div>
             <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Wallets</p>
             <p className="text-xl font-extrabold text-slate-100">{wallets.length}</p>
           </div>
         </div>
       </div>
-      <div className="card hover:border-indigo-500/20 transition-all">
+      <div className="card hover:border-emerald-500/20 transition-all">
         <div className="flex items-center gap-3">
-          <div className="stat-icon bg-emerald-500/15 text-emerald-400">⭐</div>
+          <div className="stat-icon bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+            <Star size={22} />
+          </div>
           <div>
             <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Primary Wallet</p>
             <p className="text-base font-bold text-slate-100 truncate">{primaryWallet?.name || '—'}</p>
           </div>
         </div>
       </div>
-      <div className="card hover:border-indigo-500/20 transition-all">
+      <div className="card hover:border-cyan-500/20 transition-all">
         <div className="flex items-center gap-3">
-          <div className="stat-icon bg-cyan-500/15 text-cyan-400">📊</div>
+          <div className="stat-icon bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
+            <Layers size={22} />
+          </div>
           <div>
             <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Wallet Types</p>
             <p className="text-base font-bold text-slate-100">{new Set(wallets.map(w => w.type)).size} types</p>
@@ -267,6 +280,8 @@ export default function Wallets() {
   const [typeFilter, setTypeFilter] = useState('');
   const [sort, setSort] = useState('balance-desc');
 
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, wallet: null, loading: false });
+
   const fetchWallets = async () => {
     setLoading(true);
     try {
@@ -342,15 +357,22 @@ export default function Wallets() {
     }
   };
 
-  const handleDelete = async (wallet) => {
+  const handleDelete = (wallet) => {
     if (wallet.isPrimary) return toast.error('Cannot delete primary wallet');
-    if (!window.confirm(`Are you sure you want to delete "${wallet.name}"?`)) return;
+    setDeleteConfirm({ isOpen: true, wallet, loading: false });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.wallet) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
-      await api.delete(`/wallets/${wallet._id}`);
+      await api.delete(`/wallets/${deleteConfirm.wallet._id}`);
       toast.success('Wallet deleted successfully');
       fetchWallets();
+      setDeleteConfirm({ isOpen: false, wallet: null, loading: false });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete wallet');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -400,9 +422,14 @@ export default function Wallets() {
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Page Header */}
       <div className="page-header">
-        <div>
-          <h1 className="page-title">Wallets</h1>
-          <p className="page-subtitle">Manage your wallets, track balances, and transfer funds</p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-slate-800 border border-slate-700/60 flex items-center justify-center p-2 shadow-lg flex-shrink-0">
+            <img src="/wallet.png" alt="Wallet Logo" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h1 className="page-title">Wallets</h1>
+            <p className="page-subtitle">Manage your wallets, track balances, and transfer funds</p>
+          </div>
         </div>
         <button id="create-wallet-btn" onClick={openCreate} className="btn-primary">
           + Create Wallet
@@ -622,6 +649,17 @@ export default function Wallets() {
       >
         <WalletHistory walletId={historyModal.walletId} />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Wallet"
+        message={`Are you sure you want to delete "${deleteConfirm.wallet?.name || 'this wallet'}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, wallet: null, loading: false })}
+      />
     </div>
   );
 }
