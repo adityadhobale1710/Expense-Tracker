@@ -393,8 +393,7 @@ export default function AnalyticsPro() {
         {[
           { id: 'overview', label: '📊 Complete Overview', icon: Layers },
           { id: 'earnings', label: '💼 How I Earn (Incomes)', icon: TrendingUp },
-          { id: 'expenses', label: '💸 How I Spend (Expenses)', icon: TrendingDown },
-          { id: 'savings', label: '🏦 How I Save (Savings Trend)', icon: PiggyBank }
+          { id: 'expenses', label: '💸 How I Spend (Expenses)', icon: TrendingDown }
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -410,70 +409,7 @@ export default function AnalyticsPro() {
         ))}
       </div>
 
-      {/* Section 1: Main Multi-Series Run-Rate Area Graph (Earned vs Spent vs Saved) */}
-      {(activeTab === 'overview' || activeTab === 'savings') && (
-        <div className="bg-dark-800/80 border border-slate-700/60 p-6 rounded-3xl shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/40 pb-4">
-            <div>
-              <h2 className="text-base font-extrabold text-slate-100 flex items-center gap-2">
-                <BarChart3 className="text-primary-400" size={18} />
-                Financial Trajectory (Earnings vs Spending vs Savings)
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Month-by-month comparative analysis of inflows, outflows, and net savings.
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-semibold">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                Earnings
-              </span>
-              <span className="flex items-center gap-1.5 text-rose-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                Spent
-              </span>
-              <span className="flex items-center gap-1.5 text-indigo-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                Saved
-              </span>
-            </div>
-          </div>
 
-          <div className="h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorSpent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorSaved" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="month" stroke="var(--chart-text)" fontSize={11} tickLine={false} />
-                <YAxis
-                  stroke="var(--chart-text)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="Earnings" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEarnings)" />
-                <Area type="monotone" dataKey="Spent" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorSpent)" />
-                <Area type="monotone" dataKey="Saved" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorSaved)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
 
       {/* Section 2: Pie Charts & Visual Breakdown Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -496,22 +432,20 @@ export default function AnalyticsPro() {
                 </span>
               </div>
 
-              {/* Pie Chart & Side Legend */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center mt-4">
-                <div className="sm:col-span-6 h-56 w-full">
+              {/* Top part: Pie Chart & Legend */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 mt-6 border-b border-slate-700/40 pb-6">
+                {/* Pie Chart */}
+                <div className="relative h-48 w-48 flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        activeIndex={activeIncomeIndex}
-                        activeShape={renderActiveShape}
                         data={incomePieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
+                        innerRadius={65}
+                        outerRadius={90}
                         dataKey="value"
-                        onMouseEnter={(_, idx) => setActiveIncomeIndex(idx)}
-                        onMouseLeave={() => setActiveIncomeIndex(-1)}
+                        stroke="none"
                       >
                         {incomePieData.map((entry, index) => (
                           <Cell key={`cell-inc-${index}`} fill={entry.color} />
@@ -519,43 +453,54 @@ export default function AnalyticsPro() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
+                  {/* Center Total */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-sm font-bold text-slate-100 font-mono">{Number(totalEarnedVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
 
-                {/* Progress bars list */}
-                <div className="sm:col-span-6 space-y-3 max-h-56 overflow-y-auto pr-1">
-                  {incomePieData.map((item, idx) => {
-                    const percent = totalEarnedVal > 0 ? Math.round((item.value / totalEarnedVal) * 100) : 0;
+                {/* Simple Legend */}
+                <div className="flex-1 space-y-3 w-full sm:w-auto">
+                  {incomePieData.map(item => {
+                    const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
                     return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2 font-semibold text-slate-200">
-                            <span>{item.icon}</span>
-                            <span>{item.name}</span>
-                          </span>
-                          <span className="font-mono font-bold text-slate-300">
-                            ₹{Number(item.value).toLocaleString('en-IN')} ({percent}%)
-                          </span>
+                      <div key={item.name} className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
+                          <span className="text-slate-200 font-medium">{item.name}</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${percent}%`, backgroundColor: item.color }}
-                          />
-                        </div>
+                        <span className="text-slate-300 font-mono">{percent}%</span>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Earnings takeaway banner */}
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 text-xs text-emerald-300 font-medium">
-              <CheckCircle2 size={18} className="shrink-0 text-emerald-400" />
-              <span>
-                Top income stream: <strong>{incomePieData[0]?.name || 'Salary'}</strong> representing{' '}
-                {totalEarnedVal > 0 ? Math.round(((incomePieData[0]?.value || 0) / totalEarnedVal) * 100) : 0}% of your total earnings.
-              </span>
+              {/* Bottom part: Detailed List */}
+              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
+                {incomePieData.map(item => {
+                  const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
+                  return (
+                    <div key={item.name} className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
+                            {item.icon}
+                          </div>
+                          <div>
+                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
+                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
+                          </div>
+                        </div>
+                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -579,22 +524,20 @@ export default function AnalyticsPro() {
                 </span>
               </div>
 
-              {/* Pie Chart & Side Legend */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center mt-4">
-                <div className="sm:col-span-6 h-56 w-full">
+              {/* Top part: Pie Chart & Legend */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 mt-6 border-b border-slate-700/40 pb-6">
+                {/* Pie Chart */}
+                <div className="relative h-48 w-48 flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        activeIndex={activeExpenseIndex}
-                        activeShape={renderActiveShape}
                         data={expensePieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
+                        innerRadius={65}
+                        outerRadius={90}
                         dataKey="value"
-                        onMouseEnter={(_, idx) => setActiveExpenseIndex(idx)}
-                        onMouseLeave={() => setActiveExpenseIndex(-1)}
+                        stroke="none"
                       >
                         {expensePieData.map((entry, index) => (
                           <Cell key={`cell-exp-${index}`} fill={entry.color} />
@@ -602,85 +545,60 @@ export default function AnalyticsPro() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
+                  {/* Center Total */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-sm font-bold text-slate-100 font-mono">{Number(totalSpentVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
 
-                {/* Progress bars list */}
-                <div className="sm:col-span-6 space-y-3 max-h-56 overflow-y-auto pr-1">
-                  {expensePieData.map((item, idx) => {
-                    const percent = totalSpentVal > 0 ? Math.round((item.value / totalSpentVal) * 100) : 0;
+                {/* Simple Legend */}
+                <div className="flex-1 space-y-3 w-full sm:w-auto">
+                  {expensePieData.map(item => {
+                    const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
                     return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2 font-semibold text-slate-200">
-                            <span>{item.icon}</span>
-                            <span>{item.name}</span>
-                          </span>
-                          <span className="font-mono font-bold text-slate-300">
-                            ₹{Number(item.value).toLocaleString('en-IN')} ({percent}%)
-                          </span>
+                      <div key={item.name} className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
+                          <span className="text-slate-200 font-medium">{item.name}</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${percent}%`, backgroundColor: item.color }}
-                          />
-                        </div>
+                        <span className="text-slate-300 font-mono">{percent}%</span>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Expense takeaway banner */}
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 text-xs text-rose-300 font-medium">
-              <AlertTriangle size={18} className="shrink-0 text-rose-400" />
-              <span>
-                Largest spending category: <strong>{expensePieData[0]?.name || 'Food'}</strong> representing{' '}
-                {totalSpentVal > 0 ? Math.round(((expensePieData[0]?.value || 0) / totalSpentVal) * 100) : 0}% of total outflows.
-              </span>
+              {/* Bottom part: Detailed List */}
+              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
+                {expensePieData.map(item => {
+                  const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
+                  return (
+                    <div key={item.name} className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
+                            {item.icon}
+                          </div>
+                          <div>
+                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
+                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
+                          </div>
+                        </div>
+                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Section 3: Monthly Savings Bar Graph */}
-      {(activeTab === 'overview' || activeTab === 'savings') && (
-        <div className="bg-dark-800/80 border border-slate-700/60 p-6 rounded-3xl shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/40 pb-4">
-            <div>
-              <h2 className="text-base font-extrabold text-slate-100 flex items-center gap-2">
-                <PiggyBank className="text-indigo-400" size={18} />
-                Monthly Net Savings Velocity & Savings Rate %
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Evaluates how much liquidity you reserve every month after covering expenditure
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-xl">
-              <span>Overall Savings Rate: {savingsRateVal}%</span>
-            </div>
-          </div>
 
-          <div className="h-64 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="month" stroke="var(--chart-text)" fontSize={11} tickLine={false} />
-                <YAxis
-                  stroke="var(--chart-text)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="Saved" fill="#6366f1" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
 
       {/* Section 4: Detailed Breakdown & Financial Recommendations */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
