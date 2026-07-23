@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Layers, Sun, Moon, Sparkles, RefreshCw, Search, 
@@ -84,14 +85,14 @@ export default function DashboardHeader({
             <RefreshCw size={15} />
           </button>
 
-          {/* AI Insights Link Button */}
-          <button
-            onClick={onScrollToAI}
+          {/* AI Assistant Link Button */}
+          <Link
+            to="/ai-assistant"
             className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-primary-600/25 to-indigo-600/25 hover:from-primary-600/45 hover:to-indigo-600/45 border border-primary-500/40 text-primary-350 hover:text-primary-200 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
           >
             <Sparkle size={14} className="text-primary-400" />
             <span>AI Assistant</span>
-          </button>
+          </Link>
 
           {/* Notification Alert Bell */}
           <div className="relative">

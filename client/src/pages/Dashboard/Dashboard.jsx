@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { PROGRESSION_LEVELS } from '../Achievements/achievementsData';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 const getLocalTodayString = () => {
   const d = new Date();
@@ -32,6 +33,25 @@ export default function Dashboard() {
     deleteExpense, deleteIncome
   } = useExpense();
   const { user } = useAuth();
+
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, type: null, loading: false });
+
+  const confirmDeleteTransaction = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
+    try {
+      if (deleteConfirm.type === 'expense') {
+        await deleteExpense(deleteConfirm.id);
+      } else {
+        await deleteIncome(deleteConfirm.id);
+      }
+      fetchSummary();
+      setDeleteConfirm({ isOpen: false, id: null, type: null, loading: false });
+    } catch {
+      toast.error('Failed to delete transaction');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
+    }
+  };
 
   // Gamification state
   const [gameXp, setGameXp] = useState(3450);
@@ -259,18 +279,8 @@ export default function Dashboard() {
         const totalTodayExpense = todayExpenses.reduce((s, e) => s + e.amount, 0);
         const totalTodayIncome = todayIncomes.reduce((s, e) => s + e.amount, 0);
 
-        const handleDeleteTransaction = async (id, type) => {
-          if (!window.confirm('Delete this transaction?')) return;
-          try {
-            if (type === 'expense') {
-              await deleteExpense(id);
-            } else {
-              await deleteIncome(id);
-            }
-            fetchSummary();
-          } catch {
-            toast.error('Failed to delete transaction');
-          }
+        const handleDeleteTransaction = (id, type) => {
+          setDeleteConfirm({ isOpen: true, id, type, loading: false });
         };
 
         return (
@@ -737,6 +747,17 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDeleteTransaction}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, type: null, loading: false })}
+      />
     </div>
   );
 }
