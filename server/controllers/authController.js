@@ -21,6 +21,8 @@ const DEFAULT_CATEGORIES = [
   { name: 'Freelance', icon: '💻', color: '#3b82f6', type: 'income' },
   { name: 'Investment', icon: '📈', color: '#f59e0b', type: 'income' },
   { name: 'Gift', icon: '🎁', color: '#ec4899', type: 'income' },
+  { name: 'Award', icon: '🏆', color: '#eab308', type: 'income' },
+  { name: 'Tips/Bonus', icon: '💵', color: '#10b981', type: 'income' },
   { name: 'Other Income', icon: '💰', color: '#6366f1', type: 'income' },
 ];
 
