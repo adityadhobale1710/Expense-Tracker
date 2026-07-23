@@ -42,23 +42,27 @@ export default function Dashboard() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loans, setLoans] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [dashWallets, setDashWallets] = useState([]);
 
   const fetchDashboardExtraData = async () => {
     try {
-      const [subsRes, loansRes, goalsRes] = await Promise.all([
+      const [subsRes, loansRes, goalsRes, walletsRes] = await Promise.all([
         api.get('/subscriptions'),
         api.get('/loans'),
-        api.get('/goals')
+        api.get('/goals'),
+        api.get('/wallets'),
       ]);
       setSubscriptions(subsRes.data.data || []);
       setLoans(loansRes.data.data || []);
       setGoals(goalsRes.data.data || []);
+      setDashWallets(walletsRes.data.data || []);
     } catch {}
   };
 
   // Widgets list
   const widgets = [
     'weeklySpend', 'monthlySpend', 'remainingBudget',
+    'walletSummary',
     'savingsProgress', 'largestExpense', 'mostUsedCategory',
     'health', 'bills', 'notifications',
     'tipOfTheDay'
@@ -145,7 +149,8 @@ export default function Dashboard() {
         category: txForm.category,
         date: new Date(`${txForm.date}T${txForm.time || '00:00'}`).toISOString(),
         paymentMethod: txForm.paymentMethod,
-        description: txForm.description
+        description: txForm.description,
+        ...(txForm.walletId ? { walletId: txForm.walletId } : {}),
       };
 
       if (txForm.type === 'expense') {
@@ -411,6 +416,33 @@ export default function Dashboard() {
             );
           }
 
+          // Wallet Summary Widget
+          if (widgetId === 'walletSummary') {
+            const totalWalletBalance = dashWallets.reduce((s, w) => s + w.balance, 0);
+            const primaryWlt = dashWallets.find(w => w.isPrimary) || dashWallets[0];
+            return (
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">👛 Wallet Summary</h3>
+                  <Link to="/wallets" className="text-[10px] text-primary-400 hover:text-primary-300 font-bold">View All →</Link>
+                </div>
+                <div className="py-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Total Balance</span>
+                    <span className="text-lg font-extrabold text-slate-100">₹{totalWalletBalance.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Primary</span>
+                    <span className="text-xs font-bold text-slate-200">{primaryWlt?.icon} {primaryWlt?.name || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Wallets</span>
+                    <span className="text-xs font-bold text-slate-200">{dashWallets.length}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
 
           // 6. Savings Goal Progress
           if (widgetId === 'savingsProgress') {
@@ -695,6 +727,22 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
+
+              {dashWallets.length > 0 && (
+                <div className="form-group">
+                  <label className="label">Wallet (optional)</label>
+                  <select
+                    className="select py-2"
+                    value={txForm.walletId || ''}
+                    onChange={(e) => setTxForm({ ...txForm, walletId: e.target.value })}
+                  >
+                    <option value="">No wallet</option>
+                    {dashWallets.map(w => (
+                      <option key={w._id} value={w._id}>{w.icon} {w.name} (₹{w.balance.toLocaleString('en-IN')})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-700/50">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary py-2 px-4">Cancel</button>
