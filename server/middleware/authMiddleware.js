@@ -20,8 +20,9 @@ export const protect = asyncHandler(async (req, res, next) => {
       throw new Error('Not authorized, token failed');
     }
   } else if (req.query.token) {
-    // strict check: allow query parameter authentication ONLY for analytics file download paths
-    const isDownloadRoute = req.originalUrl.includes('/api/analytics/export/');
+    // Issue #7 fix: use .startsWith() NOT .includes() to prevent bypass via
+    // crafted URLs like /api/other?injected=/api/analytics/export/&token=...
+    const isDownloadRoute = req.originalUrl.startsWith('/api/analytics/export/');
     if (!isDownloadRoute) {
       res.status(401);
       throw new Error('Not authorized, query token only permitted for export requests');
