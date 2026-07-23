@@ -150,7 +150,6 @@ export default function Dashboard() {
         date: new Date(`${txForm.date}T${txForm.time || '00:00'}`).toISOString(),
         paymentMethod: txForm.paymentMethod,
         description: txForm.description,
-        ...(txForm.walletId ? { walletId: txForm.walletId } : {}),
       };
 
       if (txForm.type === 'expense') {
@@ -728,21 +727,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {dashWallets.length > 0 && (
-                <div className="form-group">
-                  <label className="label">Wallet (optional)</label>
-                  <select
-                    className="select py-2"
-                    value={txForm.walletId || ''}
-                    onChange={(e) => setTxForm({ ...txForm, walletId: e.target.value })}
-                  >
-                    <option value="">No wallet</option>
-                    {dashWallets.map(w => (
-                      <option key={w._id} value={w._id}>{w.icon} {w.name} (₹{w.balance.toLocaleString('en-IN')})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-700/50">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary py-2 px-4">Cancel</button>

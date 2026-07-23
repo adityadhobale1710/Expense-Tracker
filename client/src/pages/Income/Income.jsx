@@ -19,18 +19,17 @@ const getLocalTimeString = () => {
   return `${hh}:${mm}`;
 };
 
-const EMPTY = { title: '', amount: '', category: '', source: '', date: getLocalTodayString(), time: getLocalTimeString(), description: '', walletId: '' };
+const EMPTY = { title: '', amount: '', category: '', source: '', date: getLocalTodayString(), time: getLocalTimeString(), description: '' };
 
 export default function Income() {
-  const { incomes, fetchIncomes, addIncome, updateIncome, deleteIncome, loading } = useExpense();
+  const { incomes, fetchIncomes, addIncome, updateIncome, deleteIncome, categories, fetchCategories, loading } = useExpense();
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
-  const [wallets, setWallets] = useState([]);
 
   useEffect(() => {
     fetchIncomes();
-    api.get('/wallets').then(res => setWallets(res.data.data || [])).catch(() => {});
+    fetchCategories('income');
   }, []);
 
   const openAdd = () => {
@@ -57,7 +56,6 @@ export default function Income() {
       ...item,
       date: dateStr,
       time: timeStr,
-      walletId: item.wallet || '',
     });
     setModal({ open: true, mode: 'edit', item });
   };
@@ -166,7 +164,10 @@ export default function Income() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-group">
               <label className="label">Category</label>
-              <input className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="e.g. Salary" />
+              <select className="select" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                <option value="">Select category</option>
+                {categories.map((c) => <option key={c._id} value={c.name}>{c.icon} {c.name}</option>)}
+              </select>
             </div>
             <div className="form-group">
               <label className="label">Source</label>
@@ -177,15 +178,7 @@ export default function Income() {
             <label className="label">Description</label>
             <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional note" />
           </div>
-          {wallets.length > 0 && (
-            <div className="form-group">
-              <label className="label">Wallet (optional)</label>
-              <select className="select" value={form.walletId} onChange={(e) => setForm({ ...form, walletId: e.target.value })}>
-                <option value="">No wallet</option>
-                {wallets.map(w => <option key={w._id} value={w._id}>{w.icon} {w.name} (₹{w.balance.toLocaleString('en-IN')})</option>)}
-              </select>
-            </div>
-          )}
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={closeModal} className="btn-secondary flex-1">Cancel</button>
             <button type="submit" className="btn-primary flex-1" disabled={submitting}>

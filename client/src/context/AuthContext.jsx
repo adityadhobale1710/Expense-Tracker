@@ -20,6 +20,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, phone) => {
     const { data } = await api.post('/auth/register', { name, email, password, phone });
+    // Registration now sends an OTP email and does not immediately log in the user.
+    return data.data; // { email }
+  };
+
+  const verifyRegistrationOtp = async (email, otp) => {
+    const { data } = await api.post('/auth/verify-registration-otp', { email, otp });
     const { accessToken, refreshToken, ...userData } = data.data;
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
@@ -27,6 +33,11 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     toast.success(`Welcome, ${userData.name}! 🎉`);
     return userData;
+  };
+
+  const resendRegistrationOtp = async (email) => {
+    const { data } = await api.post('/auth/resend-registration-otp', { email });
+    return data;
   };
 
   const login = async (email, password) => {
@@ -54,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, register, login, logout, updateUser, verifyRegistrationOtp, resendRegistrationOtp }}>
       {children}
     </AuthContext.Provider>
   );
