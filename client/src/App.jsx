@@ -31,7 +31,6 @@ import Loans from './pages/Loans/Loans';
 import Subscriptions from './pages/Subscriptions/Subscriptions';
 import SplitBills from './pages/Split/SplitBills';
 import FamilySharing from './pages/Family/FamilySharing';
-import AIAssistant from './pages/AIAssistant/AIAssistant';
 import AnalyticsPro from './pages/Analytics/AnalyticsPro';
 import AdminPortal from './pages/Admin/AdminPortal';
 
@@ -70,7 +69,6 @@ const AppRoutes = () => (
       <Route path="subscriptions" element={<Subscriptions />} />
       <Route path="split-bills" element={<SplitBills />} />
       <Route path="family" element={<FamilySharing />} />
-      <Route path="ai-assistant" element={<AIAssistant />} />
       <Route path="analytics-pro" element={<AnalyticsPro />} />
       <Route path="admin-portal" element={<AdminPortal />} />
     </Route>
