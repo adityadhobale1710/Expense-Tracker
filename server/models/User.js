@@ -31,12 +31,12 @@ const userSchema = new mongoose.Schema(
     resetPasswordExpire: { type: Date, default: null },
     
     // Gamification properties
-    xp: { type: Number, default: 3450 },
-    coins: { type: Number, default: 640 },
-    level: { type: Number, default: 5 },
-    streak: { type: Number, default: 18 },
-    longestStreak: { type: Number, default: 24 },
-    unlockedTitles: { type: [String], default: ['Novice', 'Tracker', 'Thrifty'] },
+    xp: { type: Number, default: 0 },
+    coins: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    streak: { type: Number, default: 0 },
+    longestStreak: { type: Number, default: 0 },
+    unlockedTitles: { type: [String], default: [] },
     unlockedAvatars: { type: [String], default: [] },
     unlockedThemes: { type: [String], default: ['light', 'dark'] },
     simulatedActions: { type: [String], default: [] },
