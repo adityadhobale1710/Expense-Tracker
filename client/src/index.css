@@ -367,3 +367,108 @@ html[data-theme="light"] .btn-icon:hover {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Expenses Page Readability Improvements (Light Theme) ── */
+html[data-theme="light"] .expenses-page .page-title,
+html[data-theme="light"] .expenses-page h3 {
+  color: #111827 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .expenses-page .table th,
+html[data-theme="light"] .expenses-page th {
+  color: #1F2937 !important;
+  font-weight: 600 !important;
+}
+
+html[data-theme="light"] .expenses-page .table td,
+html[data-theme="light"] .expenses-page label[class~="label"] {
+  color: #374151 !important;
+}
+
+html[data-theme="light"] .expenses-page .table td [class~="text-slate-300"] {
+  color: #374151 !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="page-subtitle"],
+html[data-theme="light"] .expenses-page .table td[class~="text-slate-400"],
+html[data-theme="light"] .expenses-page .table td [class~="text-slate-500"],
+html[data-theme="light"] .expenses-page [class~="text-slate-400"],
+html[data-theme="light"] .expenses-page [class~="text-slate-500"] {
+  color: #4B5563 !important;
+}
+
+html[data-theme="light"] .expenses-page input::placeholder,
+html[data-theme="light"] .expenses-page select::placeholder,
+html[data-theme="light"] .expenses-page textarea::placeholder {
+  color: #6B7280 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="light"] .expenses-page *:disabled,
+html[data-theme="light"] .expenses-page button:disabled,
+html[data-theme="light"] .expenses-page input:disabled {
+  color: #9CA3AF !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="breadcrumb"] {
+  color: #4B5563 !important;
+}
+html[data-theme="light"] .expenses-page [class~="breadcrumb-active"],
+html[data-theme="light"] .expenses-page [class~="breadcrumb"] [class~="active"] {
+  color: #111827 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .expenses-page p[class~="text-slate-700"] {
+  color: #374151 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="btn-primary"],
+html[data-theme="light"] .expenses-page button[type="submit"] {
+  color: #FFFFFF !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="btn-secondary"],
+html[data-theme="light"] .expenses-page button.bg-white {
+  color: #1F2937 !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="btn-ghost"] {
+  color: #1F2937 !important;
+}
+html[data-theme="light"] .expenses-page [class~="btn-ghost"]:hover {
+  color: #111827 !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="btn-danger"] {
+  color: #DC2626 !important;
+  border-color: rgba(220, 38, 38, 0.3) !important;
+  background-color: rgba(220, 38, 38, 0.1) !important;
+}
+html[data-theme="light"] .expenses-page [class~="btn-danger"]:hover {
+  color: #FFFFFF !important;
+  background-color: #DC2626 !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="input"],
+html[data-theme="light"] .expenses-page [class~="select"],
+html[data-theme="light"] .expenses-page select,
+html[data-theme="light"] .expenses-page input {
+  color: #111827 !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="text-red-400"] {
+  color: #DC2626 !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="badge-blue"] {
+  color: #1D4ED8 !important;
+  background-color: rgba(29, 78, 216, 0.1) !important;
+}
+
+html[data-theme="light"] .expenses-page [class~="search-icon"] {
+  color: #6B7280 !important;
+}
+

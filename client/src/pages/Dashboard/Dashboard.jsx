@@ -108,6 +108,7 @@ export default function Dashboard() {
     paymentMethod: 'upi',
     description: ''
   });
+  const [submitting, setSubmitting] = useState(false);
 
 
 
@@ -151,10 +152,11 @@ export default function Dashboard() {
     if (categories.length > 0 && !txForm.category) {
       const firstMatched = categories.find(c => c.type === txForm.type);
       if (firstMatched) {
-        setTxForm(prev => ({ ...prev, category: firstMatched._id }));
+        const val = txForm.type === 'income' ? firstMatched.name : firstMatched._id;
+        setTxForm(prev => ({ ...prev, category: val }));
       }
     }
-  }, [txForm.type, categories]);
+  }, [txForm.type, categories, txForm.category]);
 
 
 
@@ -162,19 +164,48 @@ export default function Dashboard() {
 
   const handleSaveTransaction = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+
+    // Frontend validations
+    if (!txForm.title || !txForm.title.trim()) {
+      toast.error('Please enter a title.');
+      return;
+    }
+    if (!txForm.amount || isNaN(txForm.amount) || Number(txForm.amount) <= 0) {
+      toast.error('Please enter a valid amount.');
+      return;
+    }
+    if (!txForm.date) {
+      toast.error('Please select a date.');
+      return;
+    }
+    if (txForm.type === 'expense') {
+      if (!txForm.category) {
+        toast.error('Please select a category.');
+        return;
+      }
+      if (!txForm.paymentMethod) {
+        toast.error('Please select a payment method.');
+        return;
+      }
+    }
+
+    setSubmitting(true);
     try {
       const payload = {
-        title: txForm.title,
+        ...txForm,
         amount: Number(txForm.amount),
-        category: txForm.category,
         date: new Date(`${txForm.date}T${txForm.time || '00:00'}`).toISOString(),
-        paymentMethod: txForm.paymentMethod,
-        description: txForm.description,
       };
+      delete payload.time;
+      delete payload.type;
 
       if (txForm.type === 'expense') {
+        console.log("Outgoing Payload:", payload);
         await addExpense(payload);
       } else {
+        delete payload.paymentMethod;
+        console.log("Outgoing Payload:", payload);
         await addIncome(payload);
       }
 
@@ -192,8 +223,10 @@ export default function Dashboard() {
         paymentMethod: 'upi',
         description: ''
       });
-    } catch {
-      toast.error('Failed to create transaction');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create transaction');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -671,7 +704,7 @@ export default function Dashboard() {
                     {categories
                       .filter(c => c.type === txForm.type)
                       .map(c => (
-                        <option key={c._id} value={c._id}>
+                        <option key={c._id} value={txForm.type === 'income' ? c.name : c._id}>
                           {c.icon} {c.name}
                         </option>
                       ))}
@@ -741,7 +774,9 @@ export default function Dashboard() {
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-700/50">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary py-2 px-4">Cancel</button>
-                <button type="submit" className="btn-primary py-2 px-4">Save Log</button>
+                <button type="submit" className="btn-primary py-2 px-4" disabled={submitting}>
+                  {submitting ? 'Saving...' : 'Save Log'}
+                </button>
               </div>
             </form>
           </div>
