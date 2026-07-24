@@ -35,6 +35,8 @@ import SplitBills from './pages/Split/SplitBills';
 import FamilySharing from './pages/Family/FamilySharing';
 import AnalyticsPro from './pages/Analytics/AnalyticsPro';
 import AdminPortal from './pages/Admin/AdminPortal';
+import GoalsDashboard from './pages/Goals/GoalsDashboard';
+import GoalDetails from './pages/Goals/GoalDetails';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -75,6 +77,8 @@ const AppRoutes = () => (
       <Route path="family" element={<FamilySharing />} />
       <Route path="analytics-pro" element={<AnalyticsPro />} />
       <Route path="admin-portal" element={<AdminPortal />} />
+      <Route path="goals" element={<GoalsDashboard />} />
+      <Route path="goals/:id" element={<GoalDetails />} />
     </Route>
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes>
