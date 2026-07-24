@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
-import { getProgressColor, getProgressTailwindColor } from '../../utils/goalHelpers';
+import { getProgressColor } from '../../utils/goalHelpers';
 
 // 1. Horizontal Premium Gradient Progress Bar
 export function GoalProgressBar({ progress = 0 }) {
-  const gradientClass = getProgressTailwindColor(progress);
+  const barColor = progress >= 100 ? 'bg-yellow-500' : progress >= 85 ? 'bg-blue-500' : 'bg-primary-600';
 
   return (
     <div className="w-full">
@@ -11,9 +11,9 @@ export function GoalProgressBar({ progress = 0 }) {
         <span className="text-slate-400">Completion</span>
         <span className="text-slate-200 font-bold">{progress}%</span>
       </div>
-      <div className="h-2.5 w-full bg-dark-900/60 border border-slate-700/30 rounded-full overflow-hidden p-[2px]">
+      <div className="h-2 w-full bg-dark-900 border border-slate-700/30 rounded-full overflow-hidden">
         <motion.div
-          className={`h-full rounded-full bg-gradient-to-r ${gradientClass} shadow-md`}
+          className={`h-full rounded-full ${barColor}`}
           initial={{ width: '0%' }}
           animate={{ width: `${Math.min(progress, 100)}%` }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
