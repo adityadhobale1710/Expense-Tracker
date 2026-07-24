@@ -13,6 +13,8 @@ import {
   Wallet,
   X
 } from 'lucide-react';
+import { FaApple } from "react-icons/fa";
+
 
 const GoldCoin = ({ className }) => (
   <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -353,11 +355,9 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => toast.error('Apple Sign-In is coming soon!')}
-                className="w-full h-[46px] px-3 bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2.5 transition-all cursor-pointer font-jakarta shadow-xs"
+                className="apple-btn"
               >
-                <svg className="w-4 h-4 flex-shrink-0 fill-current" viewBox="0 0 170 170">
-                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-5.01.12-9.87-1.93-14.59-6.14-3.69-3.26-7.85-8.23-12.48-14.9-6.86-9.92-12.18-20.91-15.97-32.96-3.79-12.06-5.69-23.75-5.69-35.07 0-14.28 3.57-26.04 10.72-35.27 7.15-9.23 16.14-13.97 26.97-14.22 4.47 0 9.49 1.16 15.06 3.49 5.58 2.33 9.49 3.49 11.74 3.49 1.84 0 5.66-1.12 11.47-3.37 5.8-2.25 10.63-3.28 14.48-3.09 11.29.58 20.31 4.7 27.06 12.35-9.92 6-14.75 14.28-14.48 24.84.27 8.35 3.49 15.42 9.67 21.2 6.18 5.79 13.56 8.94 22.13 9.46-1.84 5.66-4.34 11.55-7.51 17.67zM119.22 31.02c0-7.39 2.67-14.37 8.01-20.94 5.34-6.57 11.96-10.08 19.86-10.08.12.96.18 1.84.18 2.65 0 7.39-2.73 14.53-8.19 21.43-5.46 6.9-12.08 10.45-19.86 10.64-.12-.87-.18-1.77-.18-2.7z" />
-                </svg>
+                <FaApple className="text-xl" />
                 <span>Apple</span>
               </button>
             </div>
