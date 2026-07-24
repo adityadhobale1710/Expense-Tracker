@@ -12,8 +12,8 @@ export const getMe = asyncHandler(async (req, res) => {
 // @desc  Update profile
 // @route PUT /api/users/me
 export const updateMe = asyncHandler(async (req, res) => {
-  const { name, avatar, currency, phone, company, twoFactorEnabled, role } = req.body;
-  const updateFields = { name, avatar, currency, phone, company, twoFactorEnabled, role };
+  const { name, avatar, currency, phone, company } = req.body;
+  const updateFields = { name, avatar, currency, phone, company };
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
