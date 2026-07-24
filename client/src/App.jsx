@@ -28,6 +28,7 @@ import BillCalendar from './pages/Calendar/BillCalendar';
 import AIInsights from './pages/AIInsights/AIInsights';
 import Achievements from './pages/Achievements/Achievements';
 import Loans from './pages/Loans/Loans';
+import Wallets from './pages/Wallets/Wallets';
 import Subscriptions from './pages/Subscriptions/Subscriptions';
 import SplitBills from './pages/Split/SplitBills';
 import FamilySharing from './pages/Family/FamilySharing';
@@ -59,6 +60,7 @@ const AppRoutes = () => (
       <Route path="dashboard" element={<Dashboard />} />
       <Route path="income" element={<Income />} />
       <Route path="expenses" element={<Expenses />} />
+      <Route path="wallets" element={<Wallets />} />
       <Route path="budget" element={<Budget />} />
       <Route path="reports" element={<Reports />} />
       <Route path="profile" element={<Profile />} />

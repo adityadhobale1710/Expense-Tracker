@@ -7,40 +7,57 @@ import toast from 'react-hot-toast';
 export default function Achievements() {
   const { user, updateUser } = useAuth();
   
-  // Game states checking user context first, then localStorage, then default mock values
+  // Game states checking user context first, then localStorage (namespaced per user), then default mock values
   const [xp, setXp] = useState(() => {
     if (user?.xp !== undefined) return user.xp;
-    const saved = localStorage.getItem('game_xp');
+    const saved = localStorage.getItem(user?._id ? `game_xp_${user._id}` : 'game_xp');
+    // 3450 is the preview mode fallback when no user is logged in
     return saved ? parseInt(saved, 10) : 3450;
   });
   
   const [coins, setCoins] = useState(() => {
     if (user?.coins !== undefined) return user.coins;
-    const saved = localStorage.getItem('game_coins');
+    const saved = localStorage.getItem(user?._id ? `game_coins_${user._id}` : 'game_coins');
+    // 640 is the preview mode fallback when no user is logged in
     return saved ? parseInt(saved, 10) : 640;
   });
   
   const [streak, setStreak] = useState(() => {
     if (user?.streak !== undefined) return user.streak;
-    const saved = localStorage.getItem('game_streak');
+    const saved = localStorage.getItem(user?._id ? `game_streak_${user._id}` : 'game_streak');
+    // 18 is the preview mode fallback when no user is logged in
     return saved ? parseInt(saved, 10) : 18;
   });
 
   const [longestStreak, setLongestStreak] = useState(() => {
     if (user?.longestStreak !== undefined) return user.longestStreak;
-    const saved = localStorage.getItem('game_longest_streak');
+    const saved = localStorage.getItem(user?._id ? `game_longest_streak_${user._id}` : 'game_longest_streak');
+    // 24 is the preview mode fallback when no user is logged in
     return saved ? parseInt(saved, 10) : 24;
   });
 
   const [achievements, setAchievements] = useState(() => {
-    if (user?.achievements && user.achievements.length > 0) {
-      // Map user achievements to local static achievements templates
+    if (user) {
+      // Prefer namespaced local storage first, then backend
+      const storageKey = `game_achievements_${user._id}`;
+      const saved = localStorage.getItem(storageKey);
       const userMap = {};
-      user.achievements.forEach(a => { userMap[a.id] = a; });
+      
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          parsed.forEach(a => { userMap[a.id] = a; });
+        } catch (e) {
+          console.warn("Parsing achievements from local storage failed", e);
+        }
+      } else if (user.achievements) {
+        user.achievements.forEach(a => { userMap[a.id] = a; });
+      }
+
       return INITIAL_ACHIEVEMENTS.map(ach => ({
         ...ach,
-        currentProgress: userMap[ach.id]?.currentProgress !== undefined ? userMap[ach.id].currentProgress : ach.currentProgress,
-        unlocked: userMap[ach.id]?.unlocked !== undefined ? userMap[ach.id].unlocked : ach.unlocked,
+        currentProgress: userMap[ach.id]?.currentProgress !== undefined ? userMap[ach.id].currentProgress : 0,
+        unlocked: userMap[ach.id]?.unlocked !== undefined ? userMap[ach.id].unlocked : false,
       }));
     }
     const saved = localStorage.getItem('game_achievements');
@@ -48,12 +65,22 @@ export default function Achievements() {
   });
 
   const [recentUnlock, setRecentUnlock] = useState(() => {
-    const saved = localStorage.getItem('game_recent_unlock');
+    const key = user?._id ? `game_recent_unlock_${user._id}` : 'game_recent_unlock';
+    const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : null;
   });
 
   const [simulatedActions, setSimulatedActions] = useState(() => {
-    if (user?.simulatedActions !== undefined) return user.simulatedActions;
+    if (user) {
+      const storageKey = `game_simulated_actions_${user._id}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+      return user.simulatedActions || [];
+    }
     const saved = localStorage.getItem('game_simulated_actions');
     return saved ? JSON.parse(saved) : [];
   });
@@ -61,7 +88,6 @@ export default function Achievements() {
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
-  const [hoveredRewardId, setHoveredRewardId] = useState(null);
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatyTexts, setFloatyTexts] = useState([]); // Array of { id, text, x, y }
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,13 +105,20 @@ export default function Achievements() {
   }, [searchTerm, activeFilter]);
   
   const canvasRef = useRef(null);
+  const audioCtxRef = useRef(null);
 
   // Audio synthesiser
   const playSound = (type) => {
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtxClass();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
       
       if (type === 'xp') {
         const osc = ctx.createOscillator();
@@ -185,25 +218,26 @@ export default function Achievements() {
     return () => cancelAnimationFrame(animationId);
   }, [confettiActive]);
 
-  // Keep localStorage updated
+  // Keep localStorage updated with namespaced keys
   useEffect(() => {
-    localStorage.setItem('game_xp', xp.toString());
-    localStorage.setItem('game_coins', coins.toString());
-    localStorage.setItem('game_streak', streak.toString());
-    localStorage.setItem('game_longest_streak', longestStreak.toString());
-    localStorage.setItem('game_achievements', JSON.stringify(achievements));
-    localStorage.setItem('game_simulated_actions', JSON.stringify(simulatedActions));
+    const prefix = user?._id ? `_${user._id}` : '';
+    localStorage.setItem(`game_xp${prefix}`, xp.toString());
+    localStorage.setItem(`game_coins${prefix}`, coins.toString());
+    localStorage.setItem(`game_streak${prefix}`, streak.toString());
+    localStorage.setItem(`game_longest_streak${prefix}`, longestStreak.toString());
+    localStorage.setItem(`game_achievements${prefix}`, JSON.stringify(achievements));
+    localStorage.setItem(`game_simulated_actions${prefix}`, JSON.stringify(simulatedActions));
     if (recentUnlock) {
-      localStorage.setItem('game_recent_unlock', JSON.stringify(recentUnlock));
+      localStorage.setItem(`game_recent_unlock${prefix}`, JSON.stringify(recentUnlock));
     }
-  }, [xp, coins, streak, longestStreak, achievements, recentUnlock, simulatedActions]);
+  }, [xp, coins, streak, longestStreak, achievements, recentUnlock, simulatedActions, user?._id]);
 
   // Sync gamification parameters to backend database with 2s debounce
   useEffect(() => {
     if (!user) return;
     const delayDebounce = setTimeout(async () => {
       try {
-        const { data } = await api.put('/users/me', {
+        const { data } = await api.put('/users/me/gamification', {
           xp,
           coins,
           level: getCurrentLevelInfo(xp).currentLvl.level,
@@ -225,6 +259,58 @@ export default function Achievements() {
     }, 2000);
     return () => clearTimeout(delayDebounce);
   }, [xp, coins, streak, longestStreak, achievements, simulatedActions]);
+
+  // Update state when user context changes/loads
+  useEffect(() => {
+    if (user) {
+      const getVal = (key, backendVal, defaultVal) => {
+        const saved = localStorage.getItem(`game_${key}_${user._id}`);
+        if (saved !== null) return parseInt(saved, 10);
+        return backendVal !== undefined ? backendVal : defaultVal;
+      };
+      
+      setXp(getVal('xp', user.xp, 0));
+      setCoins(getVal('coins', user.coins, 0));
+      setStreak(getVal('streak', user.streak, 0));
+      setLongestStreak(getVal('longest_streak', user.longestStreak, 0));
+
+      const storageKey = `game_achievements_${user._id}`;
+      const savedAch = localStorage.getItem(storageKey);
+      const userMap = {};
+      if (savedAch) {
+        try {
+          JSON.parse(savedAch).forEach(a => { userMap[a.id] = a; });
+        } catch (e) {}
+      } else if (user.achievements) {
+        user.achievements.forEach(a => { userMap[a.id] = a; });
+      }
+      setAchievements(INITIAL_ACHIEVEMENTS.map(ach => ({
+        ...ach,
+        currentProgress: userMap[ach.id]?.currentProgress !== undefined ? userMap[ach.id].currentProgress : 0,
+        unlocked: userMap[ach.id]?.unlocked !== undefined ? userMap[ach.id].unlocked : false,
+      })));
+
+      const simulatedKey = `game_simulated_actions_${user._id}`;
+      const savedSim = localStorage.getItem(simulatedKey);
+      if (savedSim) {
+        try {
+          setSimulatedActions(JSON.parse(savedSim));
+        } catch (e) {}
+      } else {
+        setSimulatedActions(user.simulatedActions || []);
+      }
+      
+      const recentKey = `game_recent_unlock_${user._id}`;
+      const savedRecent = localStorage.getItem(recentKey);
+      if (savedRecent) {
+        try {
+          setRecentUnlock(JSON.parse(savedRecent));
+        } catch (e) {}
+      } else {
+        setRecentUnlock(null);
+      }
+    }
+  }, [user?._id]);
 
   // Calculate level based on XP
   const getCurrentLevelInfo = (xpVal) => {
@@ -279,18 +365,117 @@ export default function Achievements() {
     }
     setSimulatedActions(prev => [...prev, actionId]);
 
-    // Add XP & Coins
     const oldLevel = getCurrentLevelInfo(xp).currentLvl.level;
-    const newXp = xp + actionXp;
-    const newCoins = coins + actionCoins;
-    
-    setXp(newXp);
-    setCoins(newCoins);
+    let totalXpGained = actionXp;
+    let totalCoinsGained = actionCoins;
+
+    // Interactive Achievements updates
+    let updatedStreak = streak;
+    let updatedLongest = longestStreak;
+    if (actionId === 'maintain_streak') {
+      updatedStreak += 1;
+      setStreak(updatedStreak);
+      if (updatedStreak > longestStreak) {
+        updatedLongest = updatedStreak;
+        setLongestStreak(updatedLongest);
+      }
+    }
+
+    // Process progress changes on specific achievements
+    const newlyUnlockedAchievements = [];
+    const newAchievements = achievements.map(ach => {
+      if (ach.unlocked) return ach;
+
+      let currentVal = ach.currentProgress;
+      
+      // Wire up actionId to correct achievement targets (Requirements 1 & 2)
+      if (actionId === 'create_budget') {
+        if (ach.id === 'b1') currentVal = 1;
+        if (ach.id === 'b6') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'maintain_streak') {
+        if (ach.id === 'sp11') {
+          currentVal = updatedStreak;
+        } else if (ach.category === 'Consistency' && ['c2', 'c3', 'c4', 'c5', 'c9', 'c10'].includes(ach.id)) {
+          currentVal = updatedStreak;
+        }
+      } else if (actionId === 'add_goal') {
+        if (ach.id === 's2') currentVal = 1;
+        if (ach.id === 's5') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+        if (ach.id === 's6') currentVal = 1;
+        if (['s8', 's9', 's10'].includes(ach.id)) {
+          currentVal = Math.min(currentVal + 5000, ach.progressNeeded);
+        }
+      } else if (actionId === 'reach_goal') {
+        if (ach.id === 's4') currentVal = 1;
+        if (ach.id === 's11') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+        if (['s8', 's9', 's10'].includes(ach.id)) {
+          currentVal = Math.min(currentVal + 10000, ach.progressNeeded);
+        }
+      } else if (actionId === 'upload_receipt') {
+        if (ach.id === 'p4') currentVal = 1;
+      } else if (actionId === 'add_investment') {
+        if (['i1', 'i2', 'i3', 'i4', 'i5'].includes(ach.id)) {
+          currentVal = 1;
+        }
+        if (ach.id === 'i6') {
+          currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+        }
+        if (['i7', 'i8', 'i9'].includes(ach.id)) {
+          currentVal = Math.min(currentVal + 15000, ach.progressNeeded);
+        }
+      } else if (actionId === 'export_reports') {
+        if (['p1', 'p2', 'p3'].includes(ach.id)) {
+          currentVal = 1;
+        }
+      }
+      /*
+       * XP_ACTIONS entries with no matching achievement:
+       * - login: No specific standalone login achievement exists.
+       * - add_expense: No "first expense" style achievement exists in achievementsData.js.
+       * - add_income: No "first income" style achievement exists in achievementsData.js.
+       * - stay_daily_budget: No daily-budget-specific achievements exist.
+       * - stay_weekly_budget: No weekly-budget-specific achievements exist.
+       * - stay_monthly_budget: No monthly-budget-specific achievements exist.
+       * - complete_review: No monthly review achievement exists.
+       * - track_bills: No bill tracking achievements exist.
+       * - pay_bills_on_time: No bill payment achievements exist.
+       * - categorize_expense: No expense categorization achievements exist.
+       * - view_analytics: No analytics viewing achievements exist.
+       * - invite_friends: No referral or friend invitation achievements exist.
+       * - backup_data: No data backup achievements exist.
+       */
+
+      // Check for unlock
+      const isNowUnlocked = currentVal >= ach.progressNeeded;
+      if (isNowUnlocked) {
+        newlyUnlockedAchievements.push({
+          ...ach,
+          currentProgress: currentVal,
+          unlocked: true
+        });
+        totalXpGained += ach.xpReward;
+        totalCoinsGained += ach.coinsReward;
+      }
+
+      return {
+        ...ach,
+        currentProgress: currentVal,
+        unlocked: ach.unlocked || isNowUnlocked
+      };
+    });
+
+    const finalXp = xp + totalXpGained;
+    const finalCoins = coins + totalCoinsGained;
+
+    setXp(finalXp);
+    setCoins(finalCoins);
+    setAchievements(newAchievements);
+
     playSound('xp');
     spawnFloatyText(`+${actionXp} XP  +${actionCoins}🪙`, e);
 
-    // Level up check
-    const newLevel = getCurrentLevelInfo(newXp).currentLvl.level;
+    // Level up check on final level
+    const newLevel = getCurrentLevelInfo(finalXp).currentLvl.level;
     if (newLevel > oldLevel) {
       setTimeout(() => {
         playSound('levelUp');
@@ -307,107 +492,40 @@ export default function Achievements() {
       }, 300);
     }
 
-    // Interactive Achievements updates
-    let updatedStreak = streak;
-    let updatedLongest = longestStreak;
-    if (actionId === 'maintain_streak') {
-      updatedStreak += 1;
-      setStreak(updatedStreak);
-      if (updatedStreak > longestStreak) {
-        updatedLongest = updatedStreak;
-        setLongestStreak(updatedLongest);
-      }
-    }
-
-    // Process progress changes on specific achievements
-    const newAchievements = achievements.map(ach => {
-      if (ach.unlocked) return ach;
-
-      let currentVal = ach.currentProgress;
+    newlyUnlockedAchievements.forEach(ach => {
+      playSound('unlock');
+      setConfettiActive(true);
+      setRecentUnlock(ach);
       
-      if (ach.id === 'ach_thirty_day' && actionId === 'maintain_streak') {
-        currentVal = updatedStreak;
-      } else if (ach.id === 'ach_hundred_day' && actionId === 'maintain_streak') {
-        currentVal = updatedStreak;
-      } else if (ach.id === 'ach_first_expense' && actionId === 'add_expense') {
-        currentVal = 1;
-      } else if (ach.id === 'ach_first_income' && actionId === 'add_income') {
-        currentVal = 1;
-      } else if (ach.id === 'ach_first_budget' && actionId === 'create_budget') {
-        currentVal = 1;
-      } else if (ach.id === 'ach_budget_guardian' && actionId === 'stay_monthly_budget') {
-        currentVal = 1;
-      } else if (ach.id === 'ach_budget_master' && actionId === 'stay_monthly_budget') {
-        currentVal = Math.min(currentVal + 1, ach.progressNeeded);
-      } else if (ach.id === 'ach_savings_champ' && actionId === 'stay_monthly_budget') {
-        currentVal = 1;
-      } else if (ach.id === 'ach_fifty_k_saved' && actionId === 'reach_goal') {
-        currentVal = Math.min(currentVal + 10000, ach.progressNeeded);
-      } else if (ach.id === 'ach_no_spend_week' && actionId === 'stay_weekly_budget') {
-        currentVal = 1;
-      } else if (ach.id === 'ach_category_expert' && actionId === 'categorize_expense') {
-        currentVal = Math.min(currentVal + 1, ach.progressNeeded);
-      } else if (ach.id === 'ach_receipt_collector' && actionId === 'upload_receipt') {
-        currentVal = Math.min(currentVal + 1, ach.progressNeeded);
-      } else if (ach.id === 'ach_emergency_fund' && actionId === 'add_goal') {
-        currentVal = Math.min(currentVal + 5000, ach.progressNeeded);
-      } else if (ach.id === 'ach_debt_destroyer' && actionId === 'pay_bills_on_time') {
-        currentVal = 1;
-      } else if (ach.id === 'ach_smart_shopper' && actionId === 'stay_daily_budget') {
-        currentVal = Math.min(currentVal + 100, ach.progressNeeded);
-      } else if (ach.id === 'ach_tax_planner' && actionId === 'add_investment') {
-        currentVal = 1;
-      }
-
-      // Check for unlock
-      const isNowUnlocked = currentVal >= ach.progressNeeded;
-      if (isNowUnlocked) {
-        playSound('unlock');
-        setConfettiActive(true);
-        setRecentUnlock(ach);
-        
-        // Reward user
-        setXp(x => x + ach.xpReward);
-        setCoins(c => c + ach.coinsReward);
-        
-        toast.custom((t) => (
-          <div className={`${t.visible ? 'animate-bounce' : 'opacity-0'} max-w-md w-full bg-dark-800 border border-yellow-500/50 shadow-2xl rounded-2xl pointer-events-auto flex p-4 ring-1 ring-black ring-opacity-5`}>
-            <div className="flex-1 w-0">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5 text-3xl">
-                  {ach.icon}
-                </div>
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-bold text-yellow-400">🏆 Achievement Unlocked!</p>
-                  <p className="text-xs font-semibold text-slate-100 mt-0.5">{ach.title}</p>
-                  <p className="text-[10px] text-slate-400 mt-1">{ach.description}</p>
-                  <div className="flex gap-2 mt-2">
-                    <span className="text-[10px] bg-primary-600/20 text-primary-400 px-2 py-0.5 rounded-full font-bold">+{ach.xpReward} XP</span>
-                    <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-bold">+{ach.coinsReward}🪙</span>
-                  </div>
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-bounce' : 'opacity-0'} max-w-md w-full bg-dark-800 border border-yellow-500/50 shadow-2xl rounded-2xl pointer-events-auto flex p-4 ring-1 ring-black ring-opacity-5`}>
+          <div className="flex-1 w-0">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5 text-3xl">
+                {ach.icon}
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-bold text-yellow-400">🏆 Achievement Unlocked!</p>
+                <p className="text-xs font-semibold text-slate-100 mt-0.5">{ach.title}</p>
+                <p className="text-[10px] text-slate-400 mt-1">{ach.description}</p>
+                <div className="flex gap-2 mt-2">
+                  <span className="text-[10px] bg-primary-600/20 text-primary-400 px-2 py-0.5 rounded-full font-bold">+{ach.xpReward} XP</span>
+                  <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-bold">+{ach.coinsReward}🪙</span>
                 </div>
               </div>
             </div>
-            <div className="ml-4 flex-shrink-0 flex">
-              <button
-                onClick={() => toast.dismiss(t.id)}
-                className="rounded-lg p-1.5 flex items-center justify-center text-slate-500 hover:text-slate-400"
-              >
-                ✕
-              </button>
-            </div>
           </div>
-        ), { duration: 6000 });
-      }
-
-      return {
-        ...ach,
-        currentProgress: currentVal,
-        unlocked: ach.unlocked || isNowUnlocked
-      };
+          <div className="ml-4 flex-shrink-0 flex">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="rounded-lg p-1.5 flex items-center justify-center text-slate-500 hover:text-slate-400"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      ), { duration: 6000 });
     });
-
-    setAchievements(newAchievements);
   };
 
 
@@ -427,7 +545,7 @@ export default function Achievements() {
     if (activeFilter === 'Common') return ach.tier === 'Common';
     if (activeFilter === 'Rare') return ach.tier === 'Rare';
     if (activeFilter === 'Epic') return ach.tier === 'Epic';
-    if (activeFilter === 'Legendary') return ach.tier === 'Legendary' || ach.category === 'Legendary';
+    if (activeFilter === 'Legendary') return ach.tier === 'Legendary';
     
     // Dynamically filter categories that are not handled by the state/tier checks
     return ach.category === activeFilter;

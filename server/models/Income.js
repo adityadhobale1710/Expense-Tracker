@@ -9,6 +9,7 @@ const incomeSchema = new mongoose.Schema(
     source: { type: String, default: '' },
     date: { type: Date, default: Date.now, index: true },
     description: { type: String, default: '' },
+    wallet: { type: mongoose.Schema.Types.ObjectId, ref: 'Wallet', default: null },
   },
   { timestamps: true }
 );

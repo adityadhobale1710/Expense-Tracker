@@ -4,9 +4,6 @@ import { useExpense } from '../../context/ExpenseContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { PROGRESSION_LEVELS } from '../Achievements/achievementsData';
-import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
-} from 'recharts';
 import toast from 'react-hot-toast';
 
 const getLocalTodayString = () => {
@@ -24,17 +21,16 @@ const getLocalTimeString = () => {
   return `${hh}:${mm}`;
 };
 
-const NET_WORTH_HISTORY = [
-  { name: "Jan", Wealth: 120000 },
-  { name: "Feb", Wealth: 135000 },
-  { name: "Mar", Wealth: 150000 },
-  { name: "Apr", Wealth: 165000 },
-  { name: "May", Wealth: 180000 },
-  { name: "Jun", Wealth: 200000 }
-];
-
 export default function Dashboard() {
-  const { summary, fetchSummary, expenses, fetchExpenses, incomes, fetchIncomes, categories, fetchCategories, budgets, fetchBudgets, addExpense, addIncome } = useExpense();
+  const {
+    summary, fetchSummary,
+    expenses, fetchExpenses,
+    incomes, fetchIncomes,
+    categories, fetchCategories,
+    budgets, fetchBudgets,
+    addExpense, addIncome,
+    deleteExpense, deleteIncome
+  } = useExpense();
   const { user } = useAuth();
 
   // Gamification state
@@ -43,12 +39,33 @@ export default function Dashboard() {
   const [gameStreak, setGameStreak] = useState(18);
   const [unlockedBadgesCount, setUnlockedBadgesCount] = useState(13);
 
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [loans, setLoans] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [dashWallets, setDashWallets] = useState([]);
+
+  const fetchDashboardExtraData = async () => {
+    try {
+      const [subsRes, loansRes, goalsRes, walletsRes] = await Promise.all([
+        api.get('/subscriptions'),
+        api.get('/loans'),
+        api.get('/goals'),
+        api.get('/wallets'),
+      ]);
+      setSubscriptions(subsRes.data.data || []);
+      setLoans(loansRes.data.data || []);
+      setGoals(goalsRes.data.data || []);
+      setDashWallets(walletsRes.data.data || []);
+    } catch {}
+  };
+
   // Widgets list
   const widgets = [
     'weeklySpend', 'monthlySpend', 'remainingBudget',
+    'walletSummary',
     'savingsProgress', 'largestExpense', 'mostUsedCategory',
     'health', 'bills', 'notifications',
-    'tipOfTheDay', 'cashFlow'
+    'tipOfTheDay'
   ];
 
   // Modals state
@@ -107,6 +124,7 @@ export default function Dashboard() {
     fetchBudgets();
     fetchGamification();
     fetchRecentNotifications();
+    fetchDashboardExtraData();
   }, []);
 
   useEffect(() => {
@@ -131,7 +149,7 @@ export default function Dashboard() {
         category: txForm.category,
         date: new Date(`${txForm.date}T${txForm.time || '00:00'}`).toISOString(),
         paymentMethod: txForm.paymentMethod,
-        description: txForm.description
+        description: txForm.description,
       };
 
       if (txForm.type === 'expense') {
@@ -214,6 +232,141 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* ─── TODAY'S ACTIVITY SECTION ─── */}
+      {(() => {
+        const todayStr = getLocalTodayString();
+        const todayExpenses = expenses.filter(e => {
+          const itemDate = new Date(e.date);
+          const yyyy = itemDate.getFullYear();
+          const mm = String(itemDate.getMonth() + 1).padStart(2, '0');
+          const dd = String(itemDate.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}` === todayStr;
+        });
+
+        const todayIncomes = incomes.filter(i => {
+          const itemDate = new Date(i.date);
+          const yyyy = itemDate.getFullYear();
+          const mm = String(itemDate.getMonth() + 1).padStart(2, '0');
+          const dd = String(itemDate.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}` === todayStr;
+        });
+
+        const todayTransactions = [
+          ...todayExpenses.map(e => ({ ...e, type: 'expense' })),
+          ...todayIncomes.map(i => ({ ...i, type: 'income' }))
+        ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const totalTodayExpense = todayExpenses.reduce((s, e) => s + e.amount, 0);
+        const totalTodayIncome = todayIncomes.reduce((s, e) => s + e.amount, 0);
+
+        const handleDeleteTransaction = async (id, type) => {
+          if (!window.confirm('Delete this transaction?')) return;
+          try {
+            if (type === 'expense') {
+              await deleteExpense(id);
+            } else {
+              await deleteIncome(id);
+            }
+            fetchSummary();
+          } catch {
+            toast.error('Failed to delete transaction');
+          }
+        };
+
+        return (
+          <div className="card space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-700/50 pb-3">
+              <div>
+                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  📅 Today's Activity
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Summary of logs captured today ({todayTransactions.length} records)
+                </p>
+              </div>
+              <div className="flex gap-3 text-xs font-bold font-mono">
+                <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl">
+                  Income: +₹{totalTodayIncome.toLocaleString('en-IN')}
+                </span>
+                <span className="text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-xl">
+                  Expense: -₹{totalTodayExpense.toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            {todayTransactions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-slate-400 text-xs">No transactions recorded today.</p>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Category</th>
+                      <th>Payment</th>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {todayTransactions.map((item) => (
+                      <tr key={item._id}>
+                        <td className="font-medium text-slate-100">{item.title}</td>
+                        <td>
+                          {item.category ? (
+                            <span className="flex items-center gap-1.5 text-xs">
+                              <span>{item.category.icon}</span>
+                              <span className="text-slate-300">{item.category.name}</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="badge badge-blue">
+                            {item.paymentMethod?.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="text-slate-400 text-xs">
+                          <div className="flex flex-col">
+                            <span>{new Date(item.date).toLocaleDateString('en-IN')}</span>
+                            <span className="text-[10px] text-slate-500">
+                              {new Date(item.date).toLocaleTimeString('en-IN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        </td>
+                        <td
+                          className={`font-semibold ${
+                            item.type === 'expense' ? 'text-red-400' : 'text-emerald-400'
+                          }`}
+                        >
+                          {item.type === 'expense' ? '-' : '+'}₹
+                          {item.amount.toLocaleString('en-IN')}
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => handleDeleteTransaction(item._id, item.type)}
+                            className="btn-danger text-xs px-2 py-1"
+                          >
+                            Del
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {widgets.map((widgetId) => {
@@ -262,22 +415,57 @@ export default function Dashboard() {
             );
           }
 
+          // Wallet Summary Widget
+          if (widgetId === 'walletSummary') {
+            const totalWalletBalance = dashWallets.reduce((s, w) => s + w.balance, 0);
+            const primaryWlt = dashWallets.find(w => w.isPrimary) || dashWallets[0];
+            return (
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
+                  <h3 className="text-xs font-bold text-slate-300">👛 Wallet Summary</h3>
+                  <Link to="/wallets" className="text-[10px] text-primary-400 hover:text-primary-300 font-bold">View All →</Link>
+                </div>
+                <div className="py-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Total Balance</span>
+                    <span className="text-lg font-extrabold text-slate-100">₹{totalWalletBalance.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Primary</span>
+                    <span className="text-xs font-bold text-slate-200">{primaryWlt?.icon} {primaryWlt?.name || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Wallets</span>
+                    <span className="text-xs font-bold text-slate-200">{dashWallets.length}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
 
           // 6. Savings Goal Progress
           if (widgetId === 'savingsProgress') {
+            const primaryGoal = goals && goals.length > 0 ? goals[0] : null;
+            const pct = primaryGoal ? Math.round(((primaryGoal.currentSaved || 0) / (primaryGoal.targetAmount || 1)) * 100) : 0;
             return (
               <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">🥅 Goal Progress</h3>
                 </div>
                 <div className="py-4 space-y-2">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span>Emergency Fund</span>
-                    <span>72%</span>
-                  </div>
-                  <div className="progress-bar">
-                    <div className="progress-fill bg-indigo-500" style={{ width: '72%' }} />
-                  </div>
+                  {primaryGoal ? (
+                    <>
+                      <div className="flex justify-between text-xs font-bold">
+                        <span>{primaryGoal.name}</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-fill bg-indigo-500" style={{ width: `${Math.min(pct, 100)}%` }} />
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-slate-500">No active goals logged.</p>
+                  )}
                 </div>
               </div>
             );
@@ -344,26 +532,38 @@ export default function Dashboard() {
 
           // 10. Upcoming Bills
           if (widgetId === 'bills') {
+            const combinedObligations = [
+              ...subscriptions.map(s => ({
+                name: s.name,
+                cost: s.cost,
+                date: new Date(s.renewalDate).toLocaleDateString('en-IN')
+              })),
+              ...loans.map(l => ({
+                name: `${l.name} EMI`,
+                cost: l.emiAmount,
+                date: l.nextEmiDate ? new Date(l.nextEmiDate).toLocaleDateString('en-IN') : 'N/A'
+              }))
+            ].slice(0, 2);
+
             return (
               <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                   <h3 className="text-xs font-bold text-slate-300">⏳ Upcoming Obligations</h3>
                 </div>
                 <div className="py-2.5 space-y-2">
-                  <div className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-slate-300">Apartment Rent</p>
-                      <p className="text-[9px] text-slate-500">Due: Jul 5</p>
-                    </div>
-                    <span className="font-bold text-slate-200">₹20,000</span>
-                  </div>
-                  <div className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-slate-300">Netflix Premium</p>
-                      <p className="text-[9px] text-slate-500">Due: Jul 8</p>
-                    </div>
-                    <span className="font-bold text-slate-200">₹649</span>
-                  </div>
+                  {combinedObligations.length === 0 ? (
+                    <p className="text-xs text-slate-500">No upcoming obligations.</p>
+                  ) : (
+                    combinedObligations.map((ob, idx) => (
+                      <div key={idx} className="p-2 bg-slate-900/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-slate-300 truncate max-w-[140px]">{ob.name}</p>
+                          <p className="text-[9px] text-slate-500">Due: {ob.date}</p>
+                        </div>
+                        <span className="font-bold text-slate-200">₹{ob.cost.toLocaleString('en-IN')}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             );
@@ -406,34 +606,6 @@ export default function Dashboard() {
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          }
-
-          // 14. Monthly Cash Flow
-          if (widgetId === 'cashFlow') {
-            return (
-              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all md:col-span-2 xl:col-span-3">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50 mb-3">
-                  <h3 className="text-xs font-bold text-slate-300">📈 Monthly Cash Flow Projections</h3>
-                </div>
-                <div className="h-40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={NET_WORTH_HISTORY} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                      <XAxis dataKey="name" tick={{ fill: 'var(--chart-text)', fontSize: 10 }} />
-                      <YAxis tick={{ fill: 'var(--chart-text)', fontSize: 10 }} />
-                      <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)', borderRadius: '12px' }} />
-                      <Area type="monotone" dataKey="Wealth" stroke="#10b981" fillOpacity={1} fill="url(#colorCash)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
                 </div>
               </div>
             );
@@ -554,6 +726,8 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
+
+
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-700/50">
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-secondary py-2 px-4">Cancel</button>

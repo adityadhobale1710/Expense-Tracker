@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Income from '../models/Income.js';
+import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 // @desc  Get all incomes
@@ -26,7 +27,22 @@ export const getIncomes = asyncHandler(async (req, res) => {
 // @desc  Add income
 // @route POST /api/income
 export const addIncome = asyncHandler(async (req, res) => {
-  const income = await Income.create({ ...req.body, user: req.user._id });
+  const { walletId, ...rest } = req.body;
+  const payload = { ...rest, user: req.user._id };
+
+  // Link to wallet and update balance
+  if (walletId) {
+    const wallet = await Wallet.findOne({ _id: walletId, user: req.user._id });
+    if (!wallet) {
+      res.status(404);
+      throw new Error('Wallet not found');
+    }
+    payload.wallet = wallet._id;
+    wallet.balance += Number(rest.amount);
+    await wallet.save();
+  }
+
+  const income = await Income.create(payload);
   sendSuccess(res, 201, 'Income added', income);
 });
 
