@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -17,6 +18,10 @@ export default function Loans() {
   const [emiAmount, setEmiAmount] = useState('');
   const [remainingBalance, setRemainingBalance] = useState('');
   const [nextEmiDate, setNextEmiDate] = useState('');
+
+  // EMI payment state
+  const [payingLoanId, setPayingLoanId] = useState(null);
+  const [selectedWalletId, setSelectedWalletId] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -73,14 +78,36 @@ export default function Loans() {
     if (wallets.length === 0) {
       return toast.error('Create a wallet first to execute EMI payments');
     }
-    const wallet = wallets[0]; // pick first wallet by default
-    try {
-      await api.post(`/loans/${loanId}/pay-emi`, { walletId: wallet._id });
-      toast.success('EMI Payment logged successfully!');
-      fetchData();
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'EMI payment failed');
+
+    // If wallet selector is open for this loan, use selected wallet
+    if (payingLoanId === loanId && selectedWalletId) {
+      try {
+        await api.post(`/loans/${loanId}/pay-emi`, { walletId: selectedWalletId });
+        toast.success('EMI Payment logged successfully! 🎉');
+        setPayingLoanId(null);
+        setSelectedWalletId('');
+        fetchData();
+      } catch (e) {
+        toast.error(e.response?.data?.message || 'EMI payment failed');
+      }
+      return;
     }
+
+    // If only one wallet, use it directly
+    if (wallets.length === 1) {
+      try {
+        await api.post(`/loans/${loanId}/pay-emi`, { walletId: wallets[0]._id });
+        toast.success('EMI Payment logged successfully! 🎉');
+        fetchData();
+      } catch (e) {
+        toast.error(e.response?.data?.message || 'EMI payment failed');
+      }
+      return;
+    }
+
+    // Multiple wallets — show selector
+    setPayingLoanId(loanId);
+    setSelectedWalletId(wallets.find(w => w.isPrimary)?._id || wallets[0]._id);
   };
 
   const handleDelete = async (id) => {
@@ -106,6 +133,20 @@ export default function Loans() {
         </button>
       </div>
 
+      {/* Wallet Empty State Banner */}
+      {!loading && wallets.length === 0 && (
+        <div className="card border-amber-500/30 bg-amber-500/5 text-center py-8 space-y-3 flex flex-col items-center">
+          <img src="/wallet.png" alt="Wallet Logo" className="w-12 h-12 object-contain" />
+          <h3 className="text-base font-bold text-slate-100 mt-2">You need a wallet before paying EMI</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Create a wallet to track your EMI payments and manage deductions automatically.
+          </p>
+          <Link to="/wallets" className="btn-primary text-xs inline-flex">
+            Create Wallet
+          </Link>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="card h-44 animate-pulse bg-slate-800/40" />
@@ -128,14 +169,43 @@ export default function Loans() {
                     <h3 className="text-base font-extrabold text-slate-100 mt-2">{loan.name}</h3>
                     <p className="text-[10px] text-slate-500 mt-0.5">Interest rate: {loan.interestRate}% • Term: {loan.durationMonths}m</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-start">
                     {loan.remainingBalance > 0 ? (
-                      <button
-                        onClick={() => handlePayEmi(loan._id)}
-                        className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all"
-                      >
-                        Pay EMI
-                      </button>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <button
+                          onClick={() => handlePayEmi(loan._id)}
+                          disabled={wallets.length === 0}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                            wallets.length === 0
+                              ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
+                              : 'bg-red-500/20 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white'
+                          }`}
+                        >
+                          {payingLoanId === loan._id ? 'Confirm Pay' : 'Pay EMI'}
+                        </button>
+                        {/* Wallet selector dropdown */}
+                        {payingLoanId === loan._id && (
+                          <div className="flex gap-1 items-center">
+                            <select
+                              className="select text-[10px] py-1 px-2 min-w-[120px]"
+                              value={selectedWalletId}
+                              onChange={(e) => setSelectedWalletId(e.target.value)}
+                            >
+                              {wallets.map(w => (
+                                <option key={w._id} value={w._id}>
+                                  {w.icon} {w.name} (₹{w.balance.toLocaleString('en-IN')})
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => { setPayingLoanId(null); setSelectedWalletId(''); }}
+                              className="text-slate-500 hover:text-slate-300 text-xs"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <span className="badge badge-green">Paid Off 🎉</span>
                     )}

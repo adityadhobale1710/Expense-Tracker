@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Expense from '../models/Expense.js';
 import Budget from '../models/Budget.js';
+import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 // @desc  Get all expenses
@@ -29,7 +30,26 @@ export const getExpenses = asyncHandler(async (req, res) => {
 // @desc  Add expense
 // @route POST /api/expenses
 export const addExpense = asyncHandler(async (req, res) => {
-  const expense = await Expense.create({ ...req.body, user: req.user._id });
+  const { walletId, ...rest } = req.body;
+  const payload = { ...rest, user: req.user._id };
+
+  // Link to wallet and deduct balance
+  if (walletId) {
+    const wallet = await Wallet.findOne({ _id: walletId, user: req.user._id });
+    if (!wallet) {
+      res.status(404);
+      throw new Error('Wallet not found');
+    }
+    if (wallet.balance < Number(rest.amount)) {
+      res.status(400);
+      throw new Error('Insufficient wallet balance');
+    }
+    payload.wallet = wallet._id;
+    wallet.balance -= Number(rest.amount);
+    await wallet.save();
+  }
+
+  const expense = await Expense.create(payload);
   await expense.populate('category', 'name icon color');
 
   // Update budget spent amount

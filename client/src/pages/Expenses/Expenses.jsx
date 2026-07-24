@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const getLocalTodayString = () => {
@@ -28,7 +29,10 @@ export default function Expenses() {
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState({ paymentMethod: '', category: '' });
 
-  useEffect(() => { fetchExpenses(); fetchCategories('expense'); }, []);
+  useEffect(() => {
+    fetchExpenses();
+    fetchCategories('expense');
+  }, []);
 
   const openAdd = () => {
     setForm({
@@ -204,13 +208,10 @@ export default function Expenses() {
             </div>
           </div>
           <div className="form-group">
-            <label className="label">Tags (comma-separated)</label>
-            <input className="input" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="e.g. food, weekend, family" />
-          </div>
-          <div className="form-group">
             <label className="label">Description</label>
             <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional note" />
           </div>
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={closeModal} className="btn-secondary flex-1">Cancel</button>
             <button type="submit" className="btn-primary flex-1" disabled={submitting}>
