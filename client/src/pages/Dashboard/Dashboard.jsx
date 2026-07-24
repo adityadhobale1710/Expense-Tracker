@@ -6,6 +6,8 @@ import api from '../../services/api';
 import { PROGRESSION_LEVELS } from '../Achievements/achievementsData';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import ContributionModal from '../../components/Goals/ContributionModal';
+import { AnimatePresence } from 'framer-motion';
 
 const getLocalTodayString = () => {
   const d = new Date();
@@ -90,6 +92,20 @@ export default function Dashboard() {
 
   // Modals state
   const [activeModal, setActiveModal] = useState(null);
+  const [isContributionOpen, setIsContributionOpen] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState(null);
+
+  const handleContributionSubmit = async (formData) => {
+    try {
+      await api.post(`/goals/${selectedGoal._id}/contribute`, formData);
+      toast.success('Savings transfer contribution logged successfully!');
+      setIsContributionOpen(false);
+      fetchDashboardExtraData();
+      fetchSummary();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to contribute');
+    }
+  };
 
   // Notifications state
   const [recentNotifications, setRecentNotifications] = useState([
@@ -488,28 +504,81 @@ export default function Dashboard() {
 
           // 6. Savings Goal Progress
           if (widgetId === 'savingsProgress') {
-            const primaryGoal = goals && goals.length > 0 ? goals[0] : null;
-            const pct = primaryGoal ? Math.round(((primaryGoal.currentSaved || 0) / (primaryGoal.targetAmount || 1)) * 100) : 0;
+            const activeGoals = goals.filter(g => g.status === 'Active');
+            
+            const highestProgressGoal = activeGoals.length > 0 
+              ? activeGoals.reduce((max, g) => (g.progressPct || 0) > (max.progressPct || 0) ? g : max)
+              : null;
+
+            const nearestGoal = activeGoals.length > 0
+              ? activeGoals.reduce((min, g) => new Date(g.targetDate) < new Date(min.targetDate) ? g : min)
+              : null;
+
+            const primaryGoal = highestProgressGoal || goals[0];
+            const pct = primaryGoal ? primaryGoal.progressPct : 0;
+            const daysLeft = primaryGoal ? Math.ceil((new Date(primaryGoal.targetDate) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+
+            const size = 60;
+            const strokeWidth = 5;
+            const radius = (size - strokeWidth) / 2;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (Math.min(pct, 100) / 100) * circumference;
+
             return (
-              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
-                  <h3 className="text-xs font-bold text-slate-300">🥅 Goal Progress</h3>
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-indigo-500/20 transition-all p-5 bg-dark-800 border border-slate-700/60 rounded-3xl shadow-lg relative overflow-hidden min-h-[320px]">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-750">
+                  <h3 className="text-xs font-bold text-slate-350 flex items-center gap-1">🎯 Goals Progress</h3>
+                  <Link to="/goals" className="text-[10px] font-bold text-primary-400 hover:underline">View All</Link>
                 </div>
-                <div className="py-4 space-y-2">
-                  {primaryGoal ? (
-                    <>
-                      <div className="flex justify-between text-xs font-bold">
-                        <span>{primaryGoal.name}</span>
-                        <span>{pct}%</span>
+                
+                {primaryGoal ? (
+                  <div className="flex-1 flex flex-col justify-between pt-3 space-y-3">
+                    <div className="flex items-center gap-4">
+                      <div className="relative flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
+                        <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
+                          <circle cx={size / 2} cy={size / 2} r={radius} className="stroke-slate-800" strokeWidth={strokeWidth} fill="transparent" />
+                          <circle cx={size / 2} cy={size / 2} r={radius} stroke={primaryGoal.color || '#10b981'} strokeWidth={strokeWidth} fill="transparent"
+                            strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-700" />
+                        </svg>
+                        <span className="absolute text-[10px] font-black text-slate-100">{pct}%</span>
                       </div>
-                      <div className="progress-bar">
-                        <div className="progress-fill bg-indigo-500" style={{ width: `${Math.min(pct, 100)}%` }} />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-slate-200 truncate leading-tight">{primaryGoal.title}</h4>
+                        <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider">{primaryGoal.category}</span>
+                        <div className="text-[9px] font-semibold text-slate-405 mt-1">
+                          Saved: <span className="text-emerald-450 font-bold">₹{primaryGoal.savedAmount.toLocaleString('en-IN')}</span> / ₹{primaryGoal.targetAmount.toLocaleString('en-IN')}
+                        </div>
                       </div>
-                    </>
-                  ) : (
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold border-t border-slate-750/50 pt-2.5">
+                      <div className="bg-dark-900/40 p-2 border border-slate-805 rounded-xl">
+                        <span className="text-slate-550 block text-[8px] font-bold uppercase">Nearest Goal</span>
+                        <span className="text-slate-300 font-bold truncate block">{nearestGoal ? nearestGoal.title : 'None'}</span>
+                      </div>
+                      <div className="bg-dark-900/40 p-2 border border-slate-805 rounded-xl">
+                        <span className="text-slate-550 block text-[8px] font-bold uppercase">Deadline</span>
+                        <span className="text-amber-450 font-bold block">{daysLeft > 0 ? `${daysLeft}d left` : 'Expired'}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setSelectedGoal(primaryGoal);
+                        setIsContributionOpen(true);
+                      }}
+                      className="w-full py-2 bg-emerald-500/20 border border-emerald-500/30 hover:bg-emerald-500/35 hover:border-emerald-500/70 text-emerald-400 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Plus size={12} />
+                      <span>Quick Add Money</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                     <p className="text-xs text-slate-500">No active goals logged.</p>
-                  )}
-                </div>
+                    <Link to="/goals" className="text-[10px] font-bold text-primary-400 hover:underline mt-2">Create your first goal</Link>
+                  </div>
+                )}
               </div>
             );
           }
@@ -793,6 +862,16 @@ export default function Dashboard() {
         onConfirm={confirmDeleteTransaction}
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null, type: null, loading: false })}
       />
+      <AnimatePresence>
+        {isContributionOpen && selectedGoal && (
+          <ContributionModal
+            isOpen={isContributionOpen}
+            onClose={() => setIsContributionOpen(false)}
+            onSubmit={handleContributionSubmit}
+            goal={selectedGoal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

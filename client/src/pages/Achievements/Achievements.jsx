@@ -50,8 +50,17 @@ export default function Achievements() {
         } catch (e) {
           console.warn("Parsing achievements from local storage failed", e);
         }
-      } else if (user.achievements) {
-        user.achievements.forEach(a => { userMap[a.id] = a; });
+      }
+      if (user.achievements) {
+        user.achievements.forEach(a => {
+          if (!userMap[a.id] || a.currentProgress > (userMap[a.id]?.currentProgress || 0) || a.unlocked) {
+            userMap[a.id] = {
+              id: a.id,
+              currentProgress: Math.max(a.currentProgress, userMap[a.id]?.currentProgress || 0),
+              unlocked: a.unlocked || userMap[a.id]?.unlocked || false
+            };
+          }
+        });
       }
 
       return INITIAL_ACHIEVEMENTS.map(ach => ({
@@ -281,8 +290,17 @@ export default function Achievements() {
         try {
           JSON.parse(savedAch).forEach(a => { userMap[a.id] = a; });
         } catch (e) {}
-      } else if (user.achievements) {
-        user.achievements.forEach(a => { userMap[a.id] = a; });
+      }
+      if (user.achievements) {
+        user.achievements.forEach(a => {
+          if (!userMap[a.id] || a.currentProgress > (userMap[a.id]?.currentProgress || 0) || a.unlocked) {
+            userMap[a.id] = {
+              id: a.id,
+              currentProgress: Math.max(a.currentProgress, userMap[a.id]?.currentProgress || 0),
+              unlocked: a.unlocked || userMap[a.id]?.unlocked || false
+            };
+          }
+        });
       }
       setAchievements(INITIAL_ACHIEVEMENTS.map(ach => ({
         ...ach,
