@@ -69,13 +69,56 @@ export default function Expenses() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Frontend validations
+    if (!form.title || !form.title.trim()) {
+      toast.error('Please enter a title.');
+      return;
+    }
+    if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) {
+      toast.error('Please enter a valid amount.');
+      return;
+    }
+    if (!form.date) {
+      toast.error('Please select a date.');
+      return;
+    }
+    if (!form.category) {
+      toast.error('Please select a category.');
+      return;
+    }
+    if (!form.paymentMethod) {
+      toast.error('Please select a payment method.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         ...form,
         date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
-        tags: form.tags ? form.tags.split(',').map((t) => t.trim()) : []
       };
+      delete payload.time;
+
+      // Clean up fields not accepted by backend Joi schema to avoid unknown field errors
+      delete payload._id;
+      delete payload.user;
+      delete payload.createdAt;
+      delete payload.updatedAt;
+      delete payload.__v;
+      delete payload.wallet;
+
+      // Format/trim input fields
+      if (payload.title) payload.title = payload.title.trim();
+      if (payload.amount) payload.amount = Number(payload.amount);
+      if (payload.tags && typeof payload.tags === 'string') {
+        payload.tags = payload.tags.split(',').map((t) => t.trim()).filter(Boolean);
+      } else if (!payload.tags) {
+        payload.tags = [];
+      }
+
+      console.log("Outgoing Payload:", payload);
+
       if (modal.mode === 'add') await addExpense(payload);
       else await updateExpense(modal.item._id, payload);
       closeModal();
@@ -109,7 +152,7 @@ export default function Expenses() {
   const totalFiltered = filtered.reduce((s, e) => s + e.amount, 0);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="expenses-page space-y-6 animate-fade-in">
       <div className="page-header">
         <div>
           <h1 className="page-title">Expenses</h1>

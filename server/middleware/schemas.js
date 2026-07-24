@@ -31,9 +31,9 @@ export const resetPasswordSchema = Joi.object({
 export const expenseSchema = Joi.object({
   title: Joi.string().min(1).max(200).trim().required(),
   amount: Joi.number().positive().required(),
-  date: Joi.date().iso().optional(),
-  category: Joi.string().hex().length(24).optional(),
-  paymentMethod: Joi.string().max(50).optional(),
+  date: Joi.date().iso().required(),
+  category: Joi.string().hex().length(24).required(),
+  paymentMethod: Joi.string().max(50).required(),
   description: Joi.string().max(500).allow('').optional(),
   tags: Joi.array().items(Joi.string().max(50)).optional(),
 }).unknown(false);
@@ -42,8 +42,9 @@ export const expenseSchema = Joi.object({
 export const incomeSchema = Joi.object({
   title: Joi.string().min(1).max(200).trim().required(),
   amount: Joi.number().positive().required(),
-  date: Joi.date().iso().optional(),
-  category: Joi.string().max(100).optional(),
+  date: Joi.date().iso().required(),
+  category: Joi.string().max(100).allow('').optional(),
+  source: Joi.string().max(100).allow('').optional(),
   description: Joi.string().max(500).allow('').optional(),
 }).unknown(false);
 

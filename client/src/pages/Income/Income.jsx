@@ -65,12 +65,46 @@ export default function Income() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Frontend validations
+    if (!form.title || !form.title.trim()) {
+      toast.error('Please enter a title.');
+      return;
+    }
+    if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) {
+      toast.error('Please enter a valid amount.');
+      return;
+    }
+    if (!form.date) {
+      toast.error('Please select a date.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         ...form,
-        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString()
+        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
       };
+      delete payload.time;
+
+      // Clean up fields not accepted by backend Joi schema to avoid unknown field errors
+      delete payload._id;
+      delete payload.user;
+      delete payload.createdAt;
+      delete payload.updatedAt;
+      delete payload.__v;
+      delete payload.wallet;
+
+      // Ensure optional fields are trimmed/cleaned up
+      if (payload.title) payload.title = payload.title.trim();
+      if (payload.amount) payload.amount = Number(payload.amount);
+      if (!payload.category) delete payload.category;
+      if (!payload.source) delete payload.source;
+      if (!payload.description) delete payload.description;
+
+      console.log("Outgoing Payload:", payload);
+
       if (modal.mode === 'add') await addIncome(payload);
       else await updateIncome(modal.item._id, payload);
       closeModal();
