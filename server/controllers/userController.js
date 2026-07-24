@@ -12,8 +12,17 @@ export const getMe = asyncHandler(async (req, res) => {
 // @desc  Update profile
 // @route PUT /api/users/me
 export const updateMe = asyncHandler(async (req, res) => {
+  // Issue #3 fix: only allow safe, user-writable fields.
+  // Sensitive fields (role, twoFactorEnabled) and all gamification data
+  // (xp, coins, level, streak, achievements, etc.) are NEVER user-writable.
   const { name, avatar, currency, phone, company } = req.body;
-  const updateFields = { name, avatar, currency, phone, company };
+
+  const updateFields = {};
+  if (name !== undefined)     updateFields.name     = name;
+  if (avatar !== undefined)   updateFields.avatar   = avatar;
+  if (currency !== undefined) updateFields.currency = currency;
+  if (phone !== undefined)    updateFields.phone    = phone;
+  if (company !== undefined)  updateFields.company  = company;
 
   const user = await User.findByIdAndUpdate(
     req.user._id,

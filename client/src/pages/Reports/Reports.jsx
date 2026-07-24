@@ -115,10 +115,16 @@ export default function Reports() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie data={categoryData} dataKey="total" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                <Pie data={categoryData} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                   {categoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <PieTooltip formatter={(v) => `₹${Number(v).toLocaleString('en-IN')}`} contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: '12px', color: 'var(--chart-tooltip-text)' }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)' }} />
+                {summary && (
+                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                    <tspan x="50%" dy="-10" fill="#22c55e" fontSize="12" fontWeight="bold">+{Number(summary.totalIncome || 0).toLocaleString('en-IN')}</tspan>
+                    <tspan x="50%" dy="20" fill="#ef4444" fontSize="12" fontWeight="bold">-{Number(summary.totalExpense || 0).toLocaleString('en-IN')}</tspan>
+                  </text>
+                )}
               </PieChart>
             </ResponsiveContainer>
           )}
