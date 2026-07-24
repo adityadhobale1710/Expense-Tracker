@@ -7,6 +7,7 @@ import {
 import api, { API_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 export default function TransactionTable({ 
   incomes = [], 
@@ -23,6 +24,49 @@ export default function TransactionTable({
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterPayment, setFilterPayment] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, loading: false });
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    setDeleteConfirm({ isOpen: true, loading: false });
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
+    setBulkDeleting(true);
+
+    const deletePromises = selectedIds.map(async (id) => {
+      // Find transaction item to resolve correct REST endpoint (incomes vs expenses)
+      const txn = combinedTransactions.find((t) => t.id === id);
+      if (!txn) return;
+      const endpoint = txn.type === 'income' ? `/income/${id}` : `/expenses/${id}`;
+      return api.delete(endpoint);
+    });
+
+    try {
+      await toast.promise(
+        Promise.all(deletePromises),
+        {
+          loading: 'Deleting transactions from ledger...',
+          success: () => {
+            setSelectedIds([]);
+            if (refetchExpenses) refetchExpenses();
+            if (refetchIncomes) refetchIncomes();
+            return 'Selected ledgers deleted successfully!';
+          },
+          error: () => {
+            return 'Failed to execute bulk deletion.';
+          }
+        }
+      );
+      setDeleteConfirm({ isOpen: false, loading: false });
+    } catch {
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
   const [filterAmount, setFilterAmount] = useState('all');
   
   // Sorting states
@@ -205,41 +249,6 @@ export default function TransactionTable({
     } else {
       setSelectedIds([...selectedIds, id]);
     }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
-    
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} transactions? This action is irreversible.`)) {
-      return;
-    }
-
-    setBulkDeleting(true);
-    const deletePromises = selectedIds.map(async (id) => {
-      // Find transaction item to resolve correct REST endpoint (incomes vs expenses)
-      const txn = combinedTransactions.find(t => t.id === id);
-      if (!txn) return;
-      const endpoint = txn.type === 'income' ? `/income/${id}` : `/expenses/${id}`;
-      return api.delete(endpoint);
-    });
-
-    toast.promise(
-      Promise.all(deletePromises),
-      {
-        loading: 'Deleting transactions from ledger...',
-        success: () => {
-          setSelectedIds([]);
-          setBulkDeleting(false);
-          if (refetchExpenses) refetchExpenses();
-          if (refetchIncomes) refetchIncomes();
-          return 'Selected ledgers deleted successfully!';
-        },
-        error: () => {
-          setBulkDeleting(false);
-          return 'Failed to execute bulk deletion.';
-        }
-      }
-    );
   };
 
   // Spacing densities
@@ -650,6 +659,16 @@ export default function TransactionTable({
         </div>
       )}
 
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Selected Transactions"
+        message={`Are you sure you want to delete ${selectedIds.length} transaction${selectedIds.length > 1 ? 's' : ''}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, loading: false })}
+      />
     </div>
   );
 }

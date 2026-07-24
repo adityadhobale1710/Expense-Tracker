@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -28,6 +29,7 @@ export default function Expenses() {
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState({ paymentMethod: '', category: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, loading: false });
 
   useEffect(() => {
     fetchExpenses();
@@ -67,13 +69,56 @@ export default function Expenses() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Frontend validations
+    if (!form.title || !form.title.trim()) {
+      toast.error('Please enter a title.');
+      return;
+    }
+    if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) {
+      toast.error('Please enter a valid amount.');
+      return;
+    }
+    if (!form.date) {
+      toast.error('Please select a date.');
+      return;
+    }
+    if (!form.category) {
+      toast.error('Please select a category.');
+      return;
+    }
+    if (!form.paymentMethod) {
+      toast.error('Please select a payment method.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         ...form,
         date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
-        tags: form.tags ? form.tags.split(',').map((t) => t.trim()) : []
       };
+      delete payload.time;
+
+      // Clean up fields not accepted by backend Joi schema to avoid unknown field errors
+      delete payload._id;
+      delete payload.user;
+      delete payload.createdAt;
+      delete payload.updatedAt;
+      delete payload.__v;
+      delete payload.wallet;
+
+      // Format/trim input fields
+      if (payload.title) payload.title = payload.title.trim();
+      if (payload.amount) payload.amount = Number(payload.amount);
+      if (payload.tags && typeof payload.tags === 'string') {
+        payload.tags = payload.tags.split(',').map((t) => t.trim()).filter(Boolean);
+      } else if (!payload.tags) {
+        payload.tags = [];
+      }
+
+      console.log("Outgoing Payload:", payload);
+
       if (modal.mode === 'add') await addExpense(payload);
       else await updateExpense(modal.item._id, payload);
       closeModal();
@@ -82,9 +127,20 @@ export default function Expenses() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this expense?')) return;
-    try { await deleteExpense(id); } catch { toast.error('Failed to delete'); }
+  const handleDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, id, loading: false });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
+    try {
+      await deleteExpense(deleteConfirm.id);
+      setDeleteConfirm({ isOpen: false, id: null, loading: false });
+    } catch {
+      toast.error('Failed to delete');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   const filtered = expenses.filter((e) => {
@@ -96,7 +152,7 @@ export default function Expenses() {
   const totalFiltered = filtered.reduce((s, e) => s + e.amount, 0);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="expenses-page space-y-6 animate-fade-in">
       <div className="page-header">
         <div>
           <h1 className="page-title">Expenses</h1>
@@ -220,6 +276,17 @@ export default function Expenses() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, loading: false })}
+      />
     </div>
   );
 }

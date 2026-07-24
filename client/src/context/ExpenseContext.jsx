@@ -23,6 +23,7 @@ export const ExpenseProvider = ({ children }) => {
   }, []);
 
   const addIncome = async (payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.post('/income', payload);
     setIncomes((prev) => [data.data, ...prev]);
     toast.success('Income added!');
@@ -30,6 +31,7 @@ export const ExpenseProvider = ({ children }) => {
   };
 
   const updateIncome = async (id, payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.put(`/income/${id}`, payload);
     setIncomes((prev) => prev.map((i) => (i._id === id ? data.data : i)));
     toast.success('Income updated!');
@@ -52,6 +54,7 @@ export const ExpenseProvider = ({ children }) => {
   }, []);
 
   const addExpense = async (payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.post('/expenses', payload);
     setExpenses((prev) => [data.data, ...prev]);
     toast.success('Expense added!');
@@ -59,6 +62,7 @@ export const ExpenseProvider = ({ children }) => {
   };
 
   const updateExpense = async (id, payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.put(`/expenses/${id}`, payload);
     setExpenses((prev) => prev.map((e) => (e._id === id ? data.data : e)));
     toast.success('Expense updated!');

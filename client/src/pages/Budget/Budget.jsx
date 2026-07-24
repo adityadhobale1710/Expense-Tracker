@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
 
 const EMPTY_BUDGET = { category: '', limit: '', period: 'monthly', alertThreshold: 80 };
@@ -10,6 +11,7 @@ export default function Budget() {
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_BUDGET);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, loading: false });
 
   useEffect(() => { fetchBudgets(); fetchCategories('expense'); }, []);
 
@@ -32,9 +34,20 @@ export default function Budget() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this budget?')) return;
-    try { await deleteBudget(id); } catch { toast.error('Failed to delete'); }
+  const handleDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, id, loading: false });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
+    try {
+      await deleteBudget(deleteConfirm.id);
+      setDeleteConfirm({ isOpen: false, id: null, loading: false });
+    } catch {
+      toast.error('Failed to delete');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   const totalBudgeted = budgets.reduce((s, b) => s + b.limit, 0);
@@ -153,6 +166,17 @@ export default function Budget() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Budget"
+        message="Are you sure you want to delete this budget? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, loading: false })}
+      />
     </div>
   );
 }

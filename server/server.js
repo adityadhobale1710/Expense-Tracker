@@ -81,13 +81,25 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Dynamic verification for Vercel preview environments
+    // Issue #7 fix: strict Vercel preview domain check.
+    // The old coarse prefix match (startsWith projectPrefix) allowed any origin whose
+    // hostname started with the same prefix — e.g. "my-app-evil.vercel.app" would pass
+    // for a project named "my-app". The fix uses a stricter regex that requires the
+    // hostname to be exactly <projectSlug>-<hash>.vercel.app (Vercel's actual format).
     if (clientUrl && clientUrl.includes('vercel.app')) {
       try {
         const prodHost = new URL(clientUrl).hostname;
-        const projectPrefix = prodHost.split('.vercel.app')[0].split('-').slice(0, 2).join('-');
+        // Extract the canonical project slug (everything before the first dash-separated hash segment)
+        const projectSlug = prodHost.replace(/\.vercel\.app$/, '').split('-').slice(0, -1).join('-') ||
+          prodHost.replace(/\.vercel\.app$/, '');
         const originHost = new URL(origin).hostname;
-        if (originHost.startsWith(projectPrefix) && originHost.endsWith('.vercel.app')) {
+
+        // Strict pattern: <projectSlug>-<alphanumeric_hash>.vercel.app
+        const strictPreviewPattern = new RegExp(
+          `^${projectSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-[a-z0-9]+\\.vercel\\.app$`
+        );
+
+        if (strictPreviewPattern.test(originHost)) {
           return callback(null, true);
         }
       } catch (err) {
