@@ -1,13 +1,3 @@
-export const PRESET_GRADIENTS = [
-  { name: 'Sunset Glow', value: 'from-orange-500 via-rose-500 to-pink-600 border-rose-400/30' },
-  { name: 'Aurora Sky', value: 'from-emerald-400 via-teal-500 to-cyan-600 border-teal-400/30' },
-  { name: 'Deep Indigo', value: 'from-indigo-600 via-purple-600 to-pink-500 border-indigo-400/30' },
-  { name: 'Gold Medal', value: 'from-amber-400 via-yellow-500 to-orange-600 border-amber-300/30' },
-  { name: 'Ocean Mist', value: 'from-blue-400 via-indigo-500 to-violet-600 border-blue-400/30' },
-  { name: 'Cyberpunk', value: 'from-fuchsia-500 via-purple-600 to-indigo-700 border-fuchsia-400/30' },
-  { name: 'Fresh Mint', value: 'from-lime-400 via-green-500 to-emerald-600 border-green-400/30' }
-];
-
 export const PRESET_COLORS = [
   { name: 'Indigo', hex: '#6366f1', text: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
   { name: 'Emerald', hex: '#10b981', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
@@ -52,13 +42,6 @@ export const getProgressColor = (pct) => {
   return '#10b981';                 // Green 0-50%
 };
 
-export const getProgressTailwindColor = (pct) => {
-  if (pct >= 100) return 'from-yellow-400 to-amber-500 shadow-yellow-500/20'; // Gold
-  if (pct >= 80) return 'from-blue-400 to-indigo-500 shadow-blue-500/20';   // Blue
-  if (pct >= 50) return 'from-amber-400 to-orange-500 shadow-amber-500/20';  // Yellow
-  return 'from-emerald-400 to-teal-500 shadow-emerald-500/20';               // Green
-};
-
 export const getPriorityBadgeClass = (priority) => {
   switch (priority) {
     case 'High':
@@ -90,12 +73,10 @@ export const getStatusBadgeClass = (status) => {
 };
 
 export default {
-  PRESET_GRADIENTS,
   PRESET_COLORS,
   SUGGESTED_ICONS,
   GOAL_CATEGORIES,
   getProgressColor,
-  getProgressTailwindColor,
   getPriorityBadgeClass,
   getStatusBadgeClass
 };

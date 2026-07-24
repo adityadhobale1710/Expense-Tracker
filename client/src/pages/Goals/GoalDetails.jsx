@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -65,74 +65,18 @@ export default function GoalDetails() {
 
   const [isContributionOpen, setIsContributionOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [confettiActive, setConfettiActive] = useState(false);
 
-  const canvasRef = useRef(null);
-
-  // Trigger celebration modal and particles if goal just hit 100%
+  // Trigger celebration modal if goal just hit 100%
   useEffect(() => {
     if (goal && goal.status === 'Completed' && goal.progressPct >= 100) {
       const shownKey = `celebration_shown_${goal._id}`;
       const hasShown = localStorage.getItem(shownKey);
       if (!hasShown) {
         setShowCelebration(true);
-        setConfettiActive(true);
         localStorage.setItem(shownKey, 'true');
       }
     }
   }, [goal]);
-
-  // Confetti Particle physics loop
-  useEffect(() => {
-    if (!confettiActive || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let animationId;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#3b82f6'];
-    const particles = Array.from({ length: 120 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height - canvas.height,
-      r: Math.random() * 5 + 3,
-      d: Math.random() * canvas.height,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      tilt: Math.random() * 10 - 5,
-      tiltAngleIncremental: Math.random() * 0.05 + 0.02,
-      tiltAngle: 0
-    }));
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let active = false;
-      particles.forEach((p, idx) => {
-        p.tiltAngle += p.tiltAngleIncremental;
-        p.y += (Math.cos(p.d) + 3.5 + p.r / 2) / 2.2;
-        p.x += Math.sin(p.tiltAngle) * 0.8;
-        p.tilt = Math.sin(p.tiltAngle - idx / 3) * 12;
-
-        if (p.y < canvas.height) active = true;
-
-        ctx.beginPath();
-        ctx.lineWidth = p.r;
-        ctx.strokeStyle = p.color;
-        ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
-        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
-        ctx.stroke();
-      });
-
-      if (active) {
-        animationId = requestAnimationFrame(draw);
-      } else {
-        setConfettiActive(false);
-      }
-    }
-
-    draw();
-    return () => cancelAnimationFrame(animationId);
-  }, [confettiActive]);
 
   if (isLoadingGoal) {
     return (
@@ -206,11 +150,6 @@ export default function GoalDetails() {
 
   return (
     <div className="space-y-6 pb-16 relative">
-      {/* Confetti Particle Canvas */}
-      {confettiActive && (
-        <canvas ref={canvasRef} className="fixed inset-0 z-50 pointer-events-none w-full h-full" />
-      )}
-
       {/* Navigation & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <button
@@ -278,11 +217,7 @@ export default function GoalDetails() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Goal Summary Panel */}
-          <div className="p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl flex flex-col md:flex-row gap-6 relative overflow-hidden">
-            <div 
-              className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
-              style={{ background: goal.color }}
-            />
+          <div className="card flex flex-col md:flex-row gap-6 relative overflow-hidden">
             {/* Visual circle progress */}
             <div className="flex-shrink-0 flex flex-col items-center justify-center space-y-2 p-2 bg-dark-900/60 border border-slate-700/30 rounded-2xl">
               <span className="text-3xl">{goal.icon}</span>

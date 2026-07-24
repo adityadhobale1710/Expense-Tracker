@@ -233,7 +233,7 @@ export const getGoalContributions = asyncHandler(async (req, res) => {
 // @desc    Create a new goal
 // @route   POST /api/goals
 export const createGoal = asyncHandler(async (req, res) => {
-  const { title, description, category, targetAmount, targetDate, priority, color, icon, notes, autoSaveEnabled, autoSaveType, autoSavePercentage, autoSaveFixedAmount, autoSaveCategories } = req.body;
+  const { title, description, category, targetAmount, targetDate, priority, color, icon, notes } = req.body;
 
   if (targetAmount <= 0) {
     res.status(400);
@@ -263,11 +263,6 @@ export const createGoal = asyncHandler(async (req, res) => {
     color: color || '#6366f1',
     icon: icon || '🎯',
     notes,
-    autoSaveEnabled,
-    autoSaveType,
-    autoSavePercentage,
-    autoSaveFixedAmount,
-    autoSaveCategories,
     goalHistory: [historyObj]
   });
 
@@ -295,9 +290,7 @@ export const updateGoal = asyncHandler(async (req, res) => {
 
   const fieldsToUpdate = [
     'title', 'description', 'category', 'targetAmount', 'targetDate',
-    'priority', 'color', 'icon', 'gradient', 'uploadedIcon', 'notes',
-    'autoSaveEnabled', 'autoSaveType', 'autoSavePercentage', 'autoSaveFixedAmount',
-    'autoSaveCategories'
+    'priority', 'color', 'icon', 'uploadedIcon', 'notes'
   ];
 
   fieldsToUpdate.forEach(f => {
@@ -567,7 +560,7 @@ export const getGoalInsights = asyncHandler(async (req, res) => {
     if (stalledDays > 30 && goal.status === 'Active') {
       insights.push({
         level: 'Warning',
-        message: `You haven't contributed to this goal in ${stalledDays} days. Consider enabling Auto-Save to continue progress automatically.`,
+        message: `You haven't contributed to this goal in ${stalledDays} days. Consider making a manual contribution to continue progress.`,
         confidence: 98
       });
     }
@@ -671,10 +664,10 @@ export const getGoalRecommendations = asyncHandler(async (req, res) => {
   const avgMonthlyTarget = goals.reduce((sum, g) => sum + g.suggestedMonthlySaving, 0);
 
   recommendations.push({
-    recommendation: 'Link salary account to Auto-Save',
-    reason: 'Manual transfers are inconsistent, leading to a 34% drop-off rate month-over-month.',
-    impact: `Enabling a 10% auto-contribution will automatically secure ₹${Math.round(avgMonthlyTarget * 0.5).toLocaleString('en-IN')} toward your goals monthly.`,
-    confidence: 97
+    recommendation: 'Establish consistent monthly savings',
+    reason: 'Manual savings transfers can be irregular, affecting the consistency of your progress.',
+    impact: `Allocating a fixed monthly amount of ₹${Math.round(avgMonthlyTarget * 0.5).toLocaleString('en-IN')} will help keep your goals on track.`,
+    confidence: 90
   });
 
   sendSuccess(res, 200, 'AI Recommendations fetched', recommendations);

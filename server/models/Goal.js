@@ -39,19 +39,7 @@ const goalSchema = new mongoose.Schema(
     priority: { type: String, enum: ['High', 'Medium', 'Low'], default: 'Medium' },
     color: { type: String, default: '#6366f1' },
     icon: { type: String, default: '🎯' },
-    gradient: { type: String, default: '' },
     uploadedIcon: { type: String, default: '' },
-    
-    // Auto save settings
-    autoSaveEnabled: { type: Boolean, default: false },
-    autoSaveType: { 
-      type: String, 
-      enum: ['fixed', 'percentage', 'round_up_100', 'round_up_500', 'round_up_1000', 'remaining_salary', null], 
-      default: null 
-    },
-    autoSavePercentage: { type: Number, default: 0, min: 0, max: 100 },
-    autoSaveFixedAmount: { type: Number, default: 0, min: 0 },
-    autoSaveCategories: { type: [String], default: [] },
     
     // Computed fields & settings
     status: { 

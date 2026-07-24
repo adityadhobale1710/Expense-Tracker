@@ -2,7 +2,6 @@ import asyncHandler from 'express-async-handler';
 import Income from '../models/Income.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { handleIncomeAutoSave } from '../utils/goalHelpers.js';
 
 // @desc  Get all incomes
 // @route GET /api/income
@@ -44,9 +43,6 @@ export const addIncome = asyncHandler(async (req, res) => {
   }
 
   const income = await Income.create(payload);
-
-  // Trigger Goal Auto-Save
-  await handleIncomeAutoSave(income, req.user._id);
 
   sendSuccess(res, 201, 'Income added', income);
 });
