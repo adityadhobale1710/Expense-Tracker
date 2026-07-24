@@ -44,6 +44,7 @@ export default function AnalyticsPro() {
   const [loading, setLoading] = useState(true);
   const [monthlyData, setMonthlyData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
+  const [incomeAnalyticsData, setIncomeAnalyticsData] = useState(null);
 
   // Active indices for interactive hover on pie charts
   const [activeIncomeIndex, setActiveIncomeIndex] = useState(-1);
@@ -58,11 +59,14 @@ export default function AnalyticsPro() {
         fetchExpenses()
       ]);
 
-      const [mRes, cRes] = await Promise.all([
+      const [mRes, cRes, incomeAnalyticsRes] = await Promise.all([
         api.get('/reports/monthly'),
-        api.get('/reports/by-category')
+        api.get('/reports/by-category'),
+        api.get('/analytics/income')
       ]);
 
+      console.log("Income Analytics:", incomeAnalyticsRes.data);
+      setIncomeAnalyticsData(incomeAnalyticsRes.data?.data || null);
       setCategoryData(cRes.data?.data || []);
 
       // Format monthly report
@@ -116,12 +120,6 @@ export default function AnalyticsPro() {
       ];
     }
 
-    const map = {};
-    incomes.forEach((inc) => {
-      const source = inc.source || inc.category?.name || 'Salary';
-      map[source] = (map[source] || 0) + (inc.amount || 0);
-    });
-
     const iconMap = {
       Salary: '💼',
       Freelance: '💻',
@@ -131,8 +129,26 @@ export default function AnalyticsPro() {
       Investments: '📈',
       Gift: '🎁',
       Bonus: '🎉',
-      Other: '💰'
+      Other: '💰',
+      Uncategorized: '💰'
     };
+
+    // If we have backend analytics data, use it directly!
+    if (incomeAnalyticsData && incomeAnalyticsData.sources) {
+      return incomeAnalyticsData.sources.map((s, idx) => ({
+        name: s.source,
+        value: s.amount,
+        icon: iconMap[s.source] || '💰',
+        color: INCOME_COLORS[idx % INCOME_COLORS.length]
+      }));
+    }
+
+    const map = {};
+    incomes.forEach((inc) => {
+      const categoryVal = typeof inc.category === 'object' ? inc.category?.name : inc.category;
+      const key = categoryVal?.trim() || "Uncategorized";
+      map[key] = (map[key] || 0) + (inc.amount || 0);
+    });
 
     return Object.entries(map)
       .map(([name, value], idx) => ({
@@ -142,7 +158,7 @@ export default function AnalyticsPro() {
         color: INCOME_COLORS[idx % INCOME_COLORS.length]
       }))
       .sort((a, b) => b.value - a.value);
-  }, [incomes]);
+  }, [incomes, incomeAnalyticsData]);
 
   const totalEarnedVal = useMemo(() => {
     if (summary?.totalIncome) return summary.totalIncome;

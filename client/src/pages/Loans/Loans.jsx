@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 export default function Loans() {
   const [loans, setLoans] = useState([]);
   const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, loading: false });
 
   // New loan form
   const [showCreate, setShowCreate] = useState(false);
@@ -110,14 +112,21 @@ export default function Loans() {
     setSelectedWalletId(wallets.find(w => w.isPrimary)?._id || wallets[0]._id);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this loan record?')) return;
+  const handleDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, id, loading: false });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
-      await api.delete(`/loans/${id}`);
+      await api.delete(`/loans/${deleteConfirm.id}`);
       toast.success('Loan log removed');
       fetchData();
+      setDeleteConfirm({ isOpen: false, id: null, loading: false });
     } catch {
       toast.error('Failed to delete loan log');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -300,6 +309,17 @@ export default function Loans() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Loan Record"
+        message="Are you sure you want to delete this loan record? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, loading: false })}
+      />
     </div>
   );
 }

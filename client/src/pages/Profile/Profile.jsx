@@ -418,12 +418,10 @@ export default function Profile() {
                       value={selectedLanguage}
                       onChange={(e) => {
                         setSelectedLanguage(e.target.value);
-                        toast.success(`Language changed to ${e.target.value === 'en' ? 'English' : 'Alternative'}`);
+                        toast.success('Language set to English');
                       }}
                     >
                       <option value="en">English</option>
-                      <option value="es">Español</option>
-                      <option value="hi">हिन्दी</option>
                     </select>
                   </div>
                   <div className="form-group">
