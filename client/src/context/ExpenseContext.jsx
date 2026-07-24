@@ -116,17 +116,39 @@ export const ExpenseProvider = ({ children }) => {
     } catch {}
   }, []);
 
+  // ─── Unified Dashboard API Call ───────────────────────
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/dashboard');
+      if (data.success && data.data) {
+        const payload = data.data;
+        setIncomes(payload.incomes || []);
+        setExpenses(payload.expenses || []);
+        setCategories(payload.categories || []);
+        setBudgets(payload.budgets || []);
+        setSummary(payload.summary || null);
+        return payload;
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to fetch dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return (
     <ExpenseContext.Provider value={{
       incomes, expenses, categories, budgets, summary, loading,
       fetchIncomes, addIncome, updateIncome, deleteIncome,
       fetchExpenses, addExpense, updateExpense, deleteExpense,
       fetchCategories, fetchBudgets, addBudget, updateBudget, deleteBudget,
-      fetchSummary,
+      fetchSummary, fetchDashboardData,
     }}>
       {children}
     </ExpenseContext.Provider>
   );
+
 };
 
 export const useExpense = () => {

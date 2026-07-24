@@ -38,8 +38,10 @@ import familyRoutes from './routes/familyRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 connectDB();
+
 
 const app = express();
 
@@ -48,25 +50,8 @@ app.set('trust proxy', 1);
 
 // ─── Security & Performance Middleware ──────────────────────────────────────────
 app.use(helmet()); // Secure HTTP headers
-app.use(compression()); // Compress text-based responses
-app.use(express.json({ limit: '50kb' })); // Body parser with small limit to prevent payload attacks
-app.use(cookieParser(process.env.COOKIE_SECRET)); // Cookie parser with secret key
-app.use(mongoSanitize()); // Prevent NoSQL injection
-app.use(hpp()); // Prevent HTTP Parameter Pollution
-app.use(xssSanitizer); // Sanitize XSS payloads in request body/query/params
 
-// Disable X-Powered-By header explicitly
-app.disable('x-powered-by');
-
-// ─── Winston request logging via Morgan ──────────────────────────────────────────
-const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
-app.use(morgan(morganFormat, {
-  stream: {
-    write: (message) => logger.info(message.trim())
-  }
-}));
-
-// ─── CORS Policy ───────────────────────────────────────────────────────────────
+// ─── CORS Policy (Moved up to execute before body parsing for options preflight) ──
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
@@ -116,6 +101,24 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
+app.use(compression()); // Compress text-based responses
+app.use(express.json({ limit: '50kb' })); // Body parser with small limit to prevent payload attacks
+app.use(cookieParser(process.env.COOKIE_SECRET)); // Cookie parser with secret key
+app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(hpp()); // Prevent HTTP Parameter Pollution
+app.use(xssSanitizer); // Sanitize XSS payloads in request body/query/params
+
+// Disable X-Powered-By header explicitly
+app.disable('x-powered-by');
+
+// ─── Winston request logging via Morgan ──────────────────────────────────────────
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat, {
+  stream: {
+    write: (message) => logger.info(message.trim())
+  }
+}));
+
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -127,10 +130,26 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
-app.use('/api/', globalLimiter);
+
+if (process.env.NODE_ENV === 'production') {
+  app.use('/api/', globalLimiter);
+} else {
+  // Relaxed development rate limit to prevent 429 errors during hot reloading / StrictMode
+  app.use('/api/', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10000,
+    message: {
+      success: false,
+      message: 'Too many requests in development.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+  }));
+}
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/income', incomeRoutes);

@@ -17,7 +17,7 @@ const router = express.Router();
 // Rate limiter for login: max 5 requests per 15 minutes
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: process.env.NODE_ENV === 'production' ? 5 : 1000,
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -37,7 +37,7 @@ router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 // Rate limiter for OTP: max 5 requests per 10 minutes
 const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 5,
+  max: process.env.NODE_ENV === 'production' ? 5 : 1000,
   handler: (req, res) => {
     res.status(429).json({
       success: false,

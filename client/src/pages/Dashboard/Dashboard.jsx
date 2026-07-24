@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useExpense } from '../../context/ExpenseContext';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import ContributionModal from '../../components/Goals/ContributionModal';
 import { AnimatePresence } from 'framer-motion';
+import { Plus } from 'lucide-react';
+
 
 const getLocalTodayString = () => {
   const d = new Date();
@@ -32,7 +34,8 @@ export default function Dashboard() {
     categories, fetchCategories,
     budgets, fetchBudgets,
     addExpense, addIncome,
-    deleteExpense, deleteIncome
+    deleteExpense, deleteIncome,
+    fetchDashboardData
   } = useExpense();
   const { user } = useAuth();
 
@@ -47,7 +50,7 @@ export default function Dashboard() {
       } else {
         await deleteIncome(deleteConfirm.id);
       }
-      fetchSummary();
+      await loadDashboard();
       setDeleteConfirm({ isOpen: false, id: null, type: null, loading: false });
     } catch {
       toast.error('Failed to delete transaction');
@@ -66,20 +69,24 @@ export default function Dashboard() {
   const [goals, setGoals] = useState([]);
   const [dashWallets, setDashWallets] = useState([]);
 
-  const fetchDashboardExtraData = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
-      const [subsRes, loansRes, goalsRes, walletsRes] = await Promise.all([
-        api.get('/subscriptions'),
-        api.get('/loans'),
-        api.get('/goals'),
-        api.get('/wallets'),
-      ]);
-      setSubscriptions(subsRes.data.data || []);
-      setLoans(loansRes.data.data || []);
-      setGoals(goalsRes.data.data || []);
-      setDashWallets(walletsRes.data.data || []);
+      const payload = await fetchDashboardData();
+      if (payload) {
+        if (payload.user) {
+          setGameXp(payload.user.xp || 3450);
+          setGameCoins(payload.user.coins || 640);
+          setGameStreak(payload.user.streak || 18);
+          setUnlockedBadgesCount(payload.user.achievements?.filter(a => a.unlocked).length || 13);
+        }
+        setSubscriptions(payload.subscriptions || []);
+        setLoans(payload.loans || []);
+        setGoals(payload.goals || []);
+        setDashWallets(payload.wallets || []);
+        setRecentNotifications(payload.recentNotifications || []);
+      }
     } catch {}
-  };
+  }, [fetchDashboardData]);
 
   // Widgets list
   const widgets = [
@@ -100,8 +107,7 @@ export default function Dashboard() {
       await api.post(`/goals/${selectedGoal._id}/contribute`, formData);
       toast.success('Savings transfer contribution logged successfully!');
       setIsContributionOpen(false);
-      fetchDashboardExtraData();
-      fetchSummary();
+      await loadDashboard();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to contribute');
     }
@@ -128,41 +134,9 @@ export default function Dashboard() {
 
 
 
-  const fetchGamification = async () => {
-    if (!user) return;
-    try {
-      const { data } = await api.get('/users/me');
-      if (data.data) {
-        setGameXp(data.data.xp || 3450);
-        setGameCoins(data.data.coins || 640);
-        setGameStreak(data.data.streak || 18);
-        setUnlockedBadgesCount(data.data.achievements?.filter(a => a.unlocked).length || 13);
-      }
-    } catch {}
-  };
-
-  const fetchRecentNotifications = async () => {
-    try {
-      const { data } = await api.get('/notifications');
-      if (data.data && data.data.length > 0) {
-        setRecentNotifications(data.data.slice(0, 3).map(n => ({
-          message: n.message,
-          date: new Date(n.createdAt).toLocaleDateString('en-IN')
-        })));
-      }
-    } catch {}
-  };
-
   useEffect(() => {
-    fetchSummary();
-    fetchExpenses({ limit: 50 });
-    fetchIncomes({ limit: 50 });
-    fetchCategories();
-    fetchBudgets();
-    fetchGamification();
-    fetchRecentNotifications();
-    fetchDashboardExtraData();
-  }, []);
+    loadDashboard();
+  }, [loadDashboard]);
 
   useEffect(() => {
     if (categories.length > 0 && !txForm.category) {
@@ -226,9 +200,7 @@ export default function Dashboard() {
       }
 
       setActiveModal(null);
-      fetchSummary();
-      fetchExpenses({ limit: 50 });
-      fetchIncomes({ limit: 50 });
+      await loadDashboard();
       setTxForm({
         title: '',
         amount: '',
