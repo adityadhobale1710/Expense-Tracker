@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -26,6 +27,7 @@ export default function Income() {
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, loading: false });
 
   useEffect(() => {
     fetchIncomes();
@@ -63,12 +65,46 @@ export default function Income() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Frontend validations
+    if (!form.title || !form.title.trim()) {
+      toast.error('Please enter a title.');
+      return;
+    }
+    if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) {
+      toast.error('Please enter a valid amount.');
+      return;
+    }
+    if (!form.date) {
+      toast.error('Please select a date.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         ...form,
-        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString()
+        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
       };
+      delete payload.time;
+
+      // Clean up fields not accepted by backend Joi schema to avoid unknown field errors
+      delete payload._id;
+      delete payload.user;
+      delete payload.createdAt;
+      delete payload.updatedAt;
+      delete payload.__v;
+      delete payload.wallet;
+
+      // Ensure optional fields are trimmed/cleaned up
+      if (payload.title) payload.title = payload.title.trim();
+      if (payload.amount) payload.amount = Number(payload.amount);
+      if (!payload.category) delete payload.category;
+      if (!payload.source) delete payload.source;
+      if (!payload.description) delete payload.description;
+
+      console.log("Outgoing Payload:", payload);
+
       if (modal.mode === 'add') await addIncome(payload);
       else await updateIncome(modal.item._id, payload);
       closeModal();
@@ -77,9 +113,20 @@ export default function Income() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this income?')) return;
-    try { await deleteIncome(id); } catch { toast.error('Failed to delete'); }
+  const handleDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, id, loading: false });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
+    try {
+      await deleteIncome(deleteConfirm.id);
+      setDeleteConfirm({ isOpen: false, id: null, loading: false });
+    } catch {
+      toast.error('Failed to delete');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
@@ -187,6 +234,17 @@ export default function Income() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Income"
+        message="Are you sure you want to delete this income record? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, loading: false })}
+      />
     </div>
   );
 }

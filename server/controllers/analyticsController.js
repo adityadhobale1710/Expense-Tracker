@@ -458,7 +458,7 @@ export const getAnalyticsIncome = asyncHandler(async (req, res) => {
 
   const totalIncome = sources.reduce((sum, s) => sum + s.amount, 0);
   const data = sources.map((s) => ({
-    source: s._id || 'Other',
+    source: s._id || 'Uncategorized',
     amount: s.amount,
     count: s.count,
     percentage: totalIncome > 0 ? parseFloat(((s.amount / totalIncome) * 100).toFixed(2)) : 0

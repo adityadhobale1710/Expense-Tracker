@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, loading: false });
 
   // New subscription form
   const [showCreate, setShowCreate] = useState(false);
@@ -52,14 +54,21 @@ export default function Subscriptions() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this subscription?')) return;
+  const handleDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, id, loading: false });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
-      await api.delete(`/subscriptions/${id}`);
+      await api.delete(`/subscriptions/${deleteConfirm.id}`);
       toast.success('Subscription deleted');
       fetchSubscriptions();
+      setDeleteConfirm({ isOpen: false, id: null, loading: false });
     } catch {
       toast.error('Failed to delete subscription');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -194,6 +203,17 @@ export default function Subscriptions() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Subscription"
+        message="Are you sure you want to delete this subscription? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteConfirm.loading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, loading: false })}
+      />
     </div>
   );
 }

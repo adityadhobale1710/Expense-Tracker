@@ -13,6 +13,8 @@ import {
   Wallet,
   X
 } from 'lucide-react';
+import { FaApple } from "react-icons/fa";
+
 
 const GoldCoin = ({ className }) => (
   <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -320,14 +322,13 @@ export default function Login() {
               </span>
             </div>
 
-            {/* Social Login Buttons */}
-            <div className="flex">
-              {/* Issue #6 fix: SSO button is disabled — real OAuth not yet implemented */}
+            {/* Social Login Buttons: Google & Apple */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Google Login Button */}
               <button
                 type="button"
-                disabled
-                title="Google Sign-In coming soon"
-                className="w-full h-[46px] px-3 bg-[#F1F5F9] text-[#94A3B8] text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
+                onClick={() => toast.error('Google Sign-In is coming soon!')}
+                className="w-full h-[46px] px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-slate-200/80 text-[#334155] text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2.5 transition-all cursor-pointer hover:border-slate-300 font-jakarta shadow-xs"
               >
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                   <path
@@ -347,7 +348,17 @@ export default function Login() {
                     d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.7 1.28 6.58l4 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                   />
                 </svg>
-                <span>Google (Coming Soon)</span>
+                <span>Google</span>
+              </button>
+
+              {/* Apple Login Button */}
+              <button
+                type="button"
+                onClick={() => toast.error('Apple Sign-In is coming soon!')}
+                className="apple-btn"
+              >
+                <FaApple className="text-xl" />
+                <span>Apple</span>
               </button>
             </div>
           </div>

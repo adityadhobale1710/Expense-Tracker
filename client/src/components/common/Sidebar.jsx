@@ -12,7 +12,8 @@ const NAV_ITEMS = [
   { to: '/split-bills',  icon: '/split-bill.png', label: 'Split Bills' },
   { to: '/family',       icon: '👪', label: 'Family Sharing' },
   { to: '/calendar',     icon: '📅', label: 'Bill Calendar' },
-  { to: '/ai-insights',  icon: '💡', label: 'AI Insights' },
+  { to: '/ai-insights',  icon: '💡', label: 'AI Insights', badge: 'Soon' },
+  { to: '/ai-assistant', icon: '🤖', label: 'AI Assistant', badge: 'Soon' },
   { to: '/analytics-pro',icon: '📊', label: 'Analytics Pro' },
   { to: '/achievements', icon: '🏆', label: 'Achievements' },
   { to: '/profile',      icon: '👤', label: 'Profile' },
@@ -62,12 +63,12 @@ export default function Sidebar({ isOpen, onClose }) {
         <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
           {/* Section label: only on desktop */}
           <p className="block md:hidden lg:block text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-3">Main Menu</p>
-          {NAV_ITEMS.map(({ to, icon, label }) => (
+          {NAV_ITEMS.map(({ to, icon, label, badge }) => (
             <NavLink
               key={to}
               to={to}
               onClick={onClose}
-              title={label}  /* Native tooltip for tablet icon-rail */
+              title={badge ? `${label} (${badge})` : label}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               <span className="text-lg flex-shrink-0 flex items-center justify-center">
@@ -78,7 +79,12 @@ export default function Sidebar({ isOpen, onClose }) {
                 )}
               </span>
               {/* Label: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
-              <span className="inline md:hidden lg:inline">{label}</span>
+              <span className="inline md:hidden lg:inline flex-1 truncate">{label}</span>
+              {badge && (
+                <span className="inline md:hidden lg:inline-block ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wider flex-shrink-0">
+                  {badge}
+                </span>
+              )}
             </NavLink>
           ))}
           {user?.role === 'admin' && (
