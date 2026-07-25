@@ -4,6 +4,31 @@ import { PROGRESSION_LEVELS, XP_ACTIONS, INITIAL_ACHIEVEMENTS } from './achievem
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
+const getTierGradient = (tier) => {
+  switch (tier) {
+    case 'Legendary': return 'from-yellow-600/40 to-amber-950/40 border-yellow-500/40';
+    case 'Epic': return 'from-purple-650/40 to-fuchsia-950/40 border-purple-500/40';
+    case 'Rare': return 'from-cyan-650/40 to-blue-950/40 border-cyan-500/40';
+    default: return 'from-slate-800/40 to-slate-900/40 border-slate-700/30';
+  }
+};
+
+// Calculate level based on XP
+const getCurrentLevelInfo = (xpVal) => {
+  let currentLvl = PROGRESSION_LEVELS[0];
+  let nextLvl = PROGRESSION_LEVELS[1];
+  
+  for (let i = 0; i < PROGRESSION_LEVELS.length; i++) {
+    if (xpVal >= PROGRESSION_LEVELS[i].xpRequired) {
+      currentLvl = PROGRESSION_LEVELS[i];
+      nextLvl = PROGRESSION_LEVELS[i + 1] || PROGRESSION_LEVELS[i];
+    } else {
+      break;
+    }
+  }
+  return { currentLvl, nextLvl };
+};
+
 export default function Achievements() {
   const { user, updateUser } = useAuth();
   
@@ -100,6 +125,21 @@ export default function Achievements() {
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatyTexts, setFloatyTexts] = useState([]); // Array of { id, text, x, y }
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Helper calculations derived from XP, defined before any effects or useMemos reference them
+  const { currentLvl, nextLvl } = getCurrentLevelInfo(xp);
+  
+  // XP progress ratio
+  const getLevelProgressPercentage = () => {
+    if (currentLvl.level === 15) return 100;
+    const base = currentLvl.xpRequired;
+    const target = nextLvl.xpRequired;
+    const earned = xp - base;
+    const totalNeeded = target - base;
+    return Math.min(Math.round((earned / totalNeeded) * 100), 100);
+  };
+
+  const levelProgress = getLevelProgressPercentage();
 
   // Dynamic filter options generated from active achievements to remove empty categories
   const filterOptions = useMemo(() => {
@@ -274,8 +314,9 @@ export default function Achievements() {
     if (user) {
       const getVal = (key, backendVal, defaultVal) => {
         const saved = localStorage.getItem(`game_${key}_${user._id}`);
-        if (saved !== null) return parseInt(saved, 10);
-        return backendVal !== undefined ? backendVal : defaultVal;
+        const localVal = saved !== null ? parseInt(saved, 10) : defaultVal;
+        const bVal = backendVal !== undefined ? backendVal : defaultVal;
+        return Math.max(localVal, bVal);
       };
       
       setXp(getVal('xp', user.xp, 0));
@@ -328,37 +369,73 @@ export default function Achievements() {
         setRecentUnlock(null);
       }
     }
-  }, [user?._id]);
+  }, [user?._id, user?.xp, user?.coins, user?.streak, user?.longestStreak]);
 
-  // Calculate level based on XP
-  const getCurrentLevelInfo = (xpVal) => {
-    let currentLvl = PROGRESSION_LEVELS[0];
-    let nextLvl = PROGRESSION_LEVELS[1];
+  // Reactive Effect to auto-check and auto-unlock ongoing totals achievements (l3, l4, l5, l9, sp7)
+  useEffect(() => {
+    let changed = false;
+    let newXpGained = 0;
+    let newCoinsGained = 0;
     
-    for (let i = 0; i < PROGRESSION_LEVELS.length; i++) {
-      if (xpVal >= PROGRESSION_LEVELS[i].xpRequired) {
-        currentLvl = PROGRESSION_LEVELS[i];
-        nextLvl = PROGRESSION_LEVELS[i + 1] || PROGRESSION_LEVELS[i];
-      } else {
-        break;
+    const unlockedList = achievements.filter(a => a.unlocked).map(a => a.id);
+    const totalUnlockedCount = unlockedList.length;
+    const { currentLvl } = getCurrentLevelInfo(xp);
+
+    const updated = achievements.map(ach => {
+      if (ach.unlocked) return ach;
+      
+      let progress = ach.currentProgress;
+      let shouldUnlock = false;
+
+      if (ach.id === 'l3') {
+        progress = currentLvl.level;
+        if (currentLvl.level >= 10) shouldUnlock = true;
+      } else if (ach.id === 'l4') {
+        progress = currentLvl.level;
+        if (currentLvl.level >= 12) shouldUnlock = true;
+      } else if (ach.id === 'l5') {
+        progress = currentLvl.level;
+        if (currentLvl.level >= 15) shouldUnlock = true;
+      } else if (ach.id === 'l9') {
+        progress = totalUnlockedCount;
+        if (totalUnlockedCount >= 50) shouldUnlock = true;
+      } else if (ach.id === 'sp7') {
+        progress = coins;
+        if (coins >= 1000) shouldUnlock = true;
       }
+
+      if (progress !== ach.currentProgress || shouldUnlock) {
+        changed = true;
+        if (shouldUnlock) {
+          newXpGained += ach.xpReward;
+          newCoinsGained += ach.coinsReward;
+          
+          playSound('unlock');
+          setConfettiActive(true);
+          setRecentUnlock({
+            ...ach,
+            currentProgress: progress,
+            unlocked: true,
+            unlockedAt: new Date()
+          });
+          toast.success(`🏆 Achievement Unlocked: ${ach.title}!`, { icon: ach.icon });
+        }
+        return {
+          ...ach,
+          currentProgress: progress,
+          unlocked: ach.unlocked || shouldUnlock,
+          unlockedAt: shouldUnlock ? new Date() : ach.unlockedAt
+        };
+      }
+      return ach;
+    });
+
+    if (changed) {
+      setAchievements(updated);
+      if (newXpGained > 0) setXp(prev => prev + newXpGained);
+      if (newCoinsGained > 0) setCoins(prev => prev + newCoinsGained);
     }
-    return { currentLvl, nextLvl };
-  };
-
-  const { currentLvl, nextLvl } = getCurrentLevelInfo(xp);
-  
-  // XP progress ratio
-  const getLevelProgressPercentage = () => {
-    if (currentLvl.level === 15) return 100;
-    const base = currentLvl.xpRequired;
-    const target = nextLvl.xpRequired;
-    const earned = xp - base;
-    const totalNeeded = target - base;
-    return Math.min(Math.round((earned / totalNeeded) * 100), 100);
-  };
-
-  const levelProgress = getLevelProgressPercentage();
+  }, [xp, coins, achievements]);
 
   // Floaty Text spawning function
   const spawnFloatyText = (text, e) => {
@@ -445,6 +522,62 @@ export default function Achievements() {
         if (['p1', 'p2', 'p3'].includes(ach.id)) {
           currentVal = 1;
         }
+      } else if (actionId === 'create_family') {
+        if (ach.id === 'fam1') currentVal = 1;
+      } else if (actionId === 'invite_family_member') {
+        if (ach.id === 'fam2') currentVal = 1;
+        if (ach.id === 'fam3') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'log_family_expense') {
+        if (ach.id === 'fam4') currentVal = 1;
+        if (ach.id === 'fam7') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'set_family_budget') {
+        if (ach.id === 'fam5') currentVal = 1;
+      } else if (actionId === 'family_active_30d') {
+        if (ach.id === 'fam8') currentVal = 30;
+      } else if (actionId === 'create_split_bill') {
+        if (ach.id === 'p10') currentVal = 1;
+      } else if (actionId === 'settle_split_bill') {
+        if (ach.id === 'fam6') currentVal = 1;
+        if (ach.id === 'p11') currentVal = 1;
+      } else if (actionId === 'add_loan') {
+        if (ach.id === 'loan1') currentVal = 1;
+        if (ach.id === 'loan6') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'make_loan_payment') {
+        if (ach.id === 'loan2') currentVal = 1;
+        if (ach.id === 'loan3') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+        if (ach.id === 'loan4') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'payoff_loan') {
+        if (ach.id === 'loan5') currentVal = 1;
+        if (ach.id === 'loan8') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'pay_loan_on_time') {
+        if (ach.id === 'loan7') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'add_subscription') {
+        if (ach.id === 'p9') currentVal = 1;
+        if (ach.id === 'sub1') currentVal = 1;
+        if (ach.id === 'sub2') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+        if (ach.id === 'sub7') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'view_subscriptions') {
+        if (ach.id === 'sub3') currentVal = 1;
+      } else if (actionId === 'cancel_subscription') {
+        if (ach.id === 'sub4') currentVal = 1;
+      } else if (actionId === 'review_sub_budget') {
+        if (ach.id === 'sub5') currentVal = 1;
+      } else if (actionId === 'switch_annual_plan') {
+        if (ach.id === 'sub6') currentVal = 1;
+      } else if (actionId === 'create_wallet') {
+        if (ach.id === 'p7') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+        if (ach.id === 'wal1') currentVal = 1;
+        if (ach.id === 'wal2') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'wallet_transfer') {
+        if (ach.id === 'p8') currentVal = 1;
+        if (ach.id === 'wal3') currentVal = 1;
+        if (ach.id === 'wal4') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
+      } else if (actionId === 'wallet_balance_30d') {
+        if (ach.id === 'wal5') currentVal = 30;
+      } else if (actionId === 'diverse_wallets') {
+        if (ach.id === 'wal6') currentVal = 1;
+      } else if (actionId === 'wallet_milestone') {
+        if (ach.id === 'wal7') currentVal = 100000;
       }
       /*
        * XP_ACTIONS entries with no matching achievement:
@@ -917,7 +1050,7 @@ export default function Achievements() {
                 key={ach.id}
                 className={`relative border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 min-h-[190px] select-none hover:scale-[1.03] group ${
                   ach.unlocked
-                    ? `bg-gradient-to-br ${ach.theme} shadow-md`
+                    ? `bg-gradient-to-br ${getTierGradient(ach.tier)} shadow-md`
                     : 'bg-slate-900/20 border-slate-800/80 opacity-40 blur-[0.3px]'
                 }`}
               >
