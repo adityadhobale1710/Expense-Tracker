@@ -12,10 +12,24 @@ const api = axios.create({
   },
 });
 
-// Request Interceptor: Attach Access Token
+// Request Interceptor: Attach Access Token & Guard Unauthenticated Requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
+    
+    // Check if route is a protected backend endpoint
+    const isPublicRoute = config.url?.includes('/auth/login') ||
+                          config.url?.includes('/auth/register') ||
+                          config.url?.includes('/auth/verify-registration-otp') ||
+                          config.url?.includes('/auth/resend-registration-otp') ||
+                          config.url?.includes('/auth/forgot-password') ||
+                          config.url?.includes('/auth/reset-password');
+                          
+    if (!isPublicRoute && !token) {
+      // Abort/Cancel request locally to prevent repeated failing 401 calls
+      return Promise.reject(new axios.Cancel('Request aborted: missing authentication token.'));
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -27,13 +41,17 @@ api.interceptors.request.use(
 );
 
 // Response Interceptor: Auto Token Refresh and Global Error Handling
-// Issue #6 fix: module-level semaphore prevents race condition where concurrent
-// 401 errors each trigger their own /refresh-token call (token rotation failure).
 let refreshingPromise = null;
+let isRedirecting = false;
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // If request was canceled, bypass global error prompts
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
 
     // 1. Handle Token Refresh on 401 Unauthorized
@@ -46,7 +64,16 @@ api.interceptors.response.use(
       originalRequest._retry = true; // Retry only once
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token available');
+        if (!refreshToken) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          if (!isRedirecting) {
+            isRedirecting = true;
+            window.location.replace('/login');
+          }
+          throw new Error('No refresh token available');
+        }
 
         // Serialize all concurrent refresh attempts — only one call to /refresh-token
         if (!refreshingPromise) {
@@ -69,10 +96,16 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Clear storage and force logout
+        // Clear authentication storage and force redirect to login
         refreshingPromise = null;
-        localStorage.clear();
-        window.location.href = '/login';
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        
+        if (!isRedirecting) {
+          isRedirecting = true;
+          window.location.replace('/login');
+        }
         return Promise.reject(refreshError);
       }
     }

@@ -14,11 +14,17 @@ export const ExpenseProvider = ({ children }) => {
 
   // ─── Incomes ──────────────────────────────────────────
   const fetchIncomes = useCallback(async (params = {}) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     setLoading(true);
     try {
       const { data } = await api.get('/income', { params });
       setIncomes(data.data.incomes || []);
-    } catch (e) { toast.error(e.response?.data?.message || 'Failed to fetch incomes'); }
+    } catch (e) {
+      if (e.name !== 'CanceledError' && e.message !== 'canceled') {
+        toast.error(e.response?.data?.message || 'Failed to fetch incomes');
+      }
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -45,11 +51,17 @@ export const ExpenseProvider = ({ children }) => {
 
   // ─── Expenses ─────────────────────────────────────────
   const fetchExpenses = useCallback(async (params = {}) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     setLoading(true);
     try {
       const { data } = await api.get('/expenses', { params });
       setExpenses(data.data.expenses || []);
-    } catch (e) { toast.error(e.response?.data?.message || 'Failed to fetch expenses'); }
+    } catch (e) {
+      if (e.name !== 'CanceledError' && e.message !== 'canceled') {
+        toast.error(e.response?.data?.message || 'Failed to fetch expenses');
+      }
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -110,6 +122,8 @@ export const ExpenseProvider = ({ children }) => {
 
   // ─── Summary ──────────────────────────────────────────
   const fetchSummary = useCallback(async (params = {}) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     try {
       const { data } = await api.get('/reports/summary', { params });
       setSummary(data.data);
@@ -118,6 +132,8 @@ export const ExpenseProvider = ({ children }) => {
 
   // ─── Unified Dashboard API Call ───────────────────────
   const fetchDashboardData = useCallback(async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return null;
     setLoading(true);
     try {
       const { data } = await api.get('/dashboard');
@@ -131,7 +147,9 @@ export const ExpenseProvider = ({ children }) => {
         return payload;
       }
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to fetch dashboard data');
+      if (e.name !== 'CanceledError' && e.message !== 'canceled') {
+        toast.error(e.response?.data?.message || 'Failed to fetch dashboard data');
+      }
     } finally {
       setLoading(false);
     }
