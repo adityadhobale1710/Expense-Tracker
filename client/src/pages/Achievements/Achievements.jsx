@@ -711,14 +711,31 @@ export default function Achievements() {
   );
 
   // Calculate statistics
-  const totalBadgesCount = achievements.length;
+const totalBadgesCount = achievements.length;
   const unlockedCount = achievements.filter(a => a.unlocked).length;
   const lockedCount = totalBadgesCount - unlockedCount;
   const completionPercentage = Math.round((unlockedCount / totalBadgesCount) * 100);
   const rareCount = achievements.filter(a => a.unlocked && a.tier === 'Rare').length;
   const legendaryCount = achievements.filter(a => a.unlocked && a.tier === 'Legendary').length;
-
   const featuredAchievement = achievements.find(a => !a.unlocked && a.tier === 'Epic') || achievements.find(a => !a.unlocked);
+
+  const filterCounts = useMemo(() => {
+    const counts = {};
+    counts['All'] = achievements.length;
+    counts['Unlocked'] = achievements.filter(a => a.unlocked).length;
+    counts['Locked'] = achievements.filter(a => !a.unlocked).length;
+    counts['Common'] = achievements.filter(a => a.tier === 'Common').length;
+    counts['Rare'] = achievements.filter(a => a.tier === 'Rare').length;
+    counts['Epic'] = achievements.filter(a => a.tier === 'Epic').length;
+    counts['Legendary'] = achievements.filter(a => a.tier === 'Legendary').length;
+    
+    achievements.forEach(a => {
+      if (a.category) {
+        counts[a.category] = (counts[a.category] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [achievements]);
 
   return (
     <div className="space-y-6 relative min-h-screen pb-16">
@@ -762,7 +779,7 @@ export default function Achievements() {
           left: -60%;
           width: 30%;
           height: 200%;
-          background: rgba(255, 255, 255, 0.3);
+          background: rgba(255, 255, 255, 0.2);
           transform: rotate(30deg);
           transition: all 0.5s;
           animation: shine 4s infinite ease-in-out;
@@ -783,147 +800,113 @@ export default function Achievements() {
         }
       `}</style>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-            🏆 Achievements & Levels
-          </h2>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Complete milestones, earn XP & coins, and build financial legends!
-          </p>
-        </div>
-      </div>
-
-      {/* Grid of Main Dashboard Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Profile Card Hero */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/40 via-slate-900/60 to-dark-850 border border-slate-700/50 p-6 md:p-8 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-center gap-6 md:gap-8">
+        <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         
-        {/* Current Level Card */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
-          <div className="absolute top-0 right-0 p-3 opacity-10 text-8xl pointer-events-none select-none">
-            {currentLvl.icon}
+        <div className="relative flex-shrink-0">
+          <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-emerald-500 p-1 shadow-[0_0_20px_rgba(99,102,241,0.25)]">
+            <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center text-5xl select-none">
+              {currentLvl.icon}
+            </div>
           </div>
+          <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-amber-500 to-yellow-400 border border-slate-950 text-slate-950 font-black text-xs px-2.5 py-1 rounded-full shadow-lg">
+            Lvl {currentLvl.level}
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-4 text-center md:text-left w-full">
           <div>
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Active Progression</span>
-                <h3 className="text-2xl font-extrabold text-slate-100 mt-1 flex items-center gap-2">
-                  Level {currentLvl.level}
-                </h3>
-                <p className="text-sm font-bold text-amber-400 mt-0.5">{currentLvl.name}</p>
-              </div>
-              <span className="text-3xl p-2 bg-slate-900/40 border border-slate-800 rounded-2xl">
-                {currentLvl.icon}
+            <div className="flex flex-col md:flex-row md:items-center gap-2 justify-center md:justify-start">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-100 tracking-tight">
+                {user?.name || "Financial Legend"}
+              </h2>
+              <span className="inline-block bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-[10px] uppercase tracking-wider font-extrabold px-3 py-1 rounded-full">
+                {currentLvl.name}
               </span>
             </div>
-            
-            {/* XP progress bar */}
-            <div className="mt-6 space-y-1.5">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-slate-400">XP Progress</span>
-                <span className="text-slate-200">
-                  {xp.toLocaleString()} / {currentLvl.level === 15 ? 'Max' : nextLvl.xpRequired.toLocaleString()} XP
-                </span>
-              </div>
-              <div className="w-full bg-slate-900 h-3.5 border border-slate-800 rounded-full overflow-hidden p-0.5">
-                <div
-                  className="bg-gradient-to-r from-indigo-500 via-primary-500 to-emerald-500 h-full rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${levelProgress}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-500 text-right italic font-medium">
-                {currentLvl.level === 15 ? 'Max progression reached!' : `${(nextLvl.xpRequired - xp).toLocaleString()} XP needed for level ${nextLvl.level}`}
+            <p className="text-xs text-slate-400 mt-1 font-medium">
+              Complete milestones, earn XP & coins, and build financial legends!
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-semibold">
+              <span className="text-slate-400">XP Progress</span>
+              <span className="text-slate-200 font-mono">
+                {xp.toLocaleString()} / {currentLvl.level === 15 ? 'Max' : nextLvl.xpRequired.toLocaleString()} XP
+              </span>
+            </div>
+            <div className="w-full bg-slate-950 h-3 border border-slate-800 rounded-full overflow-hidden p-0.5">
+              <div
+                className="bg-gradient-to-r from-indigo-500 via-primary-500 to-emerald-500 h-full rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${levelProgress}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-slate-500 italic">
+              {currentLvl.level === 15 ? 'Max progression reached!' : `${(nextLvl.xpRequired - xp).toLocaleString()} XP needed for level ${nextLvl.level}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 w-full md:w-auto flex-shrink-0 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-slate-700/50 md:pl-8">
+          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-3 flex items-center gap-3 min-w-[130px]">
+            <span className="text-2xl">🪙</span>
+            <div>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Coins</p>
+              <p className="text-base font-extrabold text-yellow-450 font-mono">{coins}</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-3 flex items-center gap-3 min-w-[130px]">
+            <span className="text-2xl">🔥</span>
+            <div>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Streak</p>
+              <p className="text-base font-extrabold text-orange-450 font-mono">{streak} Days</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-3 flex items-center gap-3 min-w-[130px]">
+            <span className="text-2xl">🏆</span>
+            <div>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Badges</p>
+              <p className="text-base font-extrabold text-indigo-400 font-mono">{unlockedCount} / {totalBadgesCount}</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-3 flex items-center gap-3 min-w-[130px]">
+            <span className="text-2xl">👑</span>
+            <div>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Lvl Reward</p>
+              <p className="text-[10px] font-extrabold text-emerald-400 truncate max-w-[80px]">
+                {currentLvl.level === 15 ? 'Max Level!' : nextLvl.reward}
               </p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Currency & Streaks Card */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[180px]">
-          <div>
-            <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Currency & Streak Tracker</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              
-              {/* Coins Widget */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-                <span className="text-3xl">🪙</span>
-                <div>
-                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Coins Earned</p>
-                  <p className="text-xl font-extrabold text-yellow-400">{coins}</p>
-                </div>
-              </div>
-
-              {/* Daily Streak Widget */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-                <span className="text-3xl">🔥</span>
-                <div>
-                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Daily Streak</p>
-                  <p className="text-xl font-extrabold text-orange-400">{streak} Days</p>
-                </div>
-              </div>
-
+      {/* Stats Summary Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[
+          { label: 'Total Badges', value: totalBadgesCount, icon: '🛡️', color: 'text-indigo-455' },
+          { label: 'Unlocked', value: unlockedCount, icon: '🔓', color: 'text-emerald-455' },
+          { label: 'Completion %', value: `${completionPercentage}%`, icon: '📈', color: 'text-cyan-400' },
+          { label: 'Rare/Legendary', value: rareCount + legendaryCount, icon: '⭐', color: 'text-yellow-400' },
+          { label: 'Current Streak', value: `${streak} Days`, icon: '⚡', color: 'text-orange-450' }
+        ].map((stat, idx) => (
+          <div
+            key={idx}
+            className="bg-dark-800 border border-slate-700/50 rounded-2xl p-4 shadow-lg hover:scale-[1.03] transition-all duration-300 flex items-center gap-3.5 group cursor-default"
+          >
+            <span className="text-2xl select-none group-hover:scale-110 transition-transform">{stat.icon}</span>
+            <div>
+              <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+              <p className={`text-base font-extrabold mt-0.5 ${stat.color}`}>{stat.value}</p>
             </div>
           </div>
-
-          <div className="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-700/30">
-            <span>Longest login streak:</span>
-            <span className="font-bold text-orange-400">{longestStreak} consecutive days ⚡</span>
-          </div>
-        </div>
-
-        {/* Unlocks and completion Statistics */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[180px]">
-          <div>
-            <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Milestone Progression</span>
-            <div className="flex items-center gap-4 mt-3">
-              
-              {/* Radial Completion Percentage */}
-              <div className="w-16 h-16 rounded-full border-4 border-slate-800 flex items-center justify-center relative flex-shrink-0 bg-slate-900/40 shadow-inner">
-                <span className="text-sm font-extrabold text-slate-100">{completionPercentage}%</span>
-                {/* SVG Overlay border rings */}
-                <svg className="absolute -inset-1 transform -rotate-90 w-16 h-16 pointer-events-none">
-                  <circle
-                    cx="32"
-                    cy="32"
-                    r="28"
-                    stroke="url(#radialGradient)"
-                    strokeWidth="4"
-                    fill="transparent"
-                    strokeDasharray="176"
-                    strokeDashoffset={176 - (176 * completionPercentage) / 100}
-                    strokeLinecap="round"
-                    className="transition-all duration-700 ease-out"
-                  />
-                  <defs>
-                    <linearGradient id="radialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#10b981" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-300">
-                  Unlocked: <span className="font-bold text-emerald-400">{unlockedCount}</span> / {totalBadgesCount} Badges
-                </p>
-                <div className="flex gap-2">
-                  <span className="text-[10px] bg-slate-900/60 border border-slate-800 rounded-full px-2 py-0.5 text-slate-400 font-bold">
-                    Rare: {rareCount} ⭐
-                  </span>
-                  <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/20 rounded-full px-2 py-0.5 text-yellow-400 font-bold">
-                    Legendary: {legendaryCount} 👑
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-700/30">
-            <span>Next Level Reward:</span>
-            <span className="font-bold text-indigo-400">{currentLvl.level === 15 ? 'Max Level!' : nextLvl.reward}</span>
-          </div>
-        </div>
-
+        ))}
       </div>
 
       {/* Featured & Recent unlock row */}
@@ -1026,19 +1009,29 @@ export default function Achievements() {
 
           {/* Categories/State filters scroll area */}
           <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-thin">
-            {filterOptions.map(filter => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition-all flex-shrink-0 cursor-pointer ${
-                  activeFilter === filter
-                    ? 'bg-primary-600 border-primary-500 text-white shadow-lg'
-                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
+            {filterOptions.map(filter => {
+              const count = filterCounts[filter] || 0;
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`text-xs px-3.5 py-2 rounded-full font-bold border transition-all flex-shrink-0 cursor-pointer flex items-center gap-2 ${
+                    activeFilter === filter
+                      ? 'bg-primary-600 border-primary-500 text-white shadow-lg'
+                      : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  <span>{filter}</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${
+                    activeFilter === filter
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-850 text-slate-400'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1048,35 +1041,39 @@ export default function Achievements() {
             paginatedAchievements.map(ach => (
               <div
                 key={ach.id}
-                className={`relative border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 min-h-[190px] select-none hover:scale-[1.03] group ${
+                className={`relative border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 min-h-[190px] select-none hover:scale-[1.02] hover:shadow-2xl group ${
                   ach.unlocked
-                    ? `bg-gradient-to-br ${getTierGradient(ach.tier)} shadow-md`
-                    : 'bg-slate-900/20 border-slate-800/80 opacity-40 blur-[0.3px]'
+                    ? `bg-gradient-to-br ${getTierGradient(ach.tier)} badge-shine`
+                    : 'bg-slate-900/10 border-slate-800/80 opacity-55 filter grayscale contrast-75'
                 }`}
               >
+                {/* Ribbon */}
+                <div className="absolute top-0 right-0 overflow-hidden w-16 h-16 pointer-events-none rounded-tr-2xl">
+                  <div className={`absolute top-2 right-[-22px] rotate-45 text-center text-[7px] font-black py-0.5 w-20 shadow-sm border uppercase tracking-wider ${
+                    ach.tier === 'Legendary'
+                      ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400'
+                      : ach.tier === 'Epic'
+                      ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
+                      : ach.tier === 'Rare'
+                      ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400'
+                      : 'bg-slate-800 border-slate-700 text-slate-400'
+                  }`}>
+                    {ach.tier}
+                  </div>
+                </div>
+
                 {/* Badge/Icon Container */}
                 <div>
                   <div className="flex justify-between items-start">
                     <div
                       className={`text-3xl w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner ${
                         ach.unlocked
-                          ? 'bg-slate-950/40 border-white/10 badge-shine scale-105'
-                          : 'bg-slate-950/20 border-slate-900 grayscale'
+                          ? 'bg-slate-950/40 border-white/10 scale-105'
+                          : 'bg-slate-950/20 border-slate-900'
                       }`}
                     >
                       {ach.icon}
                     </div>
-                    <span className={`text-[9px] uppercase tracking-widest font-extrabold px-2 py-0.5 rounded-full border ${
-                      ach.tier === 'Legendary'
-                        ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400 animate-pulse'
-                        : ach.tier === 'Epic'
-                        ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
-                        : ach.tier === 'Rare'
-                        ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
-                    }`}>
-                      {ach.tier}
-                    </span>
                   </div>
 
                   <h4 className="font-extrabold text-sm text-slate-100 mt-4 leading-tight group-hover:text-primary-300 transition-colors">
@@ -1098,13 +1095,21 @@ export default function Achievements() {
                     <div className="space-y-1">
                       <div className="flex justify-between items-center text-[10px]">
                         <span className="text-slate-500 font-semibold truncate max-w-[120px]">{ach.requirement}</span>
-                        <span className="text-slate-400 font-bold">
+                        <span className="text-slate-400 font-bold font-mono">
                           {ach.currentProgress.toLocaleString()} / {ach.progressNeeded.toLocaleString()}
                         </span>
                       </div>
                       <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
                         <div
-                          className="bg-primary-500 h-full rounded-full transition-all duration-500"
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            ach.tier === 'Legendary'
+                              ? 'bg-yellow-500'
+                              : ach.tier === 'Epic'
+                              ? 'bg-purple-500'
+                              : ach.tier === 'Rare'
+                              ? 'bg-cyan-500'
+                              : 'bg-primary-500'
+                          }`}
                           style={{ width: `${Math.min((ach.currentProgress / ach.progressNeeded) * 100, 100)}%` }}
                         />
                       </div>
@@ -1112,22 +1117,23 @@ export default function Achievements() {
                   )}
                 </div>
 
-                {/* Custom Tooltip on Hover */}
-                <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-64 bg-dark-900 border border-slate-700/80 rounded-xl p-3 shadow-2xl z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-dark-900" />
-                  <p className="text-xs font-extrabold text-slate-100 flex items-center gap-1">
-                    {ach.icon} {ach.title}
+                {/* Restyled Custom Tooltip */}
+                <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-64 bg-slate-900/95 border border-slate-700/80 rounded-2xl p-3.5 shadow-2xl z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-250 transform scale-95 group-hover:scale-100 backdrop-blur-md">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95" />
+                  <p className="text-xs font-black text-slate-100 flex items-center gap-2">
+                    <span>{ach.icon}</span>
+                    <span className="tracking-tight">{ach.title}</span>
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-slate-400 mt-1.5 font-medium leading-relaxed">
                     {ach.unlocked ? `Unlocked! ${ach.description}` : `Target: ${ach.requirement}`}
                   </p>
-                  <div className="mt-2 pt-2 border-t border-slate-800 text-[10px] space-y-1">
-                    <div className="flex justify-between text-slate-400">
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] space-y-1.5">
+                    <div className="flex justify-between text-slate-400 font-semibold">
                       <span>Rewards:</span>
-                      <span className="font-bold text-indigo-400">+{ach.xpReward} XP, +{ach.coinsReward}🪙</span>
+                      <span className="font-bold text-indigo-400">+{ach.xpReward} XP / +{ach.coinsReward}🪙</span>
                     </div>
                     {ach.rewardsText && (
-                      <div className="text-slate-500 italic">
+                      <div className="text-slate-500 italic font-medium leading-snug">
                         {ach.rewardsText}
                       </div>
                     )}
@@ -1145,7 +1151,7 @@ export default function Achievements() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-slate-700/30">
+          <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-slate-700/30 col-span-full">
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -1167,57 +1173,64 @@ export default function Achievements() {
         )}
       </div>
 
-      {/* Progression details */}
+      {/* Progression Timeline Roadmap */}
       <div className="mt-6">
-        
-        {/* Progression Levels Reference */}
         <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl w-full">
-          <h3 className="text-base font-bold text-slate-100 pb-3 border-b border-slate-700/50">
-            🌌 Progression Tiers & Rewards
+          <h3 className="text-base font-bold text-slate-100 pb-3 border-b border-slate-700/50 flex items-center gap-2">
+            🌌 Progression Roadmap & Rewards
           </h3>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {PROGRESSION_LEVELS.map(lvl => {
-              const isCurrent = currentLvl.level === lvl.level;
-              const isUnlocked = xp >= lvl.xpRequired;
-              
-              return (
-                <div
-                  key={lvl.level}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
-                    isCurrent
-                      ? 'bg-primary-600/10 border-primary-500/40 glow-card-green font-bold'
-                      : isUnlocked
-                      ? 'bg-slate-900/30 border-slate-800/80 text-slate-300'
-                      : 'bg-slate-950/40 border-slate-900/50 text-slate-600'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{lvl.icon}</span>
-                    <div>
-                      <p className={`font-semibold ${isCurrent ? 'text-primary-400' : isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
-                        Lvl {lvl.level} — {lvl.name}
-                      </p>
-                      <p className="text-[10px] text-slate-500">Requires: {lvl.xpRequired.toLocaleString()} XP</p>
+          
+          <div className="relative overflow-x-auto pb-6 pt-8 scrollbar-thin">
+            {/* Connecting line */}
+            <div className="absolute top-[52px] left-8 right-8 h-0.5 bg-slate-900 border-t border-slate-800/80 rounded-full" />
+            
+            <div className="flex gap-12 px-6 min-w-max relative z-10">
+              {PROGRESSION_LEVELS.map(lvl => {
+                const isCurrent = currentLvl.level === lvl.level;
+                const isUnlocked = xp >= lvl.xpRequired;
+                
+                return (
+                  <div
+                    key={lvl.level}
+                    className="flex flex-col items-center text-center w-28 relative group"
+                  >
+                    {/* Node Indicator */}
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-base border-2 transition-all duration-300 ${
+                        isCurrent
+                          ? 'bg-primary-600 border-primary-400 shadow-[0_0_20px_rgba(99,102,241,0.5)] text-white scale-110 font-bold'
+                          : isUnlocked
+                          ? 'bg-slate-900 border-emerald-500 text-slate-200'
+                          : 'bg-slate-950 border-slate-900 text-slate-600 opacity-60'
+                      }`}
+                    >
+                      {isCurrent ? '⚡' : lvl.icon}
+                    </div>
+
+                    {/* Level Label */}
+                    <p className={`text-xs mt-3 font-extrabold ${isCurrent ? 'text-primary-450' : isUnlocked ? 'text-slate-200' : 'text-slate-650'}`}>
+                      Level {lvl.level}
+                    </p>
+                    <p className={`text-[10px] truncate max-w-[95px] font-bold mt-0.5 ${isCurrent ? 'text-amber-400' : isUnlocked ? 'text-slate-400' : 'text-slate-600'}`}>
+                      {lvl.name}
+                    </p>
+                    
+                    {/* Require XP */}
+                    <p className="text-[8px] text-slate-500 font-mono mt-1">
+                      {lvl.xpRequired.toLocaleString()} XP
+                    </p>
+
+                    {/* Reward Popover on hover */}
+                    <div className="absolute top-[calc(100%+8px)] scale-95 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 w-36 bg-slate-900 border border-slate-700/80 rounded-xl p-2 z-20 pointer-events-none shadow-xl text-[9px] font-bold leading-normal text-slate-300">
+                      <p className="text-slate-405 border-b border-slate-800 pb-1 mb-1 uppercase text-[8px] font-black text-center">Reward</p>
+                      <p className="text-center italic">{lvl.reward}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                      isCurrent
-                        ? 'bg-primary-600 text-white'
-                        : isUnlocked
-                        ? 'bg-slate-800 text-slate-400'
-                        : 'bg-slate-900/20 text-slate-700'
-                    }`}>
-                      {isCurrent ? 'Current' : isUnlocked ? 'Unlocked' : 'Locked'}
-                    </span>
-                    <p className="text-[9px] text-slate-500 mt-1 line-clamp-1 max-w-[120px]">{lvl.reward}</p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-
       </div>
 
     </div>

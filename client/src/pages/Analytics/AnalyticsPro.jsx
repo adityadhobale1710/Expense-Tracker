@@ -12,6 +12,19 @@ import {
 import { useExpense } from '../../context/ExpenseContext';
 import api from '../../services/api';
 
+// Import newly integrated chart components
+import CashFlowChart from '../../components/charts/CashFlowChart';
+import DonutChart from '../../components/charts/DonutChart';
+import TreemapChart from '../../components/charts/TreemapChart';
+import SankeyDiagram from '../../components/charts/SankeyDiagram';
+import WaterfallChart from '../../components/charts/WaterfallChart';
+import MonthlySpendingTrend from '../../components/charts/MonthlySpendingTrend';
+import PaymentMethodsChart from '../../components/charts/PaymentMethodsChart';
+import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
+import DailySpendingHeatmap from '../../components/charts/DailySpendingHeatmap';
+import IncomeExpenseAreaChart from '../../components/charts/IncomeExpenseAreaChart';
+import MonthlyComparisonChart from '../../components/charts/MonthlyComparisonChart';
+
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const INCOME_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 const EXPENSE_COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#06b6d4', '#6366f1', '#a855f7', '#ec4899'];
@@ -49,9 +62,14 @@ export default function AnalyticsPro() {
   // Active indices for interactive hover on pie charts
   const [activeIncomeIndex, setActiveIncomeIndex] = useState(-1);
   const [activeExpenseIndex, setActiveExpenseIndex] = useState(-1);
+  const [selectedDonutCategory, setSelectedDonutCategory] = useState(null);
+  const [error, setError] = useState(null);
 
   const loadAnalyticsData = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     setLoading(true);
+    setError(null);
     try {
       await Promise.all([
         fetchSummary(),
@@ -98,7 +116,10 @@ export default function AnalyticsPro() {
 
       setMonthlyData(formattedMonths);
     } catch (err) {
-      console.error('Failed to load Analytics Pro metrics:', err);
+      if (err.name !== 'CanceledError' && err.message !== 'canceled') {
+        console.error('Failed to load Analytics Pro metrics:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to load analytics data.');
+      }
     } finally {
       setLoading(false);
     }
@@ -213,6 +234,113 @@ export default function AnalyticsPro() {
   const netSavingsVal = Math.max(0, totalEarnedVal - totalSpentVal);
   const savingsRateVal = totalEarnedVal > 0 ? Math.round((netSavingsVal / totalEarnedVal) * 100) : 0;
 
+  // Derived computations for newly integrated charts
+  const mappedMonthlyData = useMemo(() => {
+    if (!monthlyData || monthlyData.length === 0) return [];
+    return monthlyData.map(d => ({
+      name: d.month,
+      income: d.Earnings || 0,
+      expense: d.Spent || 0,
+      savings: d.Saved || 0
+    }));
+  }, [monthlyData]);
+
+  const cashflowData = useMemo(() => {
+    const datesMap = {};
+    
+    incomes.forEach(inc => {
+      if (!inc.date) return;
+      const dStr = new Date(inc.date).toISOString().split('T')[0];
+      if (!datesMap[dStr]) datesMap[dStr] = { income: 0, expense: 0 };
+      datesMap[dStr].income += inc.amount || 0;
+    });
+
+    expenses.forEach(exp => {
+      if (!exp.date) return;
+      const dStr = new Date(exp.date).toISOString().split('T')[0];
+      if (!datesMap[dStr]) datesMap[dStr] = { income: 0, expense: 0 };
+      datesMap[dStr].expense += exp.amount || 0;
+    });
+
+    const sortedDates = Object.keys(datesMap).sort();
+    let runningBalance = 0;
+    
+    return sortedDates.map(date => {
+      const day = datesMap[date];
+      runningBalance += (day.income - day.expense);
+      return {
+        date,
+        income: day.income,
+        expense: day.expense,
+        runningBalance
+      };
+    });
+  }, [incomes, expenses]);
+
+  const heatmapData = useMemo(() => {
+    const map = {};
+    expenses.forEach(exp => {
+      if (!exp.date) return;
+      const dStr = new Date(exp.date).toISOString().split('T')[0];
+      if (!map[dStr]) map[dStr] = { amount: 0, count: 0 };
+      map[dStr].amount += exp.amount || 0;
+      map[dStr].count += 1;
+    });
+    return Object.entries(map).map(([dateStr, val]) => ({
+      _id: dateStr,
+      amount: val.amount,
+      count: val.count
+    }));
+  }, [expenses]);
+
+  const dailyTrendData = useMemo(() => {
+    const map = {};
+    expenses.forEach(exp => {
+      if (!exp.date) return;
+      const dStr = new Date(exp.date).toISOString().split('T')[0];
+      map[dStr] = (map[dStr] || 0) + exp.amount;
+    });
+    const sorted = Object.entries(map).map(([date, amount]) => ({
+      date,
+      amount
+    })).sort((a, b) => a.date.localeCompare(b.date));
+    
+    const half = Math.ceil(sorted.length / 2);
+    const trendData = sorted.slice(half);
+    const prevTrendData = sorted.slice(0, half);
+    
+    return { trendData, prevTrendData };
+  }, [expenses]);
+
+  const incomeCategoryData = useMemo(() => {
+    return incomePieData.map(i => ({
+      name: i.name,
+      total: i.value,
+      color: i.color
+    }));
+  }, [incomePieData]);
+
+  const needsWantsSavingsData = useMemo(() => {
+    let needs = 0;
+    let wants = 0;
+    const savingsVal = netSavingsVal;
+    
+    expenses.forEach(exp => {
+      const catName = (exp.category?.name || exp.category || '').toLowerCase();
+      if (['bills', 'utilities', 'rent', 'groceries', 'education', 'health', 'insurance', 'loans', 'emi', 'tax', 'household'].some(keyword => catName.includes(keyword))) {
+        needs += exp.amount || 0;
+      } else {
+        wants += exp.amount || 0;
+      }
+    });
+
+    return [
+      { name: 'Needs & Bills', value: needs, color: '#f59e0b', icon: '💡' },
+      { name: 'Wants & Leisure', value: wants, color: '#ec4899', icon: '🎬' },
+      { name: 'Savings & Investments', value: savingsVal, color: '#10b981', icon: '📈' }
+    ];
+  }, [expenses, netSavingsVal]);
+
   // Active Shape renderer for hoverable Pie charts
   const renderActiveShape = (props) => {
     const RADIAN = Math.PI / 180;
@@ -249,6 +377,56 @@ export default function AnalyticsPro() {
       </g>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-405 text-xs font-semibold">Loading your financial visualizations...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 max-w-md mx-auto text-center px-4">
+        <div className="p-4 bg-red-500/10 border border-red-500/25 text-red-400 rounded-3xl text-sm font-medium">
+          <p className="font-bold mb-1">Failed to load analytics</p>
+          <p className="text-xs text-red-300/80">{error}</p>
+        </div>
+        <button
+          onClick={loadAnalyticsData}
+          className="px-5 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-100 text-xs font-bold rounded-2xl cursor-pointer transition-all"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  const isEmptyState = totalEarnedVal === 0 && totalSpentVal === 0;
+
+  if (isEmptyState) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4">
+        <div className="w-16 h-16 rounded-3xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 text-2xl shadow-lg">
+          📊
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-slate-205">No transactions recorded yet</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm">
+            Once you log your income and expenses in the dashboard, we will compile your visual charts here!
+          </p>
+        </div>
+        <Link
+          to="/dashboard"
+          className="px-5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-bold rounded-2xl cursor-pointer transition-all shadow-md shadow-primary-500/20"
+        >
+          Go to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in">
@@ -613,6 +791,58 @@ export default function AnalyticsPro() {
           </div>
         )}
       </div>
+
+      {/* Overview Tab Charts */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SankeyDiagram summary={summary || { totalIncome: totalEarnedVal, totalExpense: totalSpentVal, savings: netSavingsVal }} categoryData={expensePieData} />
+            <WaterfallChart summary={{ totalIncome: totalEarnedVal, balance: netSavingsVal }} categoryData={expensePieData} />
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            <CashFlowChart cashflowData={cashflowData} />
+          </div>
+        </div>
+      )}
+
+      {/* Earnings Tab Charts */}
+      {activeTab === 'earnings' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DonutChart
+            categoryData={incomeCategoryData}
+            rawExpenses={incomes}
+            selectedCategory={selectedDonutCategory}
+            onSelectCategory={setSelectedDonutCategory}
+          />
+          <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
+        </div>
+      )}
+
+      {/* Expenses Tab Charts */}
+      {activeTab === 'expenses' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DonutChart
+              categoryData={expensePieData}
+              rawExpenses={expenses}
+              selectedCategory={selectedDonutCategory}
+              onSelectCategory={setSelectedDonutCategory}
+            />
+            <TopCategoriesChart categoryData={expensePieData} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TreemapChart rawExpenses={expenses} />
+            <PaymentMethodsChart rawExpenses={expenses} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
+            <IncomeExpenseAreaChart trendData={dailyTrendData.trendData} prevTrendData={dailyTrendData.prevTrendData} />
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            <DailySpendingHeatmap heatmapData={heatmapData} />
+          </div>
+        </div>
+      )}
 
 
 

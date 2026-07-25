@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
-import { FilterX, ArrowLeft, RefreshCcw } from 'lucide-react';
+import { FilterX, ArrowLeft } from 'lucide-react';
 import ChartCard from './ChartCard';
 
 export default function DonutChart({ 
@@ -14,16 +14,18 @@ export default function DonutChart({
   const [hoveredData, setHoveredData] = useState(null);
   const [drillDownCategory, setDrillDownCategory] = useState(null);
 
-  const totalExpense = categoryData.reduce((sum, item) => sum + item.total, 0);
+  const totalExpense = useMemo(() => {
+    return (categoryData || []).reduce((sum, item) => sum + Number(item?.total ?? item?.value ?? 0), 0);
+  }, [categoryData]);
 
   // Drill down dataset computation
   const drillDownData = useMemo(() => {
-    if (!drillDownCategory || rawExpenses.length === 0) return [];
+    if (!drillDownCategory || !rawExpenses || rawExpenses.length === 0) return [];
 
     // Filter raw expenses matching the drill-down category name
     const matchingExpenses = rawExpenses.filter((exp) => {
       let cat = 'Other';
-      if (exp.category) {
+      if (exp?.category) {
         cat = (typeof exp.category === 'object' && exp.category !== null) ? (exp.category.name || 'Other') : (exp.category || 'Other');
       }
       return cat.toLowerCase() === drillDownCategory.toLowerCase();
@@ -32,14 +34,14 @@ export default function DonutChart({
     // Group by title/merchant
     const merchantMap = {};
     matchingExpenses.forEach((exp) => {
-      const merchant = exp.title || 'Other Merchant';
-      merchantMap[merchant] = (merchantMap[merchant] || 0) + exp.amount;
+      const merchant = exp?.title || 'Other Merchant';
+      merchantMap[merchant] = (merchantMap[merchant] || 0) + (exp?.amount || 0);
     });
 
     const breakdown = Object.entries(merchantMap).map(([name, total]) => ({
       name,
-      total,
-      color: '#6366f1' // will distribute colors procedurally
+      total: Number(total || 0),
+      color: '#6366f1'
     })).sort((a, b) => b.total - a.total).slice(0, 7); // top 7 merchants
 
     const totalDrillSpent = breakdown.reduce((sum, item) => sum + item.total, 0);
@@ -54,11 +56,12 @@ export default function DonutChart({
     }));
   }, [drillDownCategory, rawExpenses]);
 
-  if (!categoryData || categoryData.length === 0) {
+  // Render empty state if there's no data
+  if (!categoryData || categoryData.length === 0 || totalExpense === 0) {
     return (
       <ChartCard title="Category Allocation" subtitle="Expense splits">
-        <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs">
-          Record expenses to see category breakdowns.
+        <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs py-8">
+          No category data available
         </div>
       </ChartCard>
     );
@@ -75,7 +78,8 @@ export default function DonutChart({
   };
 
   const handleSliceClick = (data) => {
-    const catName = data.name;
+    if (!onSelectCategory) return;
+    const catName = data?.name;
     if (drillDownCategory) return; // no dual layer clicks
 
     if (selectedCategory === catName) {
@@ -86,17 +90,38 @@ export default function DonutChart({
   };
 
   const handleSliceDoubleClick = (data) => {
+    if (!onSelectCategory) return;
     if (drillDownCategory) return;
-    setDrillDownCategory(data.name);
-    onSelectCategory(data.name);
+    setDrillDownCategory(data?.name);
+    onSelectCategory(data?.name);
   };
 
   const handleExitDrillDown = () => {
+    if (onSelectCategory) {
+      onSelectCategory(null);
+    }
     setDrillDownCategory(null);
-    onSelectCategory(null);
     setActiveIndex(-1);
     setHoveredData(null);
   };
+
+  const currentTotalSum = drillDownCategory
+    ? (drillDownData || []).reduce((sum, i) => sum + (i.total || 0), 0)
+    : totalExpense;
+
+  // Compute activeData with percentages built-in
+  const activeData = useMemo(() => {
+    const rawData = drillDownCategory ? drillDownData : categoryData;
+    const sumTotal = currentTotalSum || 1;
+    return (rawData || []).map(item => {
+      const itemTotal = Number(item?.total ?? item?.value ?? 0);
+      return {
+        ...item,
+        total: itemTotal,
+        percentage: (itemTotal / sumTotal) * 100
+      };
+    });
+  }, [drillDownCategory, drillDownData, categoryData, currentTotalSum]);
 
   // Custom active shape renderer for slice hover expansions
   const renderActiveShape = (props) => {
@@ -111,6 +136,9 @@ export default function DonutChart({
     const ex = sx + (cos >= 0 ? 1 : -1) * 12;
     const ey = sy;
     const textAnchor = cos >= 0 ? 'start' : 'end';
+
+    const displayVal = Number(value ?? 0);
+    const displayPct = Number(percent ?? 0) * 100;
 
     return (
       <g>
@@ -135,17 +163,14 @@ export default function DonutChart({
         <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={1.5} />
         <circle cx={ex} cy={ey} r={2.5} fill={fill} />
         <text x={ex + (cos >= 0 ? 1 : -1) * 6} y={ey - 4} textAnchor={textAnchor} fill="var(--slate-200)" className="text-[9px] font-bold">
-          {payload.name.substring(0, 16)}
+          {String(payload?.name || '').substring(0, 16)}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 6} y={ey + 8} textAnchor={textAnchor} fill={fill} className="text-[10px] font-extrabold font-mono">
-          {currencySymbol}{value.toLocaleString('en-IN')}
+          {currencySymbol}{displayVal.toLocaleString('en-IN')} ({displayPct.toFixed(0)}%)
         </text>
       </g>
     );
   };
-
-  const activeData = drillDownCategory ? drillDownData : categoryData;
-  const currentTotalSum = drillDownCategory ? drillDownData.reduce((sum, i) => sum + i.total, 0) : totalExpense;
 
   return (
     <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-5 h-full justify-between">
@@ -205,11 +230,11 @@ export default function DonutChart({
                 stroke="none"
               >
                 {activeData.map((entry, index) => {
-                  const isSelected = selectedCategory === entry.name;
+                  const isSelected = selectedCategory === entry?.name;
                   return (
                     <Cell
                       key={`cell-${index}`}
-                      fill={entry.color}
+                      fill={entry?.color || '#3b82f6'}
                       className="cursor-pointer transition-all duration-300"
                       style={{
                         filter: selectedCategory && !isSelected && !drillDownCategory ? 'grayscale(80%) opacity(30%)' : 'none'
@@ -226,13 +251,13 @@ export default function DonutChart({
             {hoveredData ? (
               <>
                 <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider truncate max-w-[80px]">
-                  {hoveredData.name}
+                  {String(hoveredData?.name || '')}
                 </span>
                 <span className="text-sm font-black text-slate-105 font-mono">
-                  {currencySymbol}{Math.round(hoveredData.total).toLocaleString()}
+                  {currencySymbol}{Math.round(Number(hoveredData?.total ?? 0)).toLocaleString()}
                 </span>
                 <span className="text-[9px] text-primary-400 font-bold">
-                  {hoveredData.percentage.toFixed(0)}%
+                  {Number(hoveredData?.percentage ?? 0).toFixed(0)}%
                 </span>
               </>
             ) : (
@@ -241,7 +266,7 @@ export default function DonutChart({
                   {drillDownCategory ? 'Subtotal' : 'Total spent'}
                 </span>
                 <span className="text-base font-black text-slate-150 font-mono">
-                  {currencySymbol}{Math.round(currentTotalSum).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  {currencySymbol}{Math.round(Number(currentTotalSum ?? 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </span>
               </>
             )}
@@ -251,7 +276,7 @@ export default function DonutChart({
         {/* Custom Legend details */}
         <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
           {activeData.map((cat, idx) => {
-            const isSelected = selectedCategory === cat.name;
+            const isSelected = selectedCategory === cat?.name;
             return (
               <div
                 key={idx}
@@ -268,14 +293,14 @@ export default function DonutChart({
                 <div className="flex items-center gap-1.5 truncate">
                   <span
                     className="w-2 h-2 rounded-full inline-block flex-shrink-0"
-                    style={{ backgroundColor: cat.color }}
+                    style={{ backgroundColor: cat?.color || '#3b82f6' }}
                   />
-                  <span className="text-xs flex-shrink-0">{cat.icon}</span>
-                  <span className="truncate max-w-[80px] sm:max-w-[120px]">{cat.name}</span>
+                  <span className="text-xs flex-shrink-0">{cat?.icon || '📁'}</span>
+                  <span className="truncate max-w-[80px] sm:max-w-[120px]">{String(cat?.name || '')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 font-mono text-right">
-                  <span className="font-bold text-slate-205">{currencySymbol}{Math.round(cat.total).toLocaleString()}</span>
-                  <span className="text-[9px] text-slate-500 font-bold">{cat.percentage.toFixed(0)}%</span>
+                  <span className="font-bold text-slate-205">{currencySymbol}{Math.round(Number(cat?.total ?? 0)).toLocaleString()}</span>
+                  <span className="text-[9px] text-slate-500 font-bold">{Number(cat?.percentage ?? 0).toFixed(0)}%</span>
                 </div>
               </div>
             );
