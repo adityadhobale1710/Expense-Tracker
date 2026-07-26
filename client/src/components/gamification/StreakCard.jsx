@@ -1,0 +1,150 @@
+import { useGamification } from '../../context/GamificationContext';
+
+// Generate a 7-week heatmap of activity days (based on xpHistory if available, else streak approximation)
+function generateHeatmap(streak, longestStreak) {
+  const today = new Date();
+  const weeks = 7;
+  const days = weeks * 7;
+  const grid = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    // Simulate: recent streak days are active
+    const isActive = i < streak;
+    const isToday = i === 0;
+    grid.push({ date: d, active: isActive, today: isToday });
+  }
+  return grid;
+}
+
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+export default function StreakCard() {
+  const { streak, longestStreak } = useGamification();
+  const heatmap = generateHeatmap(streak, longestStreak);
+
+  const weeks = [];
+  for (let w = 0; w < 7; w++) {
+    weeks.push(heatmap.slice(w * 7, w * 7 + 7));
+  }
+
+  const milestones = [7, 14, 30, 60, 100];
+  const nextMilestone = milestones.find(m => m > streak) || milestones[milestones.length - 1];
+  const milestonePct = Math.min((streak / nextMilestone) * 100, 100);
+
+  return (
+    <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl space-y-5">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xl animate-pulse">🔥</span>
+            <h3 className="text-base font-black text-slate-100">Streak Tracker</h3>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">Log transactions daily to keep your streak alive</p>
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-extrabold text-orange-400 font-mono leading-none">{streak}</p>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">day streak</p>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 text-center">
+          <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">Current</p>
+          <p className="text-lg font-extrabold text-orange-400 font-mono mt-0.5">{streak}d</p>
+        </div>
+        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 text-center">
+          <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">Best Ever</p>
+          <p className="text-lg font-extrabold text-emerald-400 font-mono mt-0.5">{longestStreak}d</p>
+        </div>
+        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 text-center">
+          <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">Next Goal</p>
+          <p className="text-lg font-extrabold text-indigo-400 font-mono mt-0.5">{nextMilestone}d</p>
+        </div>
+      </div>
+
+      {/* Next milestone progress */}
+      <div className="space-y-1.5">
+        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+          <span>Progress to {nextMilestone}-day streak</span>
+          <span className="font-mono">{streak}/{nextMilestone}</span>
+        </div>
+        <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-700"
+            style={{ width: `${milestonePct}%` }}
+          />
+        </div>
+        {streak >= nextMilestone && (
+          <p className="text-[10px] text-amber-400 font-bold text-center">
+            🎉 +50 Bonus XP unlocked at this milestone!
+          </p>
+        )}
+      </div>
+
+      {/* GitHub-style heatmap */}
+      <div>
+        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">7-Week Activity</p>
+        <div className="flex gap-1">
+          {/* Day labels column */}
+          <div className="flex flex-col gap-1 pr-1">
+            {WEEKDAY_LABELS.map((label, i) => (
+              <span key={i} className="text-[8px] text-slate-600 font-bold h-3 flex items-center">{label}</span>
+            ))}
+          </div>
+
+          {/* Heatmap grid */}
+          <div className="flex gap-1 flex-1 overflow-x-auto">
+            {weeks.map((week, wi) => (
+              <div key={wi} className="flex flex-col gap-1">
+                {week.map((day, di) => (
+                  <div
+                    key={di}
+                    title={`${day.date.toLocaleDateString('en-IN')}: ${day.active ? 'Active' : 'No activity'}`}
+                    className={`w-3 h-3 rounded-sm transition-all ${
+                      day.today
+                        ? 'bg-indigo-500 ring-1 ring-indigo-400 ring-offset-1 ring-offset-slate-900'
+                        : day.active
+                        ? 'bg-emerald-500/80 hover:bg-emerald-400'
+                        : 'bg-slate-800 hover:bg-slate-700'
+                    }`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-2 mt-2 justify-end">
+          <span className="text-[9px] text-slate-600">Less</span>
+          <div className="flex gap-0.5">
+            {['bg-slate-800', 'bg-emerald-900', 'bg-emerald-700', 'bg-emerald-500', 'bg-emerald-400'].map((c, i) => (
+              <div key={i} className={`w-2.5 h-2.5 rounded-sm ${c}`} />
+            ))}
+          </div>
+          <span className="text-[9px] text-slate-600">More</span>
+        </div>
+      </div>
+
+      {/* Milestone badges */}
+      <div className="flex gap-2 flex-wrap">
+        {milestones.map(m => (
+          <span
+            key={m}
+            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+              streak >= m
+                ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                : 'bg-slate-900/30 border-slate-800 text-slate-600'
+            }`}
+          >
+            {streak >= m ? '✓' : '○'} {m}d
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}

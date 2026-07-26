@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import GamificationContext from './GamificationContext';
 
 const ExpenseContext = createContext();
 
@@ -11,6 +12,12 @@ export const ExpenseProvider = ({ children }) => {
   const [budgets, setBudgets] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Safe optional gamification reward — won't throw if context not ready
+  const gamification = useContext(GamificationContext);
+  const rewardAction = (actionKey) => {
+    try { gamification?.applyReward?.(actionKey); } catch {}
+  };
 
   // ─── Incomes ──────────────────────────────────────────
   const fetchIncomes = useCallback(async (params = {}) => {
@@ -33,6 +40,7 @@ export const ExpenseProvider = ({ children }) => {
     const { data } = await api.post('/income', payload);
     setIncomes((prev) => [data.data, ...prev]);
     toast.success('Income added!');
+    rewardAction('ADD_INCOME');
     return data.data;
   };
 
@@ -70,6 +78,7 @@ export const ExpenseProvider = ({ children }) => {
     const { data } = await api.post('/expenses', payload);
     setExpenses((prev) => [data.data, ...prev]);
     toast.success('Expense added!');
+    rewardAction('ADD_EXPENSE');
     return data.data;
   };
 
@@ -106,6 +115,7 @@ export const ExpenseProvider = ({ children }) => {
     const { data } = await api.post('/budgets', payload);
     setBudgets((prev) => [...prev, data.data]);
     toast.success('Budget created!');
+    rewardAction('CREATE_BUDGET');
   };
 
   const updateBudget = async (id, payload) => {
