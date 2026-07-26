@@ -19,6 +19,7 @@ import {
   Award
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useDialog } from '../../hooks/useDialog';
 
 import { useGoals } from '../../hooks/useGoals';
 import { useGoalAnalytics } from '../../hooks/useGoalAnalytics';
@@ -34,6 +35,7 @@ import ContributionModal from '../../components/Goals/ContributionModal';
 export default function GoalDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showConfirm } = useDialog();
 
   const [page, setPage] = useState(1);
   const limit = 5;
@@ -116,7 +118,14 @@ export default function GoalDetails() {
   };
 
   const handleRemoveContribution = async (contribId) => {
-    if (window.confirm('Are you sure you want to remove this contribution? Funds will be refunded to the wallet.')) {
+    const confirmed = await showConfirm({
+      title: 'Remove Contribution',
+      message: 'Are you sure you want to remove this contribution? Funds will be refunded to the wallet.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (confirmed) {
       try {
         await deleteContribution(goal._id, contribId);
       } catch (err) {}

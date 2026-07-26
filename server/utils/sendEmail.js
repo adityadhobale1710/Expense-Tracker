@@ -1,150 +1,95 @@
 import nodemailer from 'nodemailer';
 
+// Configuration variables with fallback defaults
+const LOGO_URL = process.env.LOGO_URL || 'https://raw.githubusercontent.com/adityadhobale1710/Expense-Tracker/main/client/public/logo.jpg';
+const COMPANY_NAME = process.env.COMPANY_NAME || 'Expense Tracker';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@expensetracker.com';
+
 /**
  * Generates a premium dark-themed, glassmorphic-styled HTML email template.
  */
 export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, footerText }) => {
-  return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${title}</title>
-      <style>
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-          background-color: #05070f;
-          color: #e2e8f0;
-          -webkit-font-smoothing: antialiased;
-        }
-        .wrapper {
-          width: 100%;
-          table-layout: fixed;
-          background-color: #05070f;
-          padding: 40px 0;
-        }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #0b0f19;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 24px;
-          overflow: hidden;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        }
-        .header {
-          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-          padding: 40px 30px;
-          text-align: center;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 800;
-          color: #ffffff;
-          letter-spacing: -0.5px;
-          text-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-        }
-        .content {
-          padding: 40px 30px;
-        }
-        .greeting {
-          font-size: 20px;
-          font-weight: 700;
-          color: #ffffff;
-          margin-top: 0;
-          margin-bottom: 16px;
-        }
-        .body-text {
-          font-size: 15px;
-          line-height: 1.6;
-          color: #94a3b8;
-          margin-bottom: 30px;
-        }
-        .cta-container {
-          text-align: center;
-          margin: 35px 0;
-        }
-        .cta-button {
-          display: inline-block;
-          background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-          color: #ffffff !important;
-          text-decoration: none;
-          padding: 14px 32px;
-          font-size: 16px;
-          font-weight: 700;
-          border-radius: 12px;
-          box-shadow: 0 10px 20px rgba(99, 102, 241, 0.25);
-          transition: all 0.2s ease;
-        }
-        .code-container {
-          background-color: #0f172a;
-          border: 1px dashed rgba(99, 102, 241, 0.3);
-          border-radius: 16px;
-          padding: 20px;
-          text-align: center;
-          margin: 35px 0;
-        }
-        .code-text {
-          font-family: 'Courier New', Courier, monospace;
-          font-size: 32px;
-          font-weight: 800;
-          letter-spacing: 6px;
-          color: #818cf8;
-          margin: 0;
-        }
-        .footer {
-          padding: 30px;
-          text-align: center;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          background-color: #070912;
-        }
-        .footer p {
-          font-size: 12px;
-          color: #64748b;
-          margin: 8px 0 0 0;
-        }
-        .footer a {
-          color: #6366f1;
-          text-decoration: none;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="wrapper">
-        <div class="container">
-          <div class="header">
-            <h1>My Expense Pro</h1>
-          </div>
-          <div class="content">
-            ${greeting ? `<div class="greeting">${greeting}</div>` : ''}
-            <div class="body-text">${body}</div>
-            
-            ${code ? `
-              <div class="code-container">
-                <p style="margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 700;">Verification Code</p>
-                <div class="code-text">${code}</div>
-              </div>
-            ` : ''}
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <title>${title}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      background-color: #05070f;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #05070f; font-family: 'Plus Jakarta Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <!-- Preheader text (hidden preview text) -->
+  <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: #05070f;">
+    ${title} - Action Required.
+  </div>
 
-            ${ctaUrl && ctaText ? `
-              <div class="cta-container">
-                <a href="${ctaUrl}" class="cta-button">${ctaText}</a>
-              </div>
-            ` : ''}
-          </div>
-          <div class="footer">
-            <p>${footerText || 'You received this email because you are registered with My Expense Pro.'}</p>
-            <p>&copy; ${new Date().getFullYear()} My Expense Pro. All rights reserved.</p>
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #05070f; padding: 32px 0;">
+    <tr>
+      <td align="center">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 540px; background-color: #0b0f19; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.55);">
+          <!-- Header (Brand Logo Banner) -->
+          <tr>
+            <td align="center" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 36px 24px;">
+              <img src="${LOGO_URL}" alt="${COMPANY_NAME} Logo" border="0" width="130" style="display: block; outline: none; border: none; max-width: 130px; height: auto;" />
+            </td>
+          </tr>
+          <!-- Content Body -->
+          <tr>
+            <td style="padding: 36px 28px;">
+              ${greeting ? `<h2 style="margin: 0 0 14px 0; font-size: 18px; font-weight: 700; color: #ffffff; line-height: 1.35;">${greeting}</h2>` : ''}
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #94a3b8;">${body}</p>
+
+              ${code ? `
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 28px 0;">
+                  <tr>
+                    <td align="center" style="background-color: #0f172a; border: 1px dashed rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 22px 16px;">
+                      <p style="margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; font-weight: 700;">Verification Code</p>
+                      <div style="font-family: 'Courier New', Courier, monospace; font-size: 30px; font-weight: 800; letter-spacing: 5px; color: #818cf8; line-height: 1.2;">${code}</div>
+                    </td>
+                  </tr>
+                </table>
+              ` : ''}
+
+              ${ctaUrl && ctaText ? `
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 28px 0;">
+                  <tr>
+                    <td align="center">
+                      <a href="${ctaUrl}" target="_blank" style="display: inline-block; background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; font-size: 14px; font-weight: 700; border-radius: 10px; box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2); line-height: 1.2;">${ctaText}</a>
+                    </td>
+                  </tr>
+                </table>
+              ` : ''}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #070912; padding: 24px 28px; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #64748b; line-height: 1.5;">${footerText || `You received this email because you are registered with ${COMPANY_NAME}.`}</p>
+              <p style="margin: 10px 0 0 0; font-size: 11px; color: #64748b; line-height: 1.5;">
+                &copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.<br/>
+                For support, contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #6366f1; text-decoration: none;">${SUPPORT_EMAIL}</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 };
 
 /**
