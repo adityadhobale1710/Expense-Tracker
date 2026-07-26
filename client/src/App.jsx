@@ -95,8 +95,8 @@ export default function App() {
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <ExpenseProvider>
-              <GamificationProvider>
+            <GamificationProvider>
+              <ExpenseProvider>
                 <AppRoutes />
                 {/* Global gamification overlays — rendered once at root */}
                 <XPAnimation />
@@ -110,8 +110,8 @@ export default function App() {
                     success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
                   }}
                 />
-              </GamificationProvider>
-            </ExpenseProvider>
+              </ExpenseProvider>
+            </GamificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
