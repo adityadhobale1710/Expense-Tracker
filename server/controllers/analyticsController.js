@@ -20,17 +20,21 @@ const sanitizeCell = (val) => {
  * Fallback is current month
  */
 const getQueryDateRange = (req) => {
-  const { startDate, endDate } = req.query;
-  let start = startDate ? new Date(startDate) : null;
-  let end = endDate ? new Date(endDate) : null;
+  const { startDate, endDate, start: qStart, end: qEnd } = req.query;
+  const rawStart = startDate || qStart;
+  const rawEnd = endDate || qEnd;
+  let start = rawStart ? new Date(rawStart) : null;
+  let end = rawEnd ? new Date(rawEnd) : null;
 
-  if (!start || isNaN(start.getTime()) || !end || isNaN(end.getTime())) {
-    const now = new Date();
+  const now = new Date();
+  if (!start || isNaN(start.getTime())) {
     start = new Date(now.getFullYear(), now.getMonth(), 1);
+  } else {
+    start.setHours(0, 0, 0, 0);
+  }
+  if (!end || isNaN(end.getTime())) {
     end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
   } else {
-    // Ensure start is beginning of day and end is end of day
-    start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 59, 999);
   }
   return { start, end };
@@ -415,14 +419,10 @@ export const getAnalyticsCashflow = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsHeatmap = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  
-  // Return last 365 days of activity for heat grid
-  const oneYearAgo = new Date();
-  oneYearAgo.setDate(oneYearAgo.getDate() - 364);
-  oneYearAgo.setHours(0, 0, 0, 0);
+  const { start, end } = getQueryDateRange(req);
 
   const dailyTotals = await Expense.aggregate([
-    { $match: { user: userId, date: { $gte: oneYearAgo } } },
+    { $match: { user: userId, date: { $gte: start, $lte: end } } },
     {
       $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
