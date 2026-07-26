@@ -476,3 +476,111 @@ html[data-theme="light"] .expenses-page [class~="search-icon"] {
   color: #6B7280 !important;
 }
 
+/* ── Calendar & Dashboard Readability Overrides (Light Theme) ── */
+html[data-theme="light"] .calendar-page .bill-chip,
+html[data-theme="light"] .bill-chip {
+  background-color: rgba(79, 70, 229, 0.1) !important;
+  color: #4f46e5 !important;
+  border-color: rgba(79, 70, 229, 0.3) !important;
+}
+
+html[data-theme="light"] .calendar-page .text-slate-100,
+html[data-theme="light"] .dashboard-page .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .calendar-page .text-slate-200,
+html[data-theme="light"] .dashboard-page .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html[data-theme="light"] .calendar-page .text-slate-300,
+html[data-theme="light"] .dashboard-page .text-slate-300 {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .calendar-page .text-slate-400,
+html[data-theme="light"] .dashboard-page .text-slate-400 {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .subscription-card {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: #b91c1c !important;
+}
+
+html[data-theme="light"] .loan-card {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  color: #1d4ed8 !important;
+}
+
+html[data-theme="light"] .badge-red-light-override {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  color: #b91c1c !important;
+}
+
+html[data-theme="light"] .badge-blue-light-override {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  color: #1d4ed8 !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-emerald-450 {
+  color: #047857 !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-red-450 {
+  color: #b91c1c !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-slate-205 {
+  color: #1e293b !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-slate-350 {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-slate-450 {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-slate-550 {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .dashboard-page .text-slate-555 {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .bill-chip-subscription {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  color: #b91c1c !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+html[data-theme="light"] .bill-chip-loan {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+html[data-theme="light"] .bill-chip-expense {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  color: #d97706 !important;
+  border-color: rgba(245, 158, 11, 0.2) !important;
+}
+
+html[data-theme="light"] .bill-chip-income {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+  color: #047857 !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+
+

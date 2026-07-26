@@ -1,13 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   TrendingUp, TrendingDown, PiggyBank, Wallet, PieChart as PieChartIcon,
-  BarChart3, ArrowUpRight, Sparkles, Calendar, DollarSign,
-  CheckCircle2, AlertTriangle, Layers, ArrowLeft, RefreshCcw
+  Layers, ArrowLeft, RefreshCcw, AlertCircle, Sparkles
 } from 'lucide-react';
 import {
-  ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Sector
+  ResponsiveContainer, PieChart, Pie, Cell, Sector
 } from 'recharts';
 import { useExpense } from '../../context/ExpenseContext';
 import api from '../../services/api';
@@ -29,26 +27,6 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 const INCOME_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 const EXPENSE_COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#06b6d4', '#6366f1', '#a855f7', '#ec4899'];
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-slate-900/95 border border-slate-700/80 backdrop-blur-md p-3.5 rounded-2xl shadow-2xl space-y-1.5 min-w-[170px]">
-      <p className="text-xs font-bold text-slate-400 border-b border-slate-800 pb-1">{label}</p>
-      {payload.map((entry, idx) => (
-        <div key={idx} className="flex items-center justify-between gap-3 text-xs">
-          <span className="flex items-center gap-1.5 font-medium" style={{ color: entry.color }}>
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            {entry.name}:
-          </span>
-          <span className="font-bold text-slate-100 font-mono">
-            ₹{Number(entry.value || 0).toLocaleString('en-IN')}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export default function AnalyticsPro() {
   const { summary, incomes, expenses, fetchIncomes, fetchExpenses, fetchSummary } = useExpense();
 
@@ -59,47 +37,89 @@ export default function AnalyticsPro() {
   const [categoryData, setCategoryData] = useState([]);
   const [incomeAnalyticsData, setIncomeAnalyticsData] = useState(null);
 
+  // API response states for specific charts
+  const [cashflowData, setCashflowData] = useState([]);
+  const [heatmapData, setHeatmapData] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+  const [prevTrendData, setPrevTrendData] = useState([]);
+
   // Active indices for interactive hover on pie charts
-  const [activeIncomeIndex, setActiveIncomeIndex] = useState(-1);
-  const [activeExpenseIndex, setActiveExpenseIndex] = useState(-1);
   const [selectedDonutCategory, setSelectedDonutCategory] = useState(null);
   const [error, setError] = useState(null);
 
-  const loadAnalyticsData = async () => {
+  // Guard against React 18 StrictMode double-invoke. Holds the active AbortController
+  // so that the cleanup function from the first mount can cancel its own in-flight
+  // requests before the second mount issues a fresh set.
+  const abortControllerRef = useRef(null);
+
+  const loadAnalyticsData = useCallback(async (signal) => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      await Promise.all([
-        fetchSummary(),
-        fetchIncomes(),
-        fetchExpenses()
+      // Calculate date range from timeRange
+      const endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
+
+      let startDate = new Date();
+      if (timeRange === '1m') {
+        startDate.setMonth(startDate.getMonth() - 1);
+      } else if (timeRange === '3m') {
+        startDate.setMonth(startDate.getMonth() - 3);
+      } else {
+        startDate.setMonth(startDate.getMonth() - 6);
+      }
+      startDate.setHours(0, 0, 0, 0);
+
+      const startISO = startDate.toISOString();
+      const endISO = endDate.toISOString();
+
+      // Calculate previous range for trend comparison
+      const duration = endDate.getTime() - startDate.getTime();
+      const prevEndDate = new Date(startDate.getTime() - 1);
+      const prevStartDate = new Date(startDate.getTime() - duration - 1);
+      const prevStartISO = prevStartDate.toISOString();
+      const prevEndISO = prevEndDate.toISOString();
+
+      // Axios passes the AbortController signal — any cancelled request throws
+      // CanceledError which is caught and silently ignored below.
+      const axiosOpts = signal ? { signal } : {};
+
+      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, heatmapRes, trendRes, prevTrendRes] = await Promise.all([
+        api.get('/reports/monthly', axiosOpts),
+        api.get('/reports/by-category', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/income', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/cashflow', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/heatmap', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/trend', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/trend', { params: { startDate: prevStartISO, endDate: prevEndISO }, ...axiosOpts }),
+        fetchSummary({ startDate: startISO, endDate: endISO }),
+        fetchIncomes({ limit: 1000, startDate: startISO, endDate: endISO }),
+        fetchExpenses({ limit: 1000, startDate: startISO, endDate: endISO }),
       ]);
 
-      const [mRes, cRes, incomeAnalyticsRes] = await Promise.all([
-        api.get('/reports/monthly'),
-        api.get('/reports/by-category'),
-        api.get('/analytics/income')
-      ]);
-
-      console.log("Income Analytics:", incomeAnalyticsRes.data);
+      // Defensive access — never crash if server returned unexpected shape
       setIncomeAnalyticsData(incomeAnalyticsRes.data?.data || null);
-      setCategoryData(cRes.data?.data || []);
+      setCategoryData(Array.isArray(cRes.data?.data) ? cRes.data.data : []);
+      setCashflowData(Array.isArray(cashflowRes.data?.data) ? cashflowRes.data.data : []);
+      setHeatmapData(Array.isArray(heatmapRes.data?.data) ? heatmapRes.data.data : []);
+      setTrendData(Array.isArray(trendRes.data?.data) ? trendRes.data.data : []);
+      setPrevTrendData(Array.isArray(prevTrendRes.data?.data) ? prevTrendRes.data.data : []);
 
       // Format monthly report
       const { incomes: incList = [], expenses: expList = [] } = mRes.data?.data || {};
       const now = new Date();
       const count = timeRange === '1m' ? 1 : timeRange === '3m' ? 3 : 6;
-      
+
       const formattedMonths = Array.from({ length: count }, (_, i) => {
         const d = new Date(now.getFullYear(), now.getMonth() - (count - 1) + i, 1);
         const m = d.getMonth() + 1;
         const y = d.getFullYear();
-        
-        const incMatch = incList.find(x => x._id?.month === m && x._id?.year === y);
-        const expMatch = expList.find(x => x._id?.month === m && x._id?.year === y);
-        
+
+        const incMatch = incList.find((x) => x._id?.month === m && x._id?.year === y);
+        const expMatch = expList.find((x) => x._id?.month === m && x._id?.year === y);
+
         const incVal = incMatch?.total || 0;
         const expVal = expMatch?.total || 0;
         const savingsVal = Math.max(0, incVal - expVal);
@@ -110,29 +130,53 @@ export default function AnalyticsPro() {
           Earnings: incVal,
           Spent: expVal,
           Saved: savingsVal,
-          savingsRate: savingsRateVal
+          savingsRate: savingsRateVal,
         };
       });
 
       setMonthlyData(formattedMonths);
     } catch (err) {
-      if (err.name !== 'CanceledError' && err.message !== 'canceled') {
-        console.error('Failed to load Analytics Pro metrics:', err);
-        setError(err.response?.data?.message || err.message || 'Failed to load analytics data.');
+      // Silently ignore AbortController cancellation — this is expected in StrictMode
+      if (err.name === 'CanceledError' || err.name === 'AbortError' || err.message === 'canceled') {
+        return;
       }
+      console.error('[AnalyticsPro] Failed to load analytics metrics:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load analytics data.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Manual retry handler — creates a fresh AbortController for the new request
+  const handleRetry = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    loadAnalyticsData(controller.signal);
+  }, [loadAnalyticsData]);
 
   useEffect(() => {
-    loadAnalyticsData();
-  }, [timeRange]);
+    // Cancel any in-flight request from the previous render cycle.
+    // In React 18 StrictMode this fires: mount → unmount (abort) → remount (fresh request).
+    // In production it is a no-op since there is no prior controller.
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    loadAnalyticsData(controller.signal);
+
+    return () => {
+      // Cleanup: abort on unmount or before the next effect run
+      controller.abort();
+    };
+  }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Aggregate Incomes by source for the Earnings Pie Chart
   const incomePieData = useMemo(() => {
     if (!incomes || incomes.length === 0) {
-      // Fallback presentation data if no income logs recorded yet
       return [
         { name: 'Salary', value: 65000, icon: '💼', color: '#10b981' },
         { name: 'Freelancing', value: 18000, icon: '💻', color: '#3b82f6' },
@@ -154,7 +198,6 @@ export default function AnalyticsPro() {
       Uncategorized: '💰'
     };
 
-    // If we have backend analytics data, use it directly!
     if (incomeAnalyticsData && incomeAnalyticsData.sources) {
       return incomeAnalyticsData.sources.map((s, idx) => ({
         name: s.source,
@@ -182,7 +225,7 @@ export default function AnalyticsPro() {
   }, [incomes, incomeAnalyticsData]);
 
   const totalEarnedVal = useMemo(() => {
-    if (summary?.totalIncome) return summary.totalIncome;
+    if (summary?.totalIncome !== undefined) return summary.totalIncome;
     return incomePieData.reduce((acc, item) => acc + item.value, 0);
   }, [summary, incomePieData]);
 
@@ -227,7 +270,7 @@ export default function AnalyticsPro() {
   }, [categoryData, expenses]);
 
   const totalSpentVal = useMemo(() => {
-    if (summary?.totalExpense) return summary.totalExpense;
+    if (summary?.totalExpense !== undefined) return summary.totalExpense;
     return expensePieData.reduce((acc, item) => acc + item.value, 0);
   }, [summary, expensePieData]);
 
@@ -244,73 +287,6 @@ export default function AnalyticsPro() {
       savings: d.Saved || 0
     }));
   }, [monthlyData]);
-
-  const cashflowData = useMemo(() => {
-    const datesMap = {};
-    
-    incomes.forEach(inc => {
-      if (!inc.date) return;
-      const dStr = new Date(inc.date).toISOString().split('T')[0];
-      if (!datesMap[dStr]) datesMap[dStr] = { income: 0, expense: 0 };
-      datesMap[dStr].income += inc.amount || 0;
-    });
-
-    expenses.forEach(exp => {
-      if (!exp.date) return;
-      const dStr = new Date(exp.date).toISOString().split('T')[0];
-      if (!datesMap[dStr]) datesMap[dStr] = { income: 0, expense: 0 };
-      datesMap[dStr].expense += exp.amount || 0;
-    });
-
-    const sortedDates = Object.keys(datesMap).sort();
-    let runningBalance = 0;
-    
-    return sortedDates.map(date => {
-      const day = datesMap[date];
-      runningBalance += (day.income - day.expense);
-      return {
-        date,
-        income: day.income,
-        expense: day.expense,
-        runningBalance
-      };
-    });
-  }, [incomes, expenses]);
-
-  const heatmapData = useMemo(() => {
-    const map = {};
-    expenses.forEach(exp => {
-      if (!exp.date) return;
-      const dStr = new Date(exp.date).toISOString().split('T')[0];
-      if (!map[dStr]) map[dStr] = { amount: 0, count: 0 };
-      map[dStr].amount += exp.amount || 0;
-      map[dStr].count += 1;
-    });
-    return Object.entries(map).map(([dateStr, val]) => ({
-      _id: dateStr,
-      amount: val.amount,
-      count: val.count
-    }));
-  }, [expenses]);
-
-  const dailyTrendData = useMemo(() => {
-    const map = {};
-    expenses.forEach(exp => {
-      if (!exp.date) return;
-      const dStr = new Date(exp.date).toISOString().split('T')[0];
-      map[dStr] = (map[dStr] || 0) + exp.amount;
-    });
-    const sorted = Object.entries(map).map(([date, amount]) => ({
-      date,
-      amount
-    })).sort((a, b) => a.date.localeCompare(b.date));
-    
-    const half = Math.ceil(sorted.length / 2);
-    const trendData = sorted.slice(half);
-    const prevTrendData = sorted.slice(0, half);
-    
-    return { trendData, prevTrendData };
-  }, [expenses]);
 
   const incomeCategoryData = useMemo(() => {
     return incomePieData.map(i => ({
@@ -341,43 +317,6 @@ export default function AnalyticsPro() {
     ];
   }, [expenses, netSavingsVal]);
 
-  // Active Shape renderer for hoverable Pie charts
-  const renderActiveShape = (props) => {
-    const RADIAN = Math.PI / 180;
-    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
-    const sin = Math.sin(-RADIAN * midAngle);
-    const cos = Math.cos(-RADIAN * midAngle);
-    const sx = cx + (outerRadius + 8) * cos;
-    const sy = cy + (outerRadius + 8) * sin;
-    const mx = cx + (outerRadius + 18) * cos;
-    const my = cy + (outerRadius + 18) * sin;
-    const ex = sx + (cos >= 0 ? 1 : -1) * 12;
-    const ey = sy;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
-
-    return (
-      <g>
-        <Sector
-          cx={cx}
-          cy={cy}
-          innerRadius={innerRadius}
-          outerRadius={outerRadius + 6}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          fill={fill}
-        />
-        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={1.5} />
-        <circle cx={ex} cy={ey} r={3} fill={fill} />
-        <text x={ex + (cos >= 0 ? 1 : -1) * 6} y={ey - 4} textAnchor={textAnchor} fill="var(--slate-200)" className="text-[11px] font-bold">
-          {payload.name}
-        </text>
-        <text x={ex + (cos >= 0 ? 1 : -1) * 6} y={ey + 8} textAnchor={textAnchor} fill={fill} className="text-[11px] font-black font-mono">
-          ₹{Number(value).toLocaleString('en-IN')} ({(percent * 100).toFixed(0)}%)
-        </text>
-      </g>
-    );
-  };
-
   if (loading) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
@@ -395,7 +334,7 @@ export default function AnalyticsPro() {
           <p className="text-xs text-red-300/80">{error}</p>
         </div>
         <button
-          onClick={loadAnalyticsData}
+          onClick={handleRetry}
           className="px-5 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-100 text-xs font-bold rounded-2xl cursor-pointer transition-all"
         >
           Try Again
@@ -475,7 +414,7 @@ export default function AnalyticsPro() {
             </button>
           ))}
           <button
-            onClick={loadAnalyticsData}
+            onClick={handleRetry}
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all ml-1"
             title="Refresh Data"
           >
@@ -588,7 +527,7 @@ export default function AnalyticsPro() {
           { id: 'overview', label: '📊 Complete Overview', icon: Layers },
           { id: 'earnings', label: '💼 How I Earn (Incomes)', icon: TrendingUp },
           { id: 'expenses', label: '💸 How I Spend (Expenses)', icon: TrendingDown }
-        ].map(({ id, label, icon: Icon }) => (
+        ].map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
@@ -602,8 +541,6 @@ export default function AnalyticsPro() {
           </button>
         ))}
       </div>
-
-
 
       {/* Section 2: Pie Charts & Visual Breakdown Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -836,15 +773,13 @@ export default function AnalyticsPro() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
-            <IncomeExpenseAreaChart trendData={dailyTrendData.trendData} prevTrendData={dailyTrendData.prevTrendData} />
+            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
           </div>
           <div className="grid grid-cols-1 gap-6">
             <DailySpendingHeatmap heatmapData={heatmapData} />
           </div>
         </div>
       )}
-
-
 
       {/* Section 4: Detailed Breakdown & Financial Recommendations */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
