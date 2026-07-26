@@ -2,7 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExpenseProvider } from './context/ExpenseContext';
+import { GamificationProvider } from './context/GamificationContext';
 import { ThemeProvider } from './context/ThemeContext';
+import XPAnimation from './components/gamification/XPAnimation';
+import LevelUpModal from './components/gamification/LevelUpModal';
+import RewardChestModal from './components/gamification/RewardChestModal';
+import NotificationToast from './components/gamification/NotificationToast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient({
@@ -91,14 +96,21 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <ExpenseProvider>
-              <AppRoutes />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
-                  success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
-                }}
-              />
+              <GamificationProvider>
+                <AppRoutes />
+                {/* Global gamification overlays — rendered once at root */}
+                <XPAnimation />
+                <LevelUpModal />
+                <RewardChestModal />
+                <NotificationToast />
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
+                    success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+                  }}
+                />
+              </GamificationProvider>
             </ExpenseProvider>
           </AuthProvider>
         </ThemeProvider>
