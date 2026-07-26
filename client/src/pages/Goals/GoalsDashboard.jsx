@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Plus, AlertCircle, RefreshCw, LayoutGrid } from 'lucide-react';
 import useGoals from '../../hooks/useGoals';
+import { useDialog } from '../../hooks/useDialog';
 
 // Components
 import GoalStats from '../../components/Goals/GoalStats';
@@ -12,6 +13,7 @@ import GoalModal from '../../components/Goals/GoalModal';
 import ContributionModal from '../../components/Goals/ContributionModal';
 
 export default function GoalsDashboard() {
+  const { showConfirm } = useDialog();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
     status: 'Active',
@@ -80,7 +82,14 @@ export default function GoalsDashboard() {
   };
 
   const handleDeleteGoal = async (id) => {
-    if (window.confirm('Are you sure you want to delete this savings goal? (It will be archived and soft-deleted)')) {
+    const confirmed = await showConfirm({
+      title: 'Delete Savings Goal',
+      message: 'Are you sure you want to delete this savings goal? (It will be archived and soft-deleted)',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (confirmed) {
       try {
         await deleteGoal(id);
         refetchStats();

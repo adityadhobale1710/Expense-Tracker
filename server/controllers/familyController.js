@@ -62,18 +62,18 @@ export const inviteMember = asyncHandler(async (req, res) => {
   const inviteHtml = getHtmlTemplate({
     title: 'Family Hub Invitation',
     greeting: 'Hello!',
-    body: `You have been invited by **${req.user.name}** (${req.user.email}) to join their Family Sharing Hub on My Expense Pro as a **${role || 'member'}**.`,
-    ctaText: 'Accept Invitation & Go to Dashboard',
+    body: `You have been invited by **${req.user.name}** (${req.user.email}) to join their Family Sharing Hub to manage expenses together as a **${role || 'member'}**.`,
+    ctaText: 'Accept Invitation',
     ctaUrl: `${clientUrl}/dashboard`,
-    footerText: 'If you do not have an account, please sign up using this email address to see your pending invitations.',
+    footerText: 'If you do not have an account yet, please sign up using this email address to view and accept your pending invitations.',
   });
 
   // Run async non-blocking so response is not delayed
   sendEmail({
     to: email.toLowerCase(),
-    subject: `Invitation to join ${req.user.name}'s Family Hub - My Expense Pro`,
+    subject: `Invitation to join ${req.user.name}'s Family Hub`,
     html: inviteHtml,
-    text: `Hello!\n\nYou have been invited by ${req.user.name} (${req.user.email}) to join their Family Sharing Hub on My Expense Pro as a ${role || 'member'}.\n\nGo to My Expense Pro to accept your invitation: ${clientUrl}/dashboard`,
+    text: `Hello!\n\nYou have been invited by ${req.user.name} (${req.user.email}) to join their Family Sharing Hub to manage expenses together as a ${role || 'member'}.\n\nAccept your invitation here: ${clientUrl}/dashboard\n\nIf you do not have an account, please sign up using this email address to see your pending invitations.`,
   }).catch(err => console.error('Family invite email failed:', err));
 
   sendSuccess(res, 200, 'Invitation sent successfully', family);

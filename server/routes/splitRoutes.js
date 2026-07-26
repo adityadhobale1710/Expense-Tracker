@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSplits, createSplit, settleMember, updateSplit } from '../controllers/splitController.js';
+import { getSplits, createSplit, settleMember, updateSplit, deleteSplit } from '../controllers/splitController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -10,7 +10,8 @@ router.route('/')
   .post(createSplit);
 
 router.route('/:id')
-  .put(updateSplit);
+  .put(updateSplit)
+  .delete(deleteSplit);
 
 router.post('/:id/settle', settleMember);
 

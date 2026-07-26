@@ -89,6 +89,8 @@ const AppRoutes = () => (
   </Routes>
 );
 
+import { DialogProvider } from './context/DialogContext';
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -97,19 +99,21 @@ export default function App() {
           <AuthProvider>
             <GamificationProvider>
               <ExpenseProvider>
-                <AppRoutes />
-                {/* Global gamification overlays — rendered once at root */}
-                <XPAnimation />
-                <LevelUpModal />
-                <RewardChestModal />
-                <NotificationToast />
-                <Toaster
-                  position="top-right"
-                  toastOptions={{
-                    style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
-                    success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
-                  }}
-                />
+                <DialogProvider>
+                  <AppRoutes />
+                  {/* Global gamification overlays — rendered once at root */}
+                  <XPAnimation />
+                  <LevelUpModal />
+                  <RewardChestModal />
+                  <NotificationToast />
+                  <Toaster
+                    position="top-right"
+                    toastOptions={{
+                      style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
+                      success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+                    }}
+                  />
+                </DialogProvider>
               </ExpenseProvider>
             </GamificationProvider>
           </AuthProvider>
