@@ -40,6 +40,7 @@ import sessionRoutes from './routes/sessionRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import gamificationRoutes from './routes/gamificationRoutes.js';
+import billRoutes from './routes/billRoutes.js';
 
 connectDB();
 
@@ -171,6 +172,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/gamification', gamificationRoutes);
+app.use('/api/bills', billRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
