@@ -116,12 +116,14 @@ export const ExpenseProvider = ({ children }) => {
     setBudgets((prev) => [...prev, data.data]);
     toast.success('Budget created!');
     rewardAction('CREATE_BUDGET');
+    return data.data;
   };
 
   const updateBudget = async (id, payload) => {
     const { data } = await api.put(`/budgets/${id}`, payload);
     setBudgets((prev) => prev.map((b) => (b._id === id ? data.data : b)));
     toast.success('Budget updated!');
+    return data.data;
   };
 
   const deleteBudget = async (id) => {
