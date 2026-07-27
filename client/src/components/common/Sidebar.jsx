@@ -64,30 +64,50 @@ export default function Sidebar({ isOpen, onClose }) {
         <nav className="flex-1 p-2 lg:p-4 space-y-1 overflow-y-auto">
           {/* Section label: only on desktop */}
           <p className="block md:hidden lg:block text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-3">Main Menu</p>
-          {NAV_ITEMS.map(({ to, icon, label, badge }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={onClose}
-              title={badge ? `${label} (${badge})` : label}
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              <span className="text-lg flex-shrink-0 flex items-center justify-center">
-                {typeof icon === 'string' && icon.startsWith('/') ? (
-                  <img src={icon} alt="" className="w-5 h-5 object-contain" />
-                ) : (
-                  icon
-                )}
-              </span>
-              {/* Label: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
-              <span className="inline md:hidden lg:inline flex-1 truncate">{label}</span>
-              {badge && (
-                <span className="inline md:hidden lg:inline-block ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wider flex-shrink-0">
-                  {badge}
+          {NAV_ITEMS.map(({ to, icon, label, badge }) => {
+            if (badge === 'Soon') {
+              return (
+                <div
+                  key={to}
+                  role="button"
+                  aria-disabled="true"
+                  title="Coming soon"
+                  className="nav-link opacity-60 cursor-not-allowed"
+                >
+                  <span className="text-lg flex-shrink-0 flex items-center justify-center">
+                    {typeof icon === 'string' && icon.startsWith('/') ? (
+                      <img src={icon} alt="" className="w-5 h-5 object-contain" />
+                    ) : (
+                      icon
+                    )}
+                  </span>
+                  <span className="inline md:hidden lg:inline flex-1 truncate">{label}</span>
+                  <span className="inline md:hidden lg:inline-block ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wider flex-shrink-0">
+                    {badge}
+                  </span>
+                </div>
+              );
+            }
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={onClose}
+                title={label}
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="text-lg flex-shrink-0 flex items-center justify-center">
+                  {typeof icon === 'string' && icon.startsWith('/') ? (
+                    <img src={icon} alt="" className="w-5 h-5 object-contain" />
+                  ) : (
+                    icon
+                  )}
                 </span>
-              )}
-            </NavLink>
-          ))}
+                {/* Label: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
+                <span className="inline md:hidden lg:inline flex-1 truncate">{label}</span>
+              </NavLink>
+            );
+          })}
           {user?.role === 'admin' && (
             <NavLink
               to="/admin-portal"
@@ -104,8 +124,12 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* User info at footer */}
         <div className="p-2 lg:p-4 border-t border-slate-700/50 bg-slate-900/30">
           <div className="flex items-center justify-center lg:justify-start gap-3">
-            <div className="w-10 h-10 bg-primary-600/20 border border-primary-500/30 rounded-xl flex items-center justify-center text-primary-400 font-bold text-sm flex-shrink-0">
-              {initials}
+            <div className="w-10 h-10 bg-primary-600/20 border border-primary-500/30 rounded-xl flex items-center justify-center text-primary-400 font-bold text-sm flex-shrink-0 overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user?.name || 'User avatar'} className="w-full h-full object-cover rounded-xl" />
+              ) : (
+                initials
+              )}
             </div>
             {/* Name & role: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
             <div className="block md:hidden lg:block flex-1 min-w-0">

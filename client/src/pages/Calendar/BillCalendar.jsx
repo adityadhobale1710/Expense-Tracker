@@ -285,7 +285,7 @@ export default function BillCalendar() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Left Side: Calendar Grid */}
             <div className="xl:col-span-2 card">
-              <div className="flex justify-between items-center mb-6 bg-slate-900/20 dark:bg-slate-800/20 p-2 rounded-xl border border-slate-700/30">
+              <div className="flex justify-between items-center mb-6 bg-slate-900/40 p-2 rounded-xl border border-slate-700/30">
                 <button 
                   onClick={() => handleMonthChange('prev')} 
                   className="btn-icon p-2 rounded-xl text-slate-400 hover:text-slate-150 hover:bg-slate-700/30 transition-all cursor-pointer"
@@ -327,7 +327,7 @@ export default function BillCalendar() {
                               isToday(item.day, true)
                                 ? 'bg-primary-500/10 border-primary-500/60 ring-2 ring-primary-500/20'
                                 : isWeekend
-                                ? 'bg-slate-500/5 dark:bg-slate-900/40 border-slate-750/30 hover:bg-slate-500/10 hover:border-slate-700/50 cursor-pointer'
+                                ? 'bg-slate-900/40 border-slate-750/30 hover:bg-slate-500/10 hover:border-slate-700/50 cursor-pointer'
                                 : 'bg-dark-900/40 border-slate-750/30 hover:bg-slate-800/40 hover:border-slate-700/50 cursor-pointer'
                             }`
                           : 'bg-dark-900/10 opacity-20 cursor-not-allowed border-slate-800/30'
