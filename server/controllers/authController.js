@@ -1,8 +1,10 @@
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
+
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
@@ -69,45 +71,56 @@ export const register = asyncHandler(async (req, res) => {
   }
 
   // Brand new user registration path
-  const user = await User.create({ name, email, password, phone: phone || '', isEmailVerified: false });
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const [user] = await User.create([{ name, email, password, phone: phone || '', isEmailVerified: false }], { session });
 
-  // Seed default categories
-  const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
-  await Category.insertMany(cats);
+    // Seed default categories
+    const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
+    await Category.insertMany(cats, { session });
 
-  // Seed default primary wallet
-  await Wallet.create({
-    user: user._id,
-    name: `${name.split(' ')[0]}'s Bank Account`,
-    type: 'bank',
-    balance: 0,
-    currency: 'INR',
-    color: '#6366f1',
-    icon: '🏦',
-    isPrimary: true,
-  });
+    // Seed default primary wallet
+    await Wallet.create([{
+      user: user._id,
+      name: `${name.split(' ')[0]}'s Bank Account`,
+      type: 'bank',
+      balance: 0,
+      currency: 'INR',
+      color: '#6366f1',
+      icon: '🏦',
+      isPrimary: true,
+    }], { session });
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.registrationOtp = otp;
-  user.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-  await user.save();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.registrationOtp = otp;
+    user.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ session });
 
-  const emailHtml = getHtmlTemplate({
-    title: 'Email Verification',
-    greeting: `Welcome, ${user.name}`,
-    body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
-    code: otp,
-    footerText: 'If you did not initiate this registration, you can safely ignore this email.',
-  });
+    await session.commitTransaction();
+    session.endSession();
 
-  await sendEmail({
-    to: user.email,
-    subject: 'Your verification code',
-    html: emailHtml,
-    text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
-  });
+    const emailHtml = getHtmlTemplate({
+      title: 'Email Verification',
+      greeting: `Welcome, ${user.name}`,
+      body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
+      code: otp,
+      footerText: 'If you did not initiate this registration, you can safely ignore this email.',
+    });
 
-  return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email });
+    await sendEmail({
+      to: user.email,
+      subject: 'Your verification code',
+      html: emailHtml,
+      text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
+    });
+
+    return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 });
 
 // @desc  Login user
