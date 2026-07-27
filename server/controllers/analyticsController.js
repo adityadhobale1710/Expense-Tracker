@@ -4,7 +4,8 @@ import Income from '../models/Income.js';
 import Category from '../models/Category.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import PDFDocument from 'pdfkit';
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+
 
 /**
  * Issue #5 fix: sanitize cell values to prevent CSV/Excel formula injection.
@@ -510,7 +511,9 @@ export const exportExcel = asyncHandler(async (req, res) => {
     Expense.find({ user: userId, date: { $gte: start, $lte: end } }).populate('category').sort({ date: -1 })
   ]);
 
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  const wsExpenses = workbook.addWorksheet('Expenses');
+  const wsIncome = workbook.addWorksheet('Income');
 
   const expenseRows = expenses.map((exp) => ({
     Date: exp.date.toISOString().split('T')[0],
@@ -529,18 +532,32 @@ export const exportExcel = asyncHandler(async (req, res) => {
     Description: sanitizeCell(inc.description || '')
   }));
 
-  const wsExpenses = XLSX.utils.json_to_sheet(expenseRows);
-  const wsIncome = XLSX.utils.json_to_sheet(incomeRows);
+  wsExpenses.columns = [
+    { header: 'Date', key: 'Date', width: 15 },
+    { header: 'Category', key: 'Category', width: 20 },
+    { header: 'Title', key: 'Title', width: 25 },
+    { header: 'Amount', key: 'Amount', width: 15 },
+    { header: 'Payment Method', key: 'Payment Method', width: 18 },
+    { header: 'Description', key: 'Description', width: 30 }
+  ];
+  expenseRows.forEach(row => wsExpenses.addRow(row));
 
-  XLSX.utils.book_append_sheet(wb, wsExpenses, 'Expenses');
-  XLSX.utils.book_append_sheet(wb, wsIncome, 'Income');
+  wsIncome.columns = [
+    { header: 'Date', key: 'Date', width: 15 },
+    { header: 'Source', key: 'Source', width: 20 },
+    { header: 'Title', key: 'Title', width: 25 },
+    { header: 'Amount', key: 'Amount', width: 15 },
+    { header: 'Description', key: 'Description', width: 30 }
+  ];
+  incomeRows.forEach(row => wsIncome.addRow(row));
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buf = await workbook.xlsx.writeBuffer();
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename=financial_report_${start.toISOString().split('T')[0]}.xlsx`);
   res.status(200).send(buf);
 });
+
 
 /**
  * @desc  GET /analytics/export/pdf

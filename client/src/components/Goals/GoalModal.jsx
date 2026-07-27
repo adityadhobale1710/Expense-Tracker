@@ -10,7 +10,8 @@ export default function GoalModal({
   goal = null,
   templates = []
 }) {
-  const isEdit = !!goal;
+  const isEdit = !!goal && !goal.isTemplate;
+
 
   const [formData, setFormData] = useState({
     title: '',

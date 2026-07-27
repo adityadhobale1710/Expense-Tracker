@@ -1,22 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft,
-  Calendar,
-  Wallet,
-  Play,
-  Pause,
-  Archive,
-  Download,
-  Share2,
-  Trash2,
-  Plus,
-  Shield,
-  Activity,
-  UserCheck,
-  CheckCircle2,
-  Award
+  ArrowLeft, Calendar, Wallet, Play, Pause, Archive, Download, Share2,
+  Trash2, Plus, Shield, Activity, UserCheck, CheckCircle2, Award,
+  Sparkles, Info, AlertCircle, ChevronLeft, ChevronRight, TrendingUp
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../hooks/useDialog';
@@ -107,6 +95,7 @@ export default function GoalDetails() {
   const handleStatusToggle = async (status) => {
     try {
       await updateGoalStatus({ id: goal._id, status });
+      toast.success(`Goal status updated to ${status}`);
     } catch (err) {}
   };
 
@@ -142,9 +131,9 @@ export default function GoalDetails() {
     if (contributions.length === 0) {
       return toast.error('No contributions available to export.');
     }
-    let csv = 'Date,Amount (INR),Type,Note,Attachment Link\n';
+    let csv = 'Date,Amount (INR),Type,Note\n';
     contributions.forEach(c => {
-      csv += `"${new Date(c.date).toLocaleDateString()}","${c.amount}","${c.type}","${c.note}","${c.attachment || ''}"\n`;
+      csv += `"${new Date(c.date).toLocaleDateString()}","${c.amount}","${c.type}","${c.note}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -157,9 +146,11 @@ export default function GoalDetails() {
     toast.success('CSV savings history downloaded!');
   };
 
+  const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+
   return (
-    <div className="space-y-6 pb-16 relative">
-      {/* Navigation & Actions */}
+    <div className="space-y-6 pb-24 relative animate-fade-in">
+      {/* Navigation & Header row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <button
           onClick={() => navigate('/goals')}
@@ -170,39 +161,39 @@ export default function GoalDetails() {
         </button>
 
         {/* Goal Actions */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {goal.status === 'Paused' ? (
             <button
               onClick={() => handleStatusToggle('Active')}
-              className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 hover:border-emerald-500/50 rounded-xl transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 hover:border-emerald-500/50 rounded-xl transition-all"
             >
-              <Play size={10} />
-              <span>Resume</span>
+              <Play size={12} />
+              <span>Resume Goal</span>
             </button>
           ) : goal.status === 'Active' ? (
             <button
               onClick={() => handleStatusToggle('Paused')}
-              className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/25 hover:border-amber-500/50 rounded-xl transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/25 hover:border-amber-500/50 rounded-xl transition-all"
             >
-              <Pause size={10} />
-              <span>Pause</span>
+              <Pause size={12} />
+              <span>Pause Goal</span>
             </button>
           ) : null}
 
           {goal.status !== 'Archived' ? (
             <button
               onClick={() => handleStatusToggle('Archived')}
-              className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-slate-400 bg-slate-800 border border-slate-700/60 hover:border-slate-550 rounded-xl transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700/60 hover:border-slate-550 rounded-xl transition-all"
             >
-              <Archive size={10} />
+              <Archive size={12} />
               <span>Archive</span>
             </button>
           ) : (
             <button
               onClick={() => handleStatusToggle('Active')}
-              className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 hover:border-emerald-500/50 rounded-xl transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 hover:border-emerald-500/50 rounded-xl transition-all"
             >
-              <Play size={10} />
+              <Play size={12} />
               <span>Activate</span>
             </button>
           )}
@@ -210,9 +201,9 @@ export default function GoalDetails() {
           {goal.status !== 'Completed' && goal.status !== 'Archived' && goal.status !== 'Paused' && (
             <button
               onClick={() => setIsContributionOpen(true)}
-              className="flex items-center gap-1.5 px-4.5 py-1.5 text-[10px] font-bold text-slate-100 bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-md shadow-emerald-500/10 transition-all hover:scale-102"
+              className="flex items-center gap-1.5 px-4.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-600/20 transition-all hover:scale-102"
             >
-              <Plus size={12} />
+              <Plus size={14} />
               <span>Add Money</span>
             </button>
           )}
@@ -226,44 +217,51 @@ export default function GoalDetails() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Goal Summary Panel */}
-          <div className="card flex flex-col md:flex-row gap-6 relative overflow-hidden">
+          <div className="card relative overflow-hidden flex flex-col md:flex-row gap-6 p-6">
+            <div 
+              className="absolute top-0 left-0 right-0 h-1.5"
+              style={{ background: `linear-gradient(90deg, ${goal.color}, ${goal.color}88)` }}
+            />
             {/* Visual circle progress */}
-            <div className="flex-shrink-0 flex flex-col items-center justify-center space-y-2 p-2 bg-dark-900/60 border border-slate-700/30 rounded-2xl">
-              <span className="text-3xl">{goal.icon}</span>
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{goal.category}</span>
+            <div className="flex-shrink-0 flex flex-col items-center justify-center space-y-2 p-4 bg-dark-900/60 border border-slate-700/30 rounded-2xl">
+              <span className="text-4xl">{goal.icon}</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{goal.category}</span>
             </div>
 
             {/* Metrics */}
             <div className="flex-1 space-y-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-black text-slate-100">{goal.title}</h3>
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-lg font-black text-slate-100">{goal.title}</h3>
                   <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-lg ${getStatusBadgeClass(goal.status)}`}>
                     {goal.status}
                   </span>
+                  <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-lg ${getPriorityBadgeClass(goal.priority)}`}>
+                    {goal.priority}
+                  </span>
                 </div>
-                <p className="text-xs text-slate-400 font-semibold mt-1 leading-relaxed">
+                <p className="text-xs text-slate-400 font-semibold mt-2 leading-relaxed">
                   {goal.description || 'No blueprint description provided.'}
                 </p>
               </div>
 
               {/* Targets Progress */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 text-xs font-bold border-t border-slate-700/25">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs font-bold border-t border-slate-700/25">
                 <div>
                   <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Target</span>
-                  <span className="text-slate-100 font-black text-sm">₹{goal.targetAmount.toLocaleString('en-IN')}</span>
+                  <span className="text-slate-100 font-black text-base">{fmt(goal.targetAmount)}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Accumulated</span>
-                  <span className="text-emerald-400 font-black text-sm">₹{goal.savedAmount.toLocaleString('en-IN')}</span>
+                  <span className="text-emerald-400 font-black text-base">{fmt(goal.savedAmount)}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Remaining</span>
-                  <span className="text-rose-400 font-black text-sm">₹{goal.remainingAmount.toLocaleString('en-IN')}</span>
+                  <span className="text-rose-400 font-black text-base">{fmt(goal.remainingAmount)}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Completion</span>
-                  <span className="text-primary-400 font-black text-sm">{goal.progressPct}%</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Progress</span>
+                  <span className="text-primary-400 font-black text-base">{goal.progressPct}%</span>
                 </div>
               </div>
             </div>
@@ -274,22 +272,25 @@ export default function GoalDetails() {
             <SavingsGrowthChart data={analytics.monthlySavingsGrowth} />
           )}
 
+          {/* Savings Forecast Model */}
+          {analytics && analytics.wealthProjection && (
+            <SavingsForecastChart data={analytics.wealthProjection} />
+          )}
+
           {/* Contributions list */}
-          <div className="p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-4">
+          <div className="card p-6 space-y-4">
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Savings History</h3>
-                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Chronological record of manual and automated deposits</p>
+                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Chronological record of deposits</p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleExportCSV}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-900 border border-slate-700/40 text-[9px] font-bold text-slate-400 hover:text-slate-200 rounded-xl transition-all"
-                >
-                  <Download size={10} />
-                  <span>Export CSV</span>
-                </button>
-              </div>
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-900 border border-slate-700/40 text-[9px] font-bold text-slate-400 hover:text-slate-200 rounded-xl transition-all"
+              >
+                <Download size={10} />
+                <span>Export CSV</span>
+              </button>
             </div>
 
             {/* Contributions table */}
@@ -312,7 +313,7 @@ export default function GoalDetails() {
                     </thead>
                     <tbody className="divide-y divide-slate-700/15">
                       {contributions.map((c) => (
-                        <tr key={c._id} className="text-slate-355 hover:bg-dark-900/10 font-semibold">
+                        <tr key={c._id} className="text-slate-300 hover:bg-dark-900/10 font-semibold">
                           <td className="py-2.5">{new Date(c.date).toLocaleDateString()}</td>
                           <td className="py-2.5 text-emerald-400 font-bold">₹{c.amount.toLocaleString('en-IN')}</td>
                           <td className="py-2.5">
@@ -324,7 +325,7 @@ export default function GoalDetails() {
                           <td className="py-2.5 text-right">
                             <button
                               onClick={() => handleRemoveContribution(c._id)}
-                              className="p-1 rounded bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/40 text-rose-400"
+                              className="p-1.5 rounded bg-rose-500/10 border border-rose-500/25 hover:border-rose-500/50 text-rose-400 hover:text-white transition-colors"
                               title="Delete & Refund"
                             >
                               <Trash2 size={10} />
@@ -338,7 +339,7 @@ export default function GoalDetails() {
 
                 {/* Pagination */}
                 {pages > 1 && (
-                  <div className="flex justify-between items-center pt-2 text-[10px] font-bold text-slate-450 border-t border-slate-700/15">
+                  <div className="flex justify-between items-center pt-2 text-[10px] font-bold text-slate-500 border-t border-slate-700/15">
                     <span>Page {page} of {pages}</span>
                     <div className="flex gap-2">
                       <button
@@ -367,13 +368,13 @@ export default function GoalDetails() {
         <div className="space-y-6">
           
           {/* Smart Predictions & Targets Widget */}
-          <div className="p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-4">
+          <div className="card p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Predictive Modeling</h3>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Fintech estimations based on current savings velocities</p>
+              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Repay Forecast</h3>
+              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Automated savings allocations</p>
             </div>
 
-            <div className="space-y-3 font-semibold text-xs text-slate-350">
+            <div className="space-y-3 font-semibold text-xs text-slate-300">
               <div className="flex justify-between p-2.5 bg-dark-900/60 border border-slate-700/30 rounded-xl">
                 <span>Suggested Monthly:</span>
                 <span className="text-slate-100 font-bold">₹{Math.round(goal.suggestedMonthlySaving || 0).toLocaleString('en-IN')}</span>
