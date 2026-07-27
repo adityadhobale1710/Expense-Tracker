@@ -50,7 +50,7 @@ export default function ConfirmDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => {
               if (!loading) onCancel?.();
             }}
@@ -62,33 +62,33 @@ export default function ConfirmDialog({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 z-10 my-auto"
+            className="relative w-full max-w-md bg-dark-800 rounded-2xl p-6 shadow-2xl border border-slate-700 space-y-5 z-10 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-4">
               {/* Warning Icon inside Red Circle */}
-              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-6 h-6" />
               </div>
 
               {/* Title & Message */}
               <div className="space-y-1.5 flex-1 min-w-0">
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
+                <h3 className="text-lg font-extrabold text-slate-100 tracking-tight">
                   {title}
                 </h3>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed">
+                <p className="text-sm font-medium text-slate-300 leading-relaxed">
                   {message}
                 </p>
               </div>
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-750">
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-700/60 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {cancelText}
               </button>

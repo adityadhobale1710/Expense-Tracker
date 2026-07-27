@@ -514,7 +514,7 @@ export default function Dashboard() {
                   </Link>
                 </div>
                 <div className="py-4 space-y-2.5">
-                  <div className="flex justify-between items-center bg-slate-900/20 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-700/20">
+                  <div className="flex justify-between items-center bg-slate-900/40 p-2.5 rounded-xl border border-slate-700/20">
                     <span className="text-[9px] text-slate-400 uppercase font-black tracking-wider">Total Balance</span>
                     <span className="text-lg font-extrabold text-slate-100">₹{totalWalletBalance.toLocaleString('en-IN')}</span>
                   </div>
@@ -560,7 +560,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-450">
                       <Award size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Goals Progress</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Goals Progress</h3>
                   </div>
                   <Link to="/goals" className="text-[10px] font-bold text-primary-400 hover:underline flex items-center gap-0.5">
                     View All <ChevronRight size={10} />
@@ -569,7 +569,7 @@ export default function Dashboard() {
                 
                 {primaryGoal ? (
                   <div className="flex-1 flex flex-col justify-between pt-3 space-y-3">
-                    <div className="flex items-center gap-4 bg-slate-900/10 dark:bg-slate-900/20 p-2.5 rounded-xl border border-slate-700/20">
+                    <div className="flex items-center gap-4 bg-slate-900/20 p-2.5 rounded-xl border border-slate-700/20">
                       <div className="relative flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
                         <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
                           <circle cx={size / 2} cy={size / 2} r={radius} className="stroke-slate-800" strokeWidth={strokeWidth} fill="transparent" />
@@ -723,7 +723,7 @@ export default function Dashboard() {
                     <p className="text-xs text-slate-500 font-bold">No upcoming obligations.</p>
                   ) : (
                     combinedObligations.map((ob, idx) => (
-                      <div key={idx} className="p-2.5 bg-slate-900/20 dark:bg-slate-900/30 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs hover:border-slate-700/50 transition-colors">
+                      <div key={idx} className="p-2.5 bg-slate-900/30 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs hover:border-slate-700/50 transition-colors">
                         <div className="min-w-0">
                           <p className="font-bold text-slate-300 truncate max-w-[140px]">{ob.name}</p>
                           <p className="text-[9px] text-slate-550">Due: {ob.date}</p>
@@ -751,7 +751,7 @@ export default function Dashboard() {
                 </div>
                 <div className="py-2 space-y-2">
                   {recentNotifications.map((n, idx) => (
-                    <div key={idx} className="p-2.5 bg-slate-900/20 dark:bg-slate-900/30 border border-slate-700/30 rounded-xl text-[10px] hover:border-slate-700/50 transition-colors">
+                    <div key={idx} className="p-2.5 bg-slate-900/30 border border-slate-700/30 rounded-xl text-[10px] hover:border-slate-700/50 transition-colors">
                       <p className="text-slate-300 leading-normal font-semibold">{n.message}</p>
                       <span className="text-slate-550 font-bold block text-right mt-0.5">{n.date}</span>
                     </div>
