@@ -370,7 +370,17 @@ export default function SplitBills() {
 
         <div>
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🧮</span>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 flex-shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 2h12a1 1 0 0 1 1 1v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21V3a1 1 0 0 1 1-1z" stroke="white" strokeWidth="1.6" strokeLinejoin="round" fill="white" fillOpacity="0.15"/>
+                <line x1="9" y1="8" x2="15" y2="8" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
+                <line x1="12" y1="6" x2="12" y2="10" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
+                <line x1="9" y1="13" x2="15" y2="13" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="2 1.5"/>
+                <circle cx="9.5" cy="16" r="0.8" fill="white"/>
+                <circle cx="12" cy="16" r="0.8" fill="white"/>
+                <circle cx="14.5" cy="16" r="0.8" fill="white"/>
+              </svg>
+            </div>
             <h1 className="text-2xl md:text-3xl font-black text-slate-100 tracking-tight">Split Bills Workspace</h1>
           </div>
           <p className="text-xs md:text-sm text-slate-400 mt-1 max-w-xl">
@@ -453,8 +463,16 @@ export default function SplitBills() {
           animate={{ opacity: 1, scale: 1 }}
           className="card text-center py-16 px-6 max-w-2xl mx-auto space-y-6 border-dashed border-indigo-500/30"
         >
-          <div className="text-6xl mx-auto w-24 h-24 rounded-3xl bg-indigo-500/10 flex items-center justify-center animate-pulse">
-            🧮
+          <div className="mx-auto w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40" style={{animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite'}}>
+            <svg viewBox="0 0 48 48" fill="none" className="w-14 h-14" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="4" width="32" height="40" rx="4" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
+              <line x1="16" y1="15" x2="32" y2="15" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+              <line x1="24" y1="10" x2="24" y2="20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+              <line x1="16" y1="27" x2="32" y2="27" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 3"/>
+              <circle cx="19" cy="35" r="2.5" fill="white" fillOpacity="0.9"/>
+              <circle cx="29" cy="35" r="2.5" fill="white" fillOpacity="0.9"/>
+              <circle cx="24" cy="35" r="2.5" fill="white" fillOpacity="0.9"/>
+            </svg>
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-black text-slate-100">No Shared Bills Yet</h2>
