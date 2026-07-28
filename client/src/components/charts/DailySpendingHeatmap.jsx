@@ -65,12 +65,12 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
   }, [selectedYear, heatmapData]);
 
   const getColorClass = (amount, inYear) => {
-    if (!inYear) return 'opacity-10 dark:opacity-5'; // cell outside the current selected year
-    if (amount === 0) return 'bg-slate-200 dark:bg-dark-900/40 border border-slate-300 dark:border-slate-800/60';
-    if (amount <= 1000) return 'bg-indigo-100 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40';
-    if (amount <= 5000) return 'bg-indigo-300 dark:bg-indigo-800/40 border border-indigo-400 dark:border-indigo-700/40';
-    if (amount <= 15000) return 'bg-indigo-500/80 dark:bg-indigo-600/50 border border-indigo-650 dark:border-indigo-550';
-    return 'bg-indigo-700 dark:bg-primary-500 border border-indigo-800 dark:border-primary-400 shadow-[0_0_8px_rgba(99,102,241,0.25)]';
+    if (!inYear) return 'opacity-5'; // cell outside the current selected year
+    if (amount === 0) return 'bg-dark-900/40 border border-slate-800/60';
+    if (amount <= 1000) return 'bg-indigo-950/40 border border-indigo-900/40';
+    if (amount <= 5000) return 'bg-indigo-800/40 border border-indigo-700/40';
+    if (amount <= 15000) return 'bg-indigo-600/50 border border-indigo-550';
+    return 'bg-primary-500 border border-primary-400 shadow-[0_0_8px_rgba(99,102,241,0.25)]';
   };
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -177,11 +177,11 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
           {/* Intensity Indicator Key */}
           <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-500">
             <span>Less</span>
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-slate-200 dark:bg-dark-900/40 border border-slate-350 dark:border-slate-800/60" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-indigo-100 dark:bg-indigo-950/40" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-indigo-300 dark:bg-indigo-800/40" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-indigo-500/80 dark:bg-indigo-600/50" />
-            <div className="w-2.5 h-2.5 rounded-[2px] bg-indigo-700 dark:bg-primary-500" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-dark-900/40 border border-slate-800/60" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-indigo-950/40" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-indigo-800/40" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-indigo-600/50" />
+            <div className="w-2.5 h-2.5 rounded-[2px] bg-primary-500" />
             <span>More</span>
           </div>
         </div>

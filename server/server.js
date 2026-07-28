@@ -38,8 +38,12 @@ import familyRoutes from './routes/familyRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import gamificationRoutes from './routes/gamificationRoutes.js';
+import billRoutes from './routes/billRoutes.js';
 
 connectDB();
+
 
 const app = express();
 
@@ -48,6 +52,57 @@ app.set('trust proxy', 1);
 
 // ─── Security & Performance Middleware ──────────────────────────────────────────
 app.use(helmet()); // Secure HTTP headers
+
+// ─── CORS Policy (Moved up to execute before body parsing for options preflight) ──
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    // Standardize client URL (remove trailing slash)
+    const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+
+    const isAllowed = (origin === clientUrl) ||
+      (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
+
+    if (isAllowed) {
+      return callback(null, true);
+    }
+
+    // Issue #7 fix: strict Vercel preview domain check.
+    // The old coarse prefix match (startsWith projectPrefix) allowed any origin whose
+    // hostname started with the same prefix — e.g. "my-app-evil.vercel.app" would pass
+    // for a project named "my-app". The fix uses a stricter regex that requires the
+    // hostname to be exactly <projectSlug>-<hash>.vercel.app (Vercel's actual format).
+    if (clientUrl && clientUrl.includes('vercel.app')) {
+      try {
+        const prodHost = new URL(clientUrl).hostname;
+        // Extract the canonical project slug (everything before the first dash-separated hash segment)
+        const projectSlug = prodHost.replace(/\.vercel\.app$/, '').split('-').slice(0, -1).join('-') ||
+          prodHost.replace(/\.vercel\.app$/, '');
+        const originHost = new URL(origin).hostname;
+
+        // Strict pattern: <projectSlug>-<alphanumeric_hash>.vercel.app
+        const strictPreviewPattern = new RegExp(
+          `^${projectSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-[a-z0-9]+\\.vercel\\.app$`
+        );
+
+        if (strictPreviewPattern.test(originHost)) {
+          return callback(null, true);
+        }
+      } catch (err) {
+        logger.error(`Error parsing preview domain check: ${err.message}`);
+      }
+    }
+
+    logger.warn(`CORS block triggered for origin: ${origin}`);
+    callback(null, false); // Reject CORS request
+  },
+  credentials: true, // Required to allow cookies in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
+  optionsSuccessStatus: 200
+}));
+
 app.use(compression()); // Compress text-based responses
 app.use(express.json({ limit: '50kb' })); // Body parser with small limit to prevent payload attacks
 app.use(cookieParser(process.env.COOKIE_SECRET)); // Cookie parser with secret key
@@ -66,44 +121,6 @@ app.use(morgan(morganFormat, {
   }
 }));
 
-// ─── CORS Policy ───────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-
-    // Standardize client URL (remove trailing slash)
-    const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
-
-    const isAllowed = (origin === clientUrl) ||
-      (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
-
-    if (isAllowed) {
-      return callback(null, true);
-    }
-
-    // Dynamic verification for Vercel preview environments
-    if (clientUrl && clientUrl.includes('vercel.app')) {
-      try {
-        const prodHost = new URL(clientUrl).hostname;
-        const projectPrefix = prodHost.split('.vercel.app')[0].split('-').slice(0, 2).join('-');
-        const originHost = new URL(origin).hostname;
-        if (originHost.startsWith(projectPrefix) && originHost.endsWith('.vercel.app')) {
-          return callback(null, true);
-        }
-      } catch (err) {
-        logger.error(`Error parsing preview domain check: ${err.message}`);
-      }
-    }
-
-    logger.warn(`CORS block triggered for origin: ${origin}`);
-    callback(null, false); // Reject CORS request
-  },
-  credentials: true, // Required to allow cookies in production
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
-  optionsSuccessStatus: 200
-}));
-
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -115,10 +132,26 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
-app.use('/api/', globalLimiter);
+
+if (process.env.NODE_ENV === 'production') {
+  app.use('/api/', globalLimiter);
+} else {
+  // Relaxed development rate limit to prevent 429 errors during hot reloading / StrictMode
+  app.use('/api/', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10000,
+    message: {
+      success: false,
+      message: 'Too many requests in development.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+  }));
+}
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/income', incomeRoutes);
@@ -138,6 +171,8 @@ app.use('/api/family', familyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/bills', billRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

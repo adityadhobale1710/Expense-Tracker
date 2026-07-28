@@ -1,40 +1,31 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   TrendingUp, TrendingDown, PiggyBank, Wallet, PieChart as PieChartIcon,
-  BarChart3, ArrowUpRight, Sparkles, Calendar, DollarSign,
-  CheckCircle2, AlertTriangle, Layers, ArrowLeft, RefreshCcw
+  Layers, ArrowLeft, RefreshCcw, AlertCircle, Sparkles
 } from 'lucide-react';
 import {
-  ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Sector
+  ResponsiveContainer, PieChart, Pie, Cell, Sector
 } from 'recharts';
 import { useExpense } from '../../context/ExpenseContext';
 import api from '../../services/api';
 
+// Import newly integrated chart components
+import CashFlowChart from '../../components/charts/CashFlowChart';
+import DonutChart from '../../components/charts/DonutChart';
+import TreemapChart from '../../components/charts/TreemapChart';
+import SankeyDiagram from '../../components/charts/SankeyDiagram';
+import WaterfallChart from '../../components/charts/WaterfallChart';
+import MonthlySpendingTrend from '../../components/charts/MonthlySpendingTrend';
+import PaymentMethodsChart from '../../components/charts/PaymentMethodsChart';
+import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
+import DailySpendingHeatmap from '../../components/charts/DailySpendingHeatmap';
+import IncomeExpenseAreaChart from '../../components/charts/IncomeExpenseAreaChart';
+import MonthlyComparisonChart from '../../components/charts/MonthlyComparisonChart';
+
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const INCOME_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 const EXPENSE_COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#06b6d4', '#6366f1', '#a855f7', '#ec4899'];
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-slate-900/95 border border-slate-700/80 backdrop-blur-md p-3.5 rounded-2xl shadow-2xl space-y-1.5 min-w-[170px]">
-      <p className="text-xs font-bold text-slate-400 border-b border-slate-800 pb-1">{label}</p>
-      {payload.map((entry, idx) => (
-        <div key={idx} className="flex items-center justify-between gap-3 text-xs">
-          <span className="flex items-center gap-1.5 font-medium" style={{ color: entry.color }}>
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            {entry.name}:
-          </span>
-          <span className="font-bold text-slate-100 font-mono">
-            ₹{Number(entry.value || 0).toLocaleString('en-IN')}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export default function AnalyticsPro() {
   const { summary, incomes, expenses, fetchIncomes, fetchExpenses, fetchSummary } = useExpense();
@@ -44,40 +35,91 @@ export default function AnalyticsPro() {
   const [loading, setLoading] = useState(true);
   const [monthlyData, setMonthlyData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
+  const [incomeAnalyticsData, setIncomeAnalyticsData] = useState(null);
+
+  // API response states for specific charts
+  const [cashflowData, setCashflowData] = useState([]);
+  const [heatmapData, setHeatmapData] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+  const [prevTrendData, setPrevTrendData] = useState([]);
 
   // Active indices for interactive hover on pie charts
-  const [activeIncomeIndex, setActiveIncomeIndex] = useState(-1);
-  const [activeExpenseIndex, setActiveExpenseIndex] = useState(-1);
+  const [selectedDonutCategory, setSelectedDonutCategory] = useState(null);
+  const [error, setError] = useState(null);
 
-  const loadAnalyticsData = async () => {
+  // Guard against React 18 StrictMode double-invoke. Holds the active AbortController
+  // so that the cleanup function from the first mount can cancel its own in-flight
+  // requests before the second mount issues a fresh set.
+  const abortControllerRef = useRef(null);
+
+  const loadAnalyticsData = useCallback(async (signal) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     setLoading(true);
+    setError(null);
     try {
-      await Promise.all([
-        fetchSummary(),
-        fetchIncomes(),
-        fetchExpenses()
+      // Calculate date range from timeRange
+      const endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
+
+      let startDate = new Date();
+      if (timeRange === '1m') {
+        startDate.setMonth(startDate.getMonth() - 1);
+      } else if (timeRange === '3m') {
+        startDate.setMonth(startDate.getMonth() - 3);
+      } else {
+        startDate.setMonth(startDate.getMonth() - 6);
+      }
+      startDate.setHours(0, 0, 0, 0);
+
+      const startISO = startDate.toISOString();
+      const endISO = endDate.toISOString();
+
+      // Calculate previous range for trend comparison
+      const duration = endDate.getTime() - startDate.getTime();
+      const prevEndDate = new Date(startDate.getTime() - 1);
+      const prevStartDate = new Date(startDate.getTime() - duration - 1);
+      const prevStartISO = prevStartDate.toISOString();
+      const prevEndISO = prevEndDate.toISOString();
+
+      // Axios passes the AbortController signal — any cancelled request throws
+      // CanceledError which is caught and silently ignored below.
+      const axiosOpts = signal ? { signal } : {};
+
+      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, heatmapRes, trendRes, prevTrendRes] = await Promise.all([
+        api.get('/reports/monthly', axiosOpts),
+        api.get('/reports/by-category', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/income', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/cashflow', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/heatmap', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/trend', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/analytics/trend', { params: { startDate: prevStartISO, endDate: prevEndISO }, ...axiosOpts }),
+        fetchSummary({ startDate: startISO, endDate: endISO }),
+        fetchIncomes({ limit: 1000, startDate: startISO, endDate: endISO }),
+        fetchExpenses({ limit: 1000, startDate: startISO, endDate: endISO }),
       ]);
 
-      const [mRes, cRes] = await Promise.all([
-        api.get('/reports/monthly'),
-        api.get('/reports/by-category')
-      ]);
-
-      setCategoryData(cRes.data?.data || []);
+      // Defensive access — never crash if server returned unexpected shape
+      setIncomeAnalyticsData(incomeAnalyticsRes.data?.data || null);
+      setCategoryData(Array.isArray(cRes.data?.data) ? cRes.data.data : []);
+      setCashflowData(Array.isArray(cashflowRes.data?.data) ? cashflowRes.data.data : []);
+      setHeatmapData(Array.isArray(heatmapRes.data?.data) ? heatmapRes.data.data : []);
+      setTrendData(Array.isArray(trendRes.data?.data) ? trendRes.data.data : []);
+      setPrevTrendData(Array.isArray(prevTrendRes.data?.data) ? prevTrendRes.data.data : []);
 
       // Format monthly report
       const { incomes: incList = [], expenses: expList = [] } = mRes.data?.data || {};
       const now = new Date();
       const count = timeRange === '1m' ? 1 : timeRange === '3m' ? 3 : 6;
-      
+
       const formattedMonths = Array.from({ length: count }, (_, i) => {
         const d = new Date(now.getFullYear(), now.getMonth() - (count - 1) + i, 1);
         const m = d.getMonth() + 1;
         const y = d.getFullYear();
-        
-        const incMatch = incList.find(x => x._id?.month === m && x._id?.year === y);
-        const expMatch = expList.find(x => x._id?.month === m && x._id?.year === y);
-        
+
+        const incMatch = incList.find((x) => x._id?.month === m && x._id?.year === y);
+        const expMatch = expList.find((x) => x._id?.month === m && x._id?.year === y);
+
         const incVal = incMatch?.total || 0;
         const expVal = expMatch?.total || 0;
         const savingsVal = Math.max(0, incVal - expVal);
@@ -88,26 +130,53 @@ export default function AnalyticsPro() {
           Earnings: incVal,
           Spent: expVal,
           Saved: savingsVal,
-          savingsRate: savingsRateVal
+          savingsRate: savingsRateVal,
         };
       });
 
       setMonthlyData(formattedMonths);
     } catch (err) {
-      console.error('Failed to load Analytics Pro metrics:', err);
+      // Silently ignore AbortController cancellation — this is expected in StrictMode
+      if (err.name === 'CanceledError' || err.name === 'AbortError' || err.message === 'canceled') {
+        return;
+      }
+      console.error('[AnalyticsPro] Failed to load analytics metrics:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load analytics data.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Manual retry handler — creates a fresh AbortController for the new request
+  const handleRetry = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    loadAnalyticsData(controller.signal);
+  }, [loadAnalyticsData]);
 
   useEffect(() => {
-    loadAnalyticsData();
-  }, [timeRange]);
+    // Cancel any in-flight request from the previous render cycle.
+    // In React 18 StrictMode this fires: mount → unmount (abort) → remount (fresh request).
+    // In production it is a no-op since there is no prior controller.
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    loadAnalyticsData(controller.signal);
+
+    return () => {
+      // Cleanup: abort on unmount or before the next effect run
+      controller.abort();
+    };
+  }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Aggregate Incomes by source for the Earnings Pie Chart
   const incomePieData = useMemo(() => {
     if (!incomes || incomes.length === 0) {
-      // Fallback presentation data if no income logs recorded yet
       return [
         { name: 'Salary', value: 65000, icon: '💼', color: '#10b981' },
         { name: 'Freelancing', value: 18000, icon: '💻', color: '#3b82f6' },
@@ -115,12 +184,6 @@ export default function AnalyticsPro() {
         { name: 'Others', value: 5000, icon: '🎁', color: '#f59e0b' }
       ];
     }
-
-    const map = {};
-    incomes.forEach((inc) => {
-      const source = inc.source || inc.category?.name || 'Salary';
-      map[source] = (map[source] || 0) + (inc.amount || 0);
-    });
 
     const iconMap = {
       Salary: '💼',
@@ -131,8 +194,25 @@ export default function AnalyticsPro() {
       Investments: '📈',
       Gift: '🎁',
       Bonus: '🎉',
-      Other: '💰'
+      Other: '💰',
+      Uncategorized: '💰'
     };
+
+    if (incomeAnalyticsData && incomeAnalyticsData.sources) {
+      return incomeAnalyticsData.sources.map((s, idx) => ({
+        name: s.source,
+        value: s.amount,
+        icon: iconMap[s.source] || '💰',
+        color: INCOME_COLORS[idx % INCOME_COLORS.length]
+      }));
+    }
+
+    const map = {};
+    incomes.forEach((inc) => {
+      const categoryVal = typeof inc.category === 'object' ? inc.category?.name : inc.category;
+      const key = categoryVal?.trim() || "Uncategorized";
+      map[key] = (map[key] || 0) + (inc.amount || 0);
+    });
 
     return Object.entries(map)
       .map(([name, value], idx) => ({
@@ -142,10 +222,10 @@ export default function AnalyticsPro() {
         color: INCOME_COLORS[idx % INCOME_COLORS.length]
       }))
       .sort((a, b) => b.value - a.value);
-  }, [incomes]);
+  }, [incomes, incomeAnalyticsData]);
 
   const totalEarnedVal = useMemo(() => {
-    if (summary?.totalIncome) return summary.totalIncome;
+    if (summary?.totalIncome !== undefined) return summary.totalIncome;
     return incomePieData.reduce((acc, item) => acc + item.value, 0);
   }, [summary, incomePieData]);
 
@@ -190,49 +270,102 @@ export default function AnalyticsPro() {
   }, [categoryData, expenses]);
 
   const totalSpentVal = useMemo(() => {
-    if (summary?.totalExpense) return summary.totalExpense;
+    if (summary?.totalExpense !== undefined) return summary.totalExpense;
     return expensePieData.reduce((acc, item) => acc + item.value, 0);
   }, [summary, expensePieData]);
 
   const netSavingsVal = Math.max(0, totalEarnedVal - totalSpentVal);
   const savingsRateVal = totalEarnedVal > 0 ? Math.round((netSavingsVal / totalEarnedVal) * 100) : 0;
 
-  // Active Shape renderer for hoverable Pie charts
-  const renderActiveShape = (props) => {
-    const RADIAN = Math.PI / 180;
-    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
-    const sin = Math.sin(-RADIAN * midAngle);
-    const cos = Math.cos(-RADIAN * midAngle);
-    const sx = cx + (outerRadius + 8) * cos;
-    const sy = cy + (outerRadius + 8) * sin;
-    const mx = cx + (outerRadius + 18) * cos;
-    const my = cy + (outerRadius + 18) * sin;
-    const ex = sx + (cos >= 0 ? 1 : -1) * 12;
-    const ey = sy;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
+  // Derived computations for newly integrated charts
+  const mappedMonthlyData = useMemo(() => {
+    if (!monthlyData || monthlyData.length === 0) return [];
+    return monthlyData.map(d => ({
+      name: d.month,
+      income: d.Earnings || 0,
+      expense: d.Spent || 0,
+      savings: d.Saved || 0
+    }));
+  }, [monthlyData]);
 
+  const incomeCategoryData = useMemo(() => {
+    return incomePieData.map(i => ({
+      name: i.name,
+      total: i.value,
+      color: i.color
+    }));
+  }, [incomePieData]);
+
+  const needsWantsSavingsData = useMemo(() => {
+    let needs = 0;
+    let wants = 0;
+    const savingsVal = netSavingsVal;
+    
+    expenses.forEach(exp => {
+      const catName = (exp.category?.name || exp.category || '').toLowerCase();
+      if (['bills', 'utilities', 'rent', 'groceries', 'education', 'health', 'insurance', 'loans', 'emi', 'tax', 'household'].some(keyword => catName.includes(keyword))) {
+        needs += exp.amount || 0;
+      } else {
+        wants += exp.amount || 0;
+      }
+    });
+
+    return [
+      { name: 'Needs & Bills', value: needs, color: '#f59e0b', icon: '💡' },
+      { name: 'Wants & Leisure', value: wants, color: '#ec4899', icon: '🎬' },
+      { name: 'Savings & Investments', value: savingsVal, color: '#10b981', icon: '📈' }
+    ];
+  }, [expenses, netSavingsVal]);
+
+  if (loading) {
     return (
-      <g>
-        <Sector
-          cx={cx}
-          cy={cy}
-          innerRadius={innerRadius}
-          outerRadius={outerRadius + 6}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          fill={fill}
-        />
-        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={1.5} />
-        <circle cx={ex} cy={ey} r={3} fill={fill} />
-        <text x={ex + (cos >= 0 ? 1 : -1) * 6} y={ey - 4} textAnchor={textAnchor} fill="var(--slate-200)" className="text-[11px] font-bold">
-          {payload.name}
-        </text>
-        <text x={ex + (cos >= 0 ? 1 : -1) * 6} y={ey + 8} textAnchor={textAnchor} fill={fill} className="text-[11px] font-black font-mono">
-          ₹{Number(value).toLocaleString('en-IN')} ({(percent * 100).toFixed(0)}%)
-        </text>
-      </g>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-405 text-xs font-semibold">Loading your financial visualizations...</p>
+      </div>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 max-w-md mx-auto text-center px-4">
+        <div className="p-4 bg-red-500/10 border border-red-500/25 text-red-400 rounded-3xl text-sm font-medium">
+          <p className="font-bold mb-1">Failed to load analytics</p>
+          <p className="text-xs text-red-300/80">{error}</p>
+        </div>
+        <button
+          onClick={handleRetry}
+          className="px-5 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-100 text-xs font-bold rounded-2xl cursor-pointer transition-all"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  const isEmptyState = totalEarnedVal === 0 && totalSpentVal === 0;
+
+  if (isEmptyState) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4">
+        <div className="w-16 h-16 rounded-3xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 text-2xl shadow-lg">
+          📊
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-slate-205">No transactions recorded yet</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm">
+            Once you log your income and expenses in the dashboard, we will compile your visual charts here!
+          </p>
+        </div>
+        <Link
+          to="/dashboard"
+          className="px-5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-bold rounded-2xl cursor-pointer transition-all shadow-md shadow-primary-500/20"
+        >
+          Go to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in">
@@ -281,7 +414,7 @@ export default function AnalyticsPro() {
             </button>
           ))}
           <button
-            onClick={loadAnalyticsData}
+            onClick={handleRetry}
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all ml-1"
             title="Refresh Data"
           >
@@ -393,9 +526,8 @@ export default function AnalyticsPro() {
         {[
           { id: 'overview', label: '📊 Complete Overview', icon: Layers },
           { id: 'earnings', label: '💼 How I Earn (Incomes)', icon: TrendingUp },
-          { id: 'expenses', label: '💸 How I Spend (Expenses)', icon: TrendingDown },
-          { id: 'savings', label: '🏦 How I Save (Savings Trend)', icon: PiggyBank }
-        ].map(({ id, label, icon: Icon }) => (
+          { id: 'expenses', label: '💸 How I Spend (Expenses)', icon: TrendingDown }
+        ].map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
@@ -409,71 +541,6 @@ export default function AnalyticsPro() {
           </button>
         ))}
       </div>
-
-      {/* Section 1: Main Multi-Series Run-Rate Area Graph (Earned vs Spent vs Saved) */}
-      {(activeTab === 'overview' || activeTab === 'savings') && (
-        <div className="bg-dark-800/80 border border-slate-700/60 p-6 rounded-3xl shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/40 pb-4">
-            <div>
-              <h2 className="text-base font-extrabold text-slate-100 flex items-center gap-2">
-                <BarChart3 className="text-primary-400" size={18} />
-                Financial Trajectory (Earnings vs Spending vs Savings)
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Month-by-month comparative analysis of inflows, outflows, and net savings.
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-semibold">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                Earnings
-              </span>
-              <span className="flex items-center gap-1.5 text-rose-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                Spent
-              </span>
-              <span className="flex items-center gap-1.5 text-indigo-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                Saved
-              </span>
-            </div>
-          </div>
-
-          <div className="h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorSpent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorSaved" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="month" stroke="var(--chart-text)" fontSize={11} tickLine={false} />
-                <YAxis
-                  stroke="var(--chart-text)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="Earnings" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEarnings)" />
-                <Area type="monotone" dataKey="Spent" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorSpent)" />
-                <Area type="monotone" dataKey="Saved" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorSaved)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
 
       {/* Section 2: Pie Charts & Visual Breakdown Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -496,22 +563,20 @@ export default function AnalyticsPro() {
                 </span>
               </div>
 
-              {/* Pie Chart & Side Legend */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center mt-4">
-                <div className="sm:col-span-6 h-56 w-full">
+              {/* Top part: Pie Chart & Legend */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 mt-6 border-b border-slate-700/40 pb-6">
+                {/* Pie Chart */}
+                <div className="relative h-48 w-48 flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        activeIndex={activeIncomeIndex}
-                        activeShape={renderActiveShape}
                         data={incomePieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
+                        innerRadius={65}
+                        outerRadius={90}
                         dataKey="value"
-                        onMouseEnter={(_, idx) => setActiveIncomeIndex(idx)}
-                        onMouseLeave={() => setActiveIncomeIndex(-1)}
+                        stroke="none"
                       >
                         {incomePieData.map((entry, index) => (
                           <Cell key={`cell-inc-${index}`} fill={entry.color} />
@@ -519,43 +584,54 @@ export default function AnalyticsPro() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
+                  {/* Center Total */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-sm font-bold text-slate-100 font-mono">{Number(totalEarnedVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
 
-                {/* Progress bars list */}
-                <div className="sm:col-span-6 space-y-3 max-h-56 overflow-y-auto pr-1">
-                  {incomePieData.map((item, idx) => {
-                    const percent = totalEarnedVal > 0 ? Math.round((item.value / totalEarnedVal) * 100) : 0;
+                {/* Simple Legend */}
+                <div className="flex-1 space-y-3 w-full sm:w-auto">
+                  {incomePieData.map(item => {
+                    const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
                     return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2 font-semibold text-slate-200">
-                            <span>{item.icon}</span>
-                            <span>{item.name}</span>
-                          </span>
-                          <span className="font-mono font-bold text-slate-300">
-                            ₹{Number(item.value).toLocaleString('en-IN')} ({percent}%)
-                          </span>
+                      <div key={item.name} className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
+                          <span className="text-slate-200 font-medium">{item.name}</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${percent}%`, backgroundColor: item.color }}
-                          />
-                        </div>
+                        <span className="text-slate-300 font-mono">{percent}%</span>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Earnings takeaway banner */}
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 text-xs text-emerald-300 font-medium">
-              <CheckCircle2 size={18} className="shrink-0 text-emerald-400" />
-              <span>
-                Top income stream: <strong>{incomePieData[0]?.name || 'Salary'}</strong> representing{' '}
-                {totalEarnedVal > 0 ? Math.round(((incomePieData[0]?.value || 0) / totalEarnedVal) * 100) : 0}% of your total earnings.
-              </span>
+              {/* Bottom part: Detailed List */}
+              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
+                {incomePieData.map(item => {
+                  const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
+                  return (
+                    <div key={item.name} className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
+                            {item.icon}
+                          </div>
+                          <div>
+                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
+                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
+                          </div>
+                        </div>
+                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -579,22 +655,20 @@ export default function AnalyticsPro() {
                 </span>
               </div>
 
-              {/* Pie Chart & Side Legend */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center mt-4">
-                <div className="sm:col-span-6 h-56 w-full">
+              {/* Top part: Pie Chart & Legend */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 mt-6 border-b border-slate-700/40 pb-6">
+                {/* Pie Chart */}
+                <div className="relative h-48 w-48 flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        activeIndex={activeExpenseIndex}
-                        activeShape={renderActiveShape}
                         data={expensePieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
+                        innerRadius={65}
+                        outerRadius={90}
                         dataKey="value"
-                        onMouseEnter={(_, idx) => setActiveExpenseIndex(idx)}
-                        onMouseLeave={() => setActiveExpenseIndex(-1)}
+                        stroke="none"
                       >
                         {expensePieData.map((entry, index) => (
                           <Cell key={`cell-exp-${index}`} fill={entry.color} />
@@ -602,82 +676,107 @@ export default function AnalyticsPro() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
+                  {/* Center Total */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-sm font-bold text-slate-100 font-mono">{Number(totalSpentVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
 
-                {/* Progress bars list */}
-                <div className="sm:col-span-6 space-y-3 max-h-56 overflow-y-auto pr-1">
-                  {expensePieData.map((item, idx) => {
-                    const percent = totalSpentVal > 0 ? Math.round((item.value / totalSpentVal) * 100) : 0;
+                {/* Simple Legend */}
+                <div className="flex-1 space-y-3 w-full sm:w-auto">
+                  {expensePieData.map(item => {
+                    const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
                     return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-2 font-semibold text-slate-200">
-                            <span>{item.icon}</span>
-                            <span>{item.name}</span>
-                          </span>
-                          <span className="font-mono font-bold text-slate-300">
-                            ₹{Number(item.value).toLocaleString('en-IN')} ({percent}%)
-                          </span>
+                      <div key={item.name} className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
+                          <span className="text-slate-200 font-medium">{item.name}</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${percent}%`, backgroundColor: item.color }}
-                          />
-                        </div>
+                        <span className="text-slate-300 font-mono">{percent}%</span>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Expense takeaway banner */}
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 text-xs text-rose-300 font-medium">
-              <AlertTriangle size={18} className="shrink-0 text-rose-400" />
-              <span>
-                Largest spending category: <strong>{expensePieData[0]?.name || 'Food'}</strong> representing{' '}
-                {totalSpentVal > 0 ? Math.round(((expensePieData[0]?.value || 0) / totalSpentVal) * 100) : 0}% of total outflows.
-              </span>
+              {/* Bottom part: Detailed List */}
+              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
+                {expensePieData.map(item => {
+                  const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
+                  return (
+                    <div key={item.name} className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
+                            {item.icon}
+                          </div>
+                          <div>
+                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
+                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
+                          </div>
+                        </div>
+                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Section 3: Monthly Savings Bar Graph */}
-      {(activeTab === 'overview' || activeTab === 'savings') && (
-        <div className="bg-dark-800/80 border border-slate-700/60 p-6 rounded-3xl shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/40 pb-4">
-            <div>
-              <h2 className="text-base font-extrabold text-slate-100 flex items-center gap-2">
-                <PiggyBank className="text-indigo-400" size={18} />
-                Monthly Net Savings Velocity & Savings Rate %
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Evaluates how much liquidity you reserve every month after covering expenditure
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-xl">
-              <span>Overall Savings Rate: {savingsRateVal}%</span>
-            </div>
+      {/* Overview Tab Charts */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SankeyDiagram summary={summary || { totalIncome: totalEarnedVal, totalExpense: totalSpentVal, savings: netSavingsVal }} categoryData={expensePieData} />
+            <WaterfallChart summary={{ totalIncome: totalEarnedVal, balance: netSavingsVal }} categoryData={expensePieData} />
           </div>
+          <div className="grid grid-cols-1 gap-6">
+            <CashFlowChart cashflowData={cashflowData} />
+          </div>
+        </div>
+      )}
 
-          <div className="h-64 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="month" stroke="var(--chart-text)" fontSize={11} tickLine={false} />
-                <YAxis
-                  stroke="var(--chart-text)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="Saved" fill="#6366f1" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Earnings Tab Charts */}
+      {activeTab === 'earnings' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DonutChart
+            categoryData={incomeCategoryData}
+            rawExpenses={incomes}
+            selectedCategory={selectedDonutCategory}
+            onSelectCategory={setSelectedDonutCategory}
+          />
+          <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
+        </div>
+      )}
+
+      {/* Expenses Tab Charts */}
+      {activeTab === 'expenses' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DonutChart
+              categoryData={expensePieData}
+              rawExpenses={expenses}
+              selectedCategory={selectedDonutCategory}
+              onSelectCategory={setSelectedDonutCategory}
+            />
+            <TopCategoriesChart categoryData={expensePieData} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TreemapChart rawExpenses={expenses} />
+            <PaymentMethodsChart rawExpenses={expenses} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
+            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            <DailySpendingHeatmap heatmapData={heatmapData} />
           </div>
         </div>
       )}

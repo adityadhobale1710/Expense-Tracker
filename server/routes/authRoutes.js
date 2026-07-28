@@ -3,14 +3,21 @@ import rateLimit from 'express-rate-limit';
 import { register, login, logout, refreshToken, forgotPassword, resetPassword, verifyRegistrationOtp, resendRegistrationOtp } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { validate } from '../middleware/validate.js';
-import { verifyRegistrationOtpSchema, resendRegistrationOtpSchema } from '../middleware/schemas.js';
+import {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  verifyRegistrationOtpSchema,
+  resendRegistrationOtpSchema,
+} from '../middleware/schemas.js';
 
 const router = express.Router();
 
 // Rate limiter for login: max 5 requests per 15 minutes
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: process.env.NODE_ENV === 'production' ? 5 : 1000,
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -21,10 +28,16 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+router.post('/register', validate(registerSchema), register);
+router.post('/login', loginLimiter, validate(loginSchema), login);
+router.post('/logout', protect, logout);
+router.post('/refresh-token', refreshToken);
+router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 // Rate limiter for OTP: max 5 requests per 10 minutes
 const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 5,
+  max: process.env.NODE_ENV === 'production' ? 5 : 1000,
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -35,12 +48,6 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post('/register', register);
-router.post('/login', loginLimiter, login);
-router.post('/logout', protect, logout);
-router.post('/refresh-token', refreshToken);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
 router.post('/verify-registration-otp', otpLimiter, validate(verifyRegistrationOtpSchema), verifyRegistrationOtp);
 router.post('/resend-registration-otp', otpLimiter, validate(resendRegistrationOtpSchema), resendRegistrationOtp);
 

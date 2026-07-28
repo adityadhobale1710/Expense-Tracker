@@ -1,5 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Category from '../models/Category.js';
+import Expense from '../models/Expense.js';
+import Budget from '../models/Budget.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 export const getCategories = asyncHandler(async (req, res) => {
@@ -26,7 +28,20 @@ export const updateCategory = asyncHandler(async (req, res) => {
 });
 
 export const deleteCategory = asyncHandler(async (req, res) => {
-  const category = await Category.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+  const category = await Category.findOne({ _id: req.params.id, user: req.user._id });
   if (!category) { res.status(404); throw new Error('Category not found'); }
+
+  // Check for linked records (Expenses and Budgets) to prevent orphans
+  const [linkedExpenses, linkedBudgets] = await Promise.all([
+    Expense.countDocuments({ user: req.user._id, category: category._id }),
+    Budget.countDocuments({ user: req.user._id, category: category._id }),
+  ]);
+
+  if (linkedExpenses > 0 || linkedBudgets > 0) {
+    res.status(400);
+    throw new Error(`Cannot delete category with ${linkedExpenses + linkedBudgets} linked expenses/budgets. Reassign or delete them first.`);
+  }
+
+  await category.deleteOne();
   sendSuccess(res, 200, 'Category deleted');
 });

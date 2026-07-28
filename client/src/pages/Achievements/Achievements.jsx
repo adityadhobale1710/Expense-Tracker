@@ -1,848 +1,159 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { PROGRESSION_LEVELS, XP_ACTIONS, INITIAL_ACHIEVEMENTS } from './achievementsData';
-import api from '../../services/api';
-import toast from 'react-hot-toast';
+import { useState } from 'react';
+import { useGamification } from '../../context/GamificationContext';
+import { XP_ACTIONS, PROGRESSION_LEVELS } from './achievementsData';
+import { REWARD_ACTIONS } from '../../constants/rewardConstants';
 
-export default function Achievements() {
-  const { user, updateUser } = useAuth();
-  
-  // Game states checking user context first, then localStorage (namespaced per user), then default mock values
-  const [xp, setXp] = useState(() => {
-    if (user?.xp !== undefined) return user.xp;
-    const saved = localStorage.getItem(user?._id ? `game_xp_${user._id}` : 'game_xp');
-    // 3450 is the preview mode fallback when no user is logged in
-    return saved ? parseInt(saved, 10) : 3450;
-  });
-  
-  const [coins, setCoins] = useState(() => {
-    if (user?.coins !== undefined) return user.coins;
-    const saved = localStorage.getItem(user?._id ? `game_coins_${user._id}` : 'game_coins');
-    // 640 is the preview mode fallback when no user is logged in
-    return saved ? parseInt(saved, 10) : 640;
-  });
-  
-  const [streak, setStreak] = useState(() => {
-    if (user?.streak !== undefined) return user.streak;
-    const saved = localStorage.getItem(user?._id ? `game_streak_${user._id}` : 'game_streak');
-    // 18 is the preview mode fallback when no user is logged in
-    return saved ? parseInt(saved, 10) : 18;
-  });
+// ── Components ──────────────────────────────────────────────────────────────
+import LevelCard from '../../components/gamification/LevelCard';
+import SeasonCard from '../../components/gamification/SeasonCard';
+import MultiplierBanner from '../../components/gamification/MultiplierBanner';
+import DailyChallenges from '../../components/gamification/DailyChallenges';
+import StreakCard from '../../components/gamification/StreakCard';
+import Leaderboard from '../../components/gamification/Leaderboard';
+import AchievementShowcase from '../../components/gamification/AchievementShowcase';
+import BadgeGrid from '../../components/gamification/BadgeGrid';
+import Timeline from '../../components/gamification/Timeline';
+import XPAnalytics from '../../components/gamification/XPAnalytics';
+import StatsPanel from '../../components/gamification/StatsPanel';
+import RankBadge from '../../components/gamification/RankBadge';
+import { calculateLevel } from '../../services/rewardService';
 
-  const [longestStreak, setLongestStreak] = useState(() => {
-    if (user?.longestStreak !== undefined) return user.longestStreak;
-    const saved = localStorage.getItem(user?._id ? `game_longest_streak_${user._id}` : 'game_longest_streak');
-    // 24 is the preview mode fallback when no user is logged in
-    return saved ? parseInt(saved, 10) : 24;
-  });
+// ── Tabs ────────────────────────────────────────────────────────────────────
+const TABS = [
+  { id: 'overview',    label: 'Overview',    icon: '🏠' },
+  { id: 'badges',      label: 'Badges',      icon: '🏆' },
+  { id: 'timeline',    label: 'Timeline',    icon: '📜' },
+  { id: 'analytics',   label: 'Analytics',   icon: '📊' },
+  { id: 'progression', label: 'Progression', icon: '🌌' },
+];
 
-  const [achievements, setAchievements] = useState(() => {
-    if (user) {
-      // Prefer namespaced local storage first, then backend
-      const storageKey = `game_achievements_${user._id}`;
-      const saved = localStorage.getItem(storageKey);
-      const userMap = {};
-      
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          parsed.forEach(a => { userMap[a.id] = a; });
-        } catch (e) {
-          console.warn("Parsing achievements from local storage failed", e);
-        }
-      } else if (user.achievements) {
-        user.achievements.forEach(a => { userMap[a.id] = a; });
-      }
-
-      return INITIAL_ACHIEVEMENTS.map(ach => ({
-        ...ach,
-        currentProgress: userMap[ach.id]?.currentProgress !== undefined ? userMap[ach.id].currentProgress : 0,
-        unlocked: userMap[ach.id]?.unlocked !== undefined ? userMap[ach.id].unlocked : false,
-      }));
-    }
-    const saved = localStorage.getItem('game_achievements');
-    return saved ? JSON.parse(saved) : INITIAL_ACHIEVEMENTS;
-  });
-
-  const [recentUnlock, setRecentUnlock] = useState(() => {
-    const key = user?._id ? `game_recent_unlock_${user._id}` : 'game_recent_unlock';
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const [simulatedActions, setSimulatedActions] = useState(() => {
-    if (user) {
-      const storageKey = `game_simulated_actions_${user._id}`;
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {}
-      }
-      return user.simulatedActions || [];
-    }
-    const saved = localStorage.getItem('game_simulated_actions');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // UI state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [confettiActive, setConfettiActive] = useState(false);
-  const [floatyTexts, setFloatyTexts] = useState([]); // Array of { id, text, x, y }
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Dynamic filter options generated from active achievements to remove empty categories
-  const filterOptions = useMemo(() => {
-    const baseFilters = ['All', 'Unlocked', 'Locked', 'Common', 'Rare', 'Epic', 'Legendary'];
-    const categoryFilters = Array.from(new Set(achievements.map(ach => ach.category)))
-      .filter(cat => cat && !baseFilters.includes(cat));
-    return [...baseFilters, ...categoryFilters];
-  }, [achievements]);
-  
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, activeFilter]);
-  
-  const canvasRef = useRef(null);
-  const audioCtxRef = useRef(null);
-
-  // Audio synthesiser
-  const playSound = (type) => {
-    try {
-      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtxClass) return;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioCtxClass();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-      
-      if (type === 'xp') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-        osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.12); // G5
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.12);
-      } else if (type === 'unlock') {
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-        notes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
-          gain.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.25);
-          osc.start(ctx.currentTime + i * 0.08);
-          osc.stop(ctx.currentTime + i * 0.08 + 0.25);
-        });
-      } else if (type === 'levelUp') {
-        const notes = [329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51]; // E4, G4, C5, E5, G5, C6, E6
-        notes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.07);
-          gain.gain.setValueAtTime(0.08, ctx.currentTime + i * 0.07);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.07 + 0.35);
-          osc.start(ctx.currentTime + i * 0.07);
-          osc.stop(ctx.currentTime + i * 0.07 + 0.35);
-        });
-      }
-    } catch (e) {
-      console.warn("Audio Context blocked or not supported: ", e);
-    }
-  };
-
-  // Canvas Confetti effect
-  useEffect(() => {
-    if (!confettiActive || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let animationId;
-    
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#3b82f6'];
-    const particles = Array.from({ length: 120 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height - canvas.height,
-      r: Math.random() * 5 + 3,
-      d: Math.random() * canvas.height,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      tilt: Math.random() * 10 - 5,
-      tiltAngleIncremental: Math.random() * 0.05 + 0.02,
-      tiltAngle: 0
-    }));
-    
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let active = false;
-      particles.forEach((p, idx) => {
-        p.tiltAngle += p.tiltAngleIncremental;
-        p.y += (Math.cos(p.d) + 3.5 + p.r / 2) / 2.2;
-        p.x += Math.sin(p.tiltAngle) * 0.8;
-        p.tilt = Math.sin(p.tiltAngle - idx/3) * 12;
-        
-        if (p.y < canvas.height) active = true;
-        
-        ctx.beginPath();
-        ctx.lineWidth = p.r;
-        ctx.strokeStyle = p.color;
-        ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
-        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
-        ctx.stroke();
-      });
-      
-      if (active) {
-        animationId = requestAnimationFrame(draw);
-      } else {
-        setConfettiActive(false);
-      }
-    }
-    
-    animationId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animationId);
-  }, [confettiActive]);
-
-  // Keep localStorage updated with namespaced keys
-  useEffect(() => {
-    const prefix = user?._id ? `_${user._id}` : '';
-    localStorage.setItem(`game_xp${prefix}`, xp.toString());
-    localStorage.setItem(`game_coins${prefix}`, coins.toString());
-    localStorage.setItem(`game_streak${prefix}`, streak.toString());
-    localStorage.setItem(`game_longest_streak${prefix}`, longestStreak.toString());
-    localStorage.setItem(`game_achievements${prefix}`, JSON.stringify(achievements));
-    localStorage.setItem(`game_simulated_actions${prefix}`, JSON.stringify(simulatedActions));
-    if (recentUnlock) {
-      localStorage.setItem(`game_recent_unlock${prefix}`, JSON.stringify(recentUnlock));
-    }
-  }, [xp, coins, streak, longestStreak, achievements, recentUnlock, simulatedActions, user?._id]);
-
-  // Sync gamification parameters to backend database with 2s debounce
-  useEffect(() => {
-    if (!user) return;
-    const delayDebounce = setTimeout(async () => {
-      try {
-        const { data } = await api.put('/users/me/gamification', {
-          xp,
-          coins,
-          level: getCurrentLevelInfo(xp).currentLvl.level,
-          streak,
-          longestStreak,
-          achievements: achievements.map(a => ({
-            id: a.id,
-            currentProgress: a.currentProgress,
-            unlocked: a.unlocked,
-          })),
-          simulatedActions
-        });
-        if (data.success && data.data) {
-          updateUser(data.data);
-        }
-      } catch (e) {
-        console.warn("MERN Database gamification sync failed: ", e);
-      }
-    }, 2000);
-    return () => clearTimeout(delayDebounce);
-  }, [xp, coins, streak, longestStreak, achievements, simulatedActions]);
-
-  // Update state when user context changes/loads
-  useEffect(() => {
-    if (user) {
-      const getVal = (key, backendVal, defaultVal) => {
-        const saved = localStorage.getItem(`game_${key}_${user._id}`);
-        if (saved !== null) return parseInt(saved, 10);
-        return backendVal !== undefined ? backendVal : defaultVal;
-      };
-      
-      setXp(getVal('xp', user.xp, 0));
-      setCoins(getVal('coins', user.coins, 0));
-      setStreak(getVal('streak', user.streak, 0));
-      setLongestStreak(getVal('longest_streak', user.longestStreak, 0));
-
-      const storageKey = `game_achievements_${user._id}`;
-      const savedAch = localStorage.getItem(storageKey);
-      const userMap = {};
-      if (savedAch) {
-        try {
-          JSON.parse(savedAch).forEach(a => { userMap[a.id] = a; });
-        } catch (e) {}
-      } else if (user.achievements) {
-        user.achievements.forEach(a => { userMap[a.id] = a; });
-      }
-      setAchievements(INITIAL_ACHIEVEMENTS.map(ach => ({
-        ...ach,
-        currentProgress: userMap[ach.id]?.currentProgress !== undefined ? userMap[ach.id].currentProgress : 0,
-        unlocked: userMap[ach.id]?.unlocked !== undefined ? userMap[ach.id].unlocked : false,
-      })));
-
-      const simulatedKey = `game_simulated_actions_${user._id}`;
-      const savedSim = localStorage.getItem(simulatedKey);
-      if (savedSim) {
-        try {
-          setSimulatedActions(JSON.parse(savedSim));
-        } catch (e) {}
-      } else {
-        setSimulatedActions(user.simulatedActions || []);
-      }
-      
-      const recentKey = `game_recent_unlock_${user._id}`;
-      const savedRecent = localStorage.getItem(recentKey);
-      if (savedRecent) {
-        try {
-          setRecentUnlock(JSON.parse(savedRecent));
-        } catch (e) {}
-      } else {
-        setRecentUnlock(null);
-      }
-    }
-  }, [user?._id]);
-
-  // Calculate level based on XP
-  const getCurrentLevelInfo = (xpVal) => {
-    let currentLvl = PROGRESSION_LEVELS[0];
-    let nextLvl = PROGRESSION_LEVELS[1];
-    
-    for (let i = 0; i < PROGRESSION_LEVELS.length; i++) {
-      if (xpVal >= PROGRESSION_LEVELS[i].xpRequired) {
-        currentLvl = PROGRESSION_LEVELS[i];
-        nextLvl = PROGRESSION_LEVELS[i + 1] || PROGRESSION_LEVELS[i];
-      } else {
-        break;
-      }
-    }
-    return { currentLvl, nextLvl };
-  };
-
-  const { currentLvl, nextLvl } = getCurrentLevelInfo(xp);
-  
-  // XP progress ratio
-  const getLevelProgressPercentage = () => {
-    if (currentLvl.level === 15) return 100;
-    const base = currentLvl.xpRequired;
-    const target = nextLvl.xpRequired;
-    const earned = xp - base;
-    const totalNeeded = target - base;
-    return Math.min(Math.round((earned / totalNeeded) * 100), 100);
-  };
-
-  const levelProgress = getLevelProgressPercentage();
-
-  // Floaty Text spawning function
-  const spawnFloatyText = (text, e) => {
-    let x = 300;
-    let y = 150;
-    if (e && e.clientX && e.clientY) {
-      x = e.clientX;
-      y = e.clientY - 40;
-    }
-    const id = Date.now() + Math.random().toString();
-    setFloatyTexts((prev) => [...prev, { id, text, x, y }]);
-    setTimeout(() => {
-      setFloatyTexts((prev) => prev.filter((item) => item.id !== id));
-    }, 1200);
-  };
-
-  // Perform a sandbox action
-  const handleAction = (actionId, label, actionXp, actionCoins, e) => {
-    if (simulatedActions.includes(actionId)) {
-      toast.error(`Action "${label}" has already been simulated!`);
-      return;
-    }
-    setSimulatedActions(prev => [...prev, actionId]);
-
-    const oldLevel = getCurrentLevelInfo(xp).currentLvl.level;
-    let totalXpGained = actionXp;
-    let totalCoinsGained = actionCoins;
-
-    // Interactive Achievements updates
-    let updatedStreak = streak;
-    let updatedLongest = longestStreak;
-    if (actionId === 'maintain_streak') {
-      updatedStreak += 1;
-      setStreak(updatedStreak);
-      if (updatedStreak > longestStreak) {
-        updatedLongest = updatedStreak;
-        setLongestStreak(updatedLongest);
-      }
-    }
-
-    // Process progress changes on specific achievements
-    const newlyUnlockedAchievements = [];
-    const newAchievements = achievements.map(ach => {
-      if (ach.unlocked) return ach;
-
-      let currentVal = ach.currentProgress;
-      
-      // Wire up actionId to correct achievement targets (Requirements 1 & 2)
-      if (actionId === 'create_budget') {
-        if (ach.id === 'b1') currentVal = 1;
-        if (ach.id === 'b6') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
-      } else if (actionId === 'maintain_streak') {
-        if (ach.id === 'sp11') {
-          currentVal = updatedStreak;
-        } else if (ach.category === 'Consistency' && ['c2', 'c3', 'c4', 'c5', 'c9', 'c10'].includes(ach.id)) {
-          currentVal = updatedStreak;
-        }
-      } else if (actionId === 'add_goal') {
-        if (ach.id === 's2') currentVal = 1;
-        if (ach.id === 's5') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
-        if (ach.id === 's6') currentVal = 1;
-        if (['s8', 's9', 's10'].includes(ach.id)) {
-          currentVal = Math.min(currentVal + 5000, ach.progressNeeded);
-        }
-      } else if (actionId === 'reach_goal') {
-        if (ach.id === 's4') currentVal = 1;
-        if (ach.id === 's11') currentVal = Math.min(currentVal + 1, ach.progressNeeded);
-        if (['s8', 's9', 's10'].includes(ach.id)) {
-          currentVal = Math.min(currentVal + 10000, ach.progressNeeded);
-        }
-      } else if (actionId === 'upload_receipt') {
-        if (ach.id === 'p4') currentVal = 1;
-      } else if (actionId === 'add_investment') {
-        if (['i1', 'i2', 'i3', 'i4', 'i5'].includes(ach.id)) {
-          currentVal = 1;
-        }
-        if (ach.id === 'i6') {
-          currentVal = Math.min(currentVal + 1, ach.progressNeeded);
-        }
-        if (['i7', 'i8', 'i9'].includes(ach.id)) {
-          currentVal = Math.min(currentVal + 15000, ach.progressNeeded);
-        }
-      } else if (actionId === 'export_reports') {
-        if (['p1', 'p2', 'p3'].includes(ach.id)) {
-          currentVal = 1;
-        }
-      }
-      /*
-       * XP_ACTIONS entries with no matching achievement:
-       * - login: No specific standalone login achievement exists.
-       * - add_expense: No "first expense" style achievement exists in achievementsData.js.
-       * - add_income: No "first income" style achievement exists in achievementsData.js.
-       * - stay_daily_budget: No daily-budget-specific achievements exist.
-       * - stay_weekly_budget: No weekly-budget-specific achievements exist.
-       * - stay_monthly_budget: No monthly-budget-specific achievements exist.
-       * - complete_review: No monthly review achievement exists.
-       * - track_bills: No bill tracking achievements exist.
-       * - pay_bills_on_time: No bill payment achievements exist.
-       * - categorize_expense: No expense categorization achievements exist.
-       * - view_analytics: No analytics viewing achievements exist.
-       * - invite_friends: No referral or friend invitation achievements exist.
-       * - backup_data: No data backup achievements exist.
-       */
-
-      // Check for unlock
-      const isNowUnlocked = currentVal >= ach.progressNeeded;
-      if (isNowUnlocked) {
-        newlyUnlockedAchievements.push({
-          ...ach,
-          currentProgress: currentVal,
-          unlocked: true
-        });
-        totalXpGained += ach.xpReward;
-        totalCoinsGained += ach.coinsReward;
-      }
-
-      return {
-        ...ach,
-        currentProgress: currentVal,
-        unlocked: ach.unlocked || isNowUnlocked
-      };
-    });
-
-    const finalXp = xp + totalXpGained;
-    const finalCoins = coins + totalCoinsGained;
-
-    setXp(finalXp);
-    setCoins(finalCoins);
-    setAchievements(newAchievements);
-
-    playSound('xp');
-    spawnFloatyText(`+${actionXp} XP  +${actionCoins}🪙`, e);
-
-    // Level up check on final level
-    const newLevel = getCurrentLevelInfo(finalXp).currentLvl.level;
-    if (newLevel > oldLevel) {
-      setTimeout(() => {
-        playSound('levelUp');
-        setConfettiActive(true);
-        toast.success(`🎉 LEVEL UP! You reached Level ${newLevel}: ${PROGRESSION_LEVELS[newLevel - 1]?.name}!`, {
-          duration: 5000,
-          icon: '🚀',
-          style: {
-            background: '#1e1b4b',
-            color: '#c084fc',
-            border: '2px solid #818cf8',
-          }
-        });
-      }, 300);
-    }
-
-    newlyUnlockedAchievements.forEach(ach => {
-      playSound('unlock');
-      setConfettiActive(true);
-      setRecentUnlock(ach);
-      
-      toast.custom((t) => (
-        <div className={`${t.visible ? 'animate-bounce' : 'opacity-0'} max-w-md w-full bg-dark-800 border border-yellow-500/50 shadow-2xl rounded-2xl pointer-events-auto flex p-4 ring-1 ring-black ring-opacity-5`}>
-          <div className="flex-1 w-0">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 pt-0.5 text-3xl">
-                {ach.icon}
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-bold text-yellow-400">🏆 Achievement Unlocked!</p>
-                <p className="text-xs font-semibold text-slate-100 mt-0.5">{ach.title}</p>
-                <p className="text-[10px] text-slate-400 mt-1">{ach.description}</p>
-                <div className="flex gap-2 mt-2">
-                  <span className="text-[10px] bg-primary-600/20 text-primary-400 px-2 py-0.5 rounded-full font-bold">+{ach.xpReward} XP</span>
-                  <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-bold">+{ach.coinsReward}🪙</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="ml-4 flex-shrink-0 flex">
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              className="rounded-lg p-1.5 flex items-center justify-center text-slate-500 hover:text-slate-400"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      ), { duration: 6000 });
-    });
-  };
-
-
-
-  // Filter & search achievements logic
-  const filteredAchievements = achievements.filter(ach => {
-    // Search filter
-    const matchesSearch = ach.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          ach.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (!matchesSearch) return false;
-
-    // Category / State filter
-    if (activeFilter === 'All') return true;
-    if (activeFilter === 'Unlocked') return ach.unlocked;
-    if (activeFilter === 'Locked') return !ach.unlocked;
-    if (activeFilter === 'Common') return ach.tier === 'Common';
-    if (activeFilter === 'Rare') return ach.tier === 'Rare';
-    if (activeFilter === 'Epic') return ach.tier === 'Epic';
-    if (activeFilter === 'Legendary') return ach.tier === 'Legendary';
-    
-    // Dynamically filter categories that are not handled by the state/tier checks
-    return ach.category === activeFilter;
-  });
-  
-  // Pagination calculations
-  const achievementsPerPage = 10;
-  const totalPages = Math.ceil(filteredAchievements.length / achievementsPerPage);
-  const paginatedAchievements = filteredAchievements.slice(
-    (currentPage - 1) * achievementsPerPage,
-    currentPage * achievementsPerPage
-  );
-
-  // Calculate statistics
-  const totalBadgesCount = achievements.length;
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
-  const lockedCount = totalBadgesCount - unlockedCount;
-  const completionPercentage = Math.round((unlockedCount / totalBadgesCount) * 100);
-  const rareCount = achievements.filter(a => a.unlocked && a.tier === 'Rare').length;
-  const legendaryCount = achievements.filter(a => a.unlocked && a.tier === 'Legendary').length;
-
-  const featuredAchievement = achievements.find(a => !a.unlocked && a.tier === 'Epic') || achievements.find(a => !a.unlocked);
+// ── Progression Roadmap Tab ──────────────────────────────────────────────────
+function ProgressionTab({ xp, simulatedActions, applyReward }) {
+  const { currentLvl } = calculateLevel(xp);
 
   return (
-    <div className="space-y-6 relative min-h-screen pb-16">
-      
-      {/* Floaty Texts for XP gain */}
-      {floatyTexts.map(f => (
-        <span
-          key={f.id}
-          className="fixed pointer-events-none text-sm font-bold text-yellow-400 select-none z-50 animate-float-up shadow-glow-yellow"
-          style={{ left: f.x, top: f.y }}
-        >
-          {f.text}
-        </span>
-      ))}
-
-      {/* Confetti Overlay Canvas */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none z-40 w-full h-full"
-      />
-
-      <style>{`
-        @keyframes float-up {
-          0% { transform: translateY(0) scale(1); opacity: 1; }
-          100% { transform: translateY(-80px) scale(1.15); opacity: 0; }
-        }
-        .animate-float-up {
-          animation: float-up 1.2s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
-        }
-        .shadow-glow-yellow {
-          text-shadow: 0 0 10px rgba(234, 179, 8, 0.8), 0 0 20px rgba(234, 179, 8, 0.4);
-        }
-        .badge-shine {
-          position: relative;
-          overflow: hidden;
-        }
-        .badge-shine::after {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -60%;
-          width: 30%;
-          height: 200%;
-          background: rgba(255, 255, 255, 0.3);
-          transform: rotate(30deg);
-          transition: all 0.5s;
-          animation: shine 4s infinite ease-in-out;
-        }
-        @keyframes shine {
-          0% { left: -70%; }
-          15% { left: 150%; }
-          100% { left: 150%; }
-        }
-        .glow-card-green {
-          box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
-        }
-        .glow-card-yellow {
-          box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
-        }
-        .glow-card-purple {
-          box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
-        }
-      `}</style>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-            🏆 Achievements & Levels
-          </h2>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Complete milestones, earn XP & coins, and build financial legends!
-          </p>
-        </div>
-      </div>
-
-      {/* Grid of Main Dashboard Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Current Level Card */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
-          <div className="absolute top-0 right-0 p-3 opacity-10 text-8xl pointer-events-none select-none">
-            {currentLvl.icon}
-          </div>
-          <div>
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Active Progression</span>
-                <h3 className="text-2xl font-extrabold text-slate-100 mt-1 flex items-center gap-2">
-                  Level {currentLvl.level}
-                </h3>
-                <p className="text-sm font-bold text-amber-400 mt-0.5">{currentLvl.name}</p>
-              </div>
-              <span className="text-3xl p-2 bg-slate-900/40 border border-slate-800 rounded-2xl">
-                {currentLvl.icon}
-              </span>
-            </div>
-            
-            {/* XP progress bar */}
-            <div className="mt-6 space-y-1.5">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-slate-400">XP Progress</span>
-                <span className="text-slate-200">
-                  {xp.toLocaleString()} / {currentLvl.level === 15 ? 'Max' : nextLvl.xpRequired.toLocaleString()} XP
-                </span>
-              </div>
-              <div className="w-full bg-slate-900 h-3.5 border border-slate-800 rounded-full overflow-hidden p-0.5">
-                <div
-                  className="bg-gradient-to-r from-indigo-500 via-primary-500 to-emerald-500 h-full rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${levelProgress}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-500 text-right italic font-medium">
-                {currentLvl.level === 15 ? 'Max progression reached!' : `${(nextLvl.xpRequired - xp).toLocaleString()} XP needed for level ${nextLvl.level}`}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Currency & Streaks Card */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[180px]">
-          <div>
-            <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Currency & Streak Tracker</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              
-              {/* Coins Widget */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-                <span className="text-3xl">🪙</span>
-                <div>
-                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Coins Earned</p>
-                  <p className="text-xl font-extrabold text-yellow-400">{coins}</p>
-                </div>
-              </div>
-
-              {/* Daily Streak Widget */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-                <span className="text-3xl">🔥</span>
-                <div>
-                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Daily Streak</p>
-                  <p className="text-xl font-extrabold text-orange-400">{streak} Days</p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-700/30">
-            <span>Longest login streak:</span>
-            <span className="font-bold text-orange-400">{longestStreak} consecutive days ⚡</span>
-          </div>
-        </div>
-
-        {/* Unlocks and completion Statistics */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[180px]">
-          <div>
-            <span className="text-xs font-semibold text-primary-400 uppercase tracking-widest">Milestone Progression</span>
-            <div className="flex items-center gap-4 mt-3">
-              
-              {/* Radial Completion Percentage */}
-              <div className="w-16 h-16 rounded-full border-4 border-slate-800 flex items-center justify-center relative flex-shrink-0 bg-slate-900/40 shadow-inner">
-                <span className="text-sm font-extrabold text-slate-100">{completionPercentage}%</span>
-                {/* SVG Overlay border rings */}
-                <svg className="absolute -inset-1 transform -rotate-90 w-16 h-16 pointer-events-none">
-                  <circle
-                    cx="32"
-                    cy="32"
-                    r="28"
-                    stroke="url(#radialGradient)"
-                    strokeWidth="4"
-                    fill="transparent"
-                    strokeDasharray="176"
-                    strokeDashoffset={176 - (176 * completionPercentage) / 100}
-                    strokeLinecap="round"
-                    className="transition-all duration-700 ease-out"
-                  />
-                  <defs>
-                    <linearGradient id="radialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#10b981" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-300">
-                  Unlocked: <span className="font-bold text-emerald-400">{unlockedCount}</span> / {totalBadgesCount} Badges
-                </p>
-                <div className="flex gap-2">
-                  <span className="text-[10px] bg-slate-900/60 border border-slate-800 rounded-full px-2 py-0.5 text-slate-400 font-bold">
-                    Rare: {rareCount} ⭐
-                  </span>
-                  <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/20 rounded-full px-2 py-0.5 text-yellow-400 font-bold">
-                    Legendary: {legendaryCount} 👑
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-700/30">
-            <span>Next Level Reward:</span>
-            <span className="font-bold text-indigo-400">{currentLvl.level === 15 ? 'Max Level!' : nextLvl.reward}</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Featured & Recent unlock row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Recently Unlocked */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-5 shadow-lg flex items-center gap-4">
-          <div className="text-4xl p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex-shrink-0 animate-pulse">
-            {recentUnlock ? recentUnlock.icon : '🔓'}
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Recently Unlocked Milestone</span>
-            <h4 className="text-sm font-bold text-slate-200 mt-0.5">
-              {recentUnlock ? recentUnlock.title : 'Unlock your first badge!'}
-            </h4>
-            <p className="text-xs text-slate-400 mt-1">
-              {recentUnlock ? recentUnlock.description : 'Earn XP and coins by performing actions on your tracker.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Featured Goal */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-5 shadow-lg flex items-center gap-4">
-          <div className="text-4xl p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex-shrink-0">
-            {featuredAchievement ? featuredAchievement.icon : '👑'}
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Recommended Next Goal</span>
-            <h4 className="text-sm font-bold text-slate-200 mt-0.5">
-              {featuredAchievement ? featuredAchievement.title : 'All Milestones Completed!'}
-            </h4>
-            <p className="text-xs text-slate-400 mt-1">
-              {featuredAchievement ? featuredAchievement.description : 'Congratulations, you are a complete Financial Legend!'}
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Sandbox XP Simulator Panel */}
+    <div className="space-y-8">
+      {/* Progression Roadmap */}
       <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-        <div className="pb-3 border-b border-slate-700/50 flex justify-between items-center">
-          <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-1.5">
-              ⚙️ Sandbox XP & Badge Simulator
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Simulate actions in real-time to watch XP increase, unlock badges, and trigger confetti explosions!
-            </p>
+        <h3 className="text-base font-black text-slate-100 pb-3 border-b border-slate-700/50 flex items-center gap-2">
+          🌌 Progression Roadmap
+        </h3>
+
+        <div className="relative overflow-x-auto pb-6 pt-8 scrollbar-thin mt-4">
+          {/* Connecting line */}
+          <div className="absolute top-[52px] left-8 right-8 h-0.5 bg-slate-800 border-t border-slate-700/50 rounded-full z-0" />
+
+          <div className="flex gap-10 px-4 min-w-max relative z-10">
+            {PROGRESSION_LEVELS.map(lvl => {
+              const isCurrent = currentLvl.level === lvl.level;
+              const isUnlocked = xp >= lvl.xpRequired;
+
+              return (
+                <div key={lvl.level} className="flex flex-col items-center text-center w-28 relative group">
+                  {/* Node */}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base border-2 transition-all duration-300 ${
+                    isCurrent
+                      ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.5)] scale-110 font-bold'
+                      : isUnlocked
+                      ? 'bg-slate-900 border-emerald-500 text-slate-200'
+                      : 'bg-dark-900 border-slate-800 text-slate-600 opacity-60'
+                  }`}>
+                    {isCurrent ? '⚡' : lvl.icon}
+                  </div>
+
+                  <p className={`text-xs mt-3 font-extrabold ${isCurrent ? 'text-indigo-400' : isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
+                    Level {lvl.level}
+                  </p>
+                  <p className={`text-[10px] font-bold mt-0.5 truncate max-w-[90px] ${isCurrent ? 'text-amber-400' : isUnlocked ? 'text-slate-400' : 'text-slate-700'}`}>
+                    {lvl.name}
+                  </p>
+                  <p className="text-[8px] text-slate-600 font-mono mt-1">
+                    {lvl.xpRequired.toLocaleString('en-IN')} XP
+                  </p>
+                  {/* Every 5 levels = chest */}
+                  {lvl.level % 5 === 0 && (
+                    <span className="text-[9px] mt-1 text-amber-400">🎁</span>
+                  )}
+
+                  {/* Reward tooltip */}
+                  <div className="absolute top-[calc(100%+8px)] scale-95 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 w-36 bg-slate-900 border border-slate-700/80 rounded-xl p-2 z-20 pointer-events-none shadow-xl">
+                    <p className="text-[8px] text-slate-500 border-b border-slate-800 pb-1 mb-1 uppercase font-black text-center">Reward</p>
+                    <p className="text-[9px] text-slate-300 text-center font-bold">{lvl.reward}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <span className="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg px-2.5 py-1 font-bold">
-            Interactive Testbed
+        </div>
+      </div>
+
+      {/* Rank tiers */}
+      <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+        <h3 className="text-base font-black text-slate-100 pb-3 border-b border-slate-700/50 flex items-center gap-2 mb-4">
+          👑 Rank Tiers
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+          {[
+            { name: 'Bronze',   minXP: 0,       icon: '🥉', color: '#cd7f32' },
+            { name: 'Silver',   minXP: 5000,    icon: '🥈', color: '#c0c0c0' },
+            { name: 'Gold',     minXP: 15000,   icon: '🥇', color: '#ffd700' },
+            { name: 'Platinum', minXP: 35000,   icon: '💠', color: '#e5e4e2' },
+            { name: 'Diamond',  minXP: 70000,   icon: '💎', color: '#b9f2ff' },
+            { name: 'Master',   minXP: 130000,  icon: '🔮', color: '#8b5cf6' },
+            { name: 'Legend',   minXP: 250000,  icon: '👑', color: '#f59e0b' },
+          ].map(tier => {
+            const isReached = xp >= tier.minXP;
+            return (
+              <div key={tier.name}
+                className={`rounded-2xl border p-3 text-center transition-all ${isReached ? 'border-opacity-40' : 'opacity-40 border-slate-800'}`}
+                style={isReached ? { borderColor: `${tier.color}40`, background: `${tier.color}10` } : {}}
+              >
+                <div className="text-2xl mb-1">{tier.icon}</div>
+                <p className="text-[10px] font-extrabold" style={{ color: isReached ? tier.color : '#475569' }}>{tier.name}</p>
+                <p className="text-[8px] text-slate-600 font-mono mt-0.5">{tier.minXP.toLocaleString('en-IN')}+ XP</p>
+                {isReached && <p className="text-[9px] text-emerald-400 font-bold mt-1">✓ Earned</p>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Stats + XP Simulator */}
+      <div className="space-y-4">
+        <h3 className="text-base font-black text-slate-100 flex items-center gap-2">
+          📈 Your Stats
+        </h3>
+        <StatsPanel />
+      </div>
+
+      {/* XP Simulator */}
+      <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+        <div className="pb-3 border-b border-slate-700/50 flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-base font-black text-slate-100">⚙️ XP Action Simulator</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Simulate financial actions to earn XP and unlock badges</p>
+          </div>
+          <span className="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2.5 py-1 rounded-lg font-bold">
+            Interactive
           </span>
         </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-4">
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
           {XP_ACTIONS.map(action => {
             const isCompleted = simulatedActions.includes(action.id);
+            const actionKey = action.id.toUpperCase();
             return (
               <button
                 key={action.id}
                 disabled={isCompleted}
-                onClick={(e) => handleAction(action.id, action.label, action.xp, action.coins, e)}
-                className={`p-2.5 rounded-xl text-left text-xs font-semibold transition-all flex flex-col justify-between h-[85px] group text-slate-300 hover:text-slate-100 ${
+                onClick={() => applyReward(actionKey)}
+                className={`p-2.5 rounded-xl text-left text-xs font-semibold transition-all flex flex-col justify-between h-[85px] group cursor-pointer ${
                   isCompleted
-                    ? 'bg-slate-900/10 border-slate-900/30 opacity-40 cursor-not-allowed'
-                    : 'bg-slate-900/40 border-slate-800 hover:border-primary-500/30 hover:bg-slate-800/40 hover:scale-105 active:scale-95 cursor-pointer'
+                    ? 'bg-slate-900/10 border border-slate-900/30 opacity-40 cursor-not-allowed'
+                    : 'bg-slate-900/40 border border-slate-800 hover:border-indigo-500/40 hover:bg-slate-800/40 hover:scale-105 active:scale-95'
                 }`}
               >
-                <span className={`line-clamp-2 leading-tight ${isCompleted ? 'text-slate-500' : 'group-hover:text-primary-400'}`}>
+                <span className={`line-clamp-2 leading-tight ${isCompleted ? 'text-slate-500' : 'text-slate-300 group-hover:text-indigo-300'}`}>
                   {action.label} {isCompleted && '✓'}
                 </span>
                 <div className="flex justify-between items-center w-full mt-2 pt-1 border-t border-slate-800/60">
@@ -854,221 +165,120 @@ export default function Achievements() {
           })}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Main achievements Filter, Search, Grid */}
-      <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-        
-        {/* Search & Filter Bar */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 pb-6 border-b border-slate-700/50">
-          <div className="relative w-full lg:w-72">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
-              🔍
-            </span>
-            <input
-              type="text"
-              placeholder="Search achievements..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-900/60 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            />
+// ── Main Component ───────────────────────────────────────────────────────────
+export default function Achievements() {
+  const [activeTab, setActiveTab] = useState('overview');
+  const {
+    xp, coins, level, streak, longestStreak, achievements,
+    simulatedActions, isLoaded, applyReward,
+  } = useGamification();
+
+  return (
+    <div className="space-y-6 pb-10">
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl md:text-3xl font-black text-slate-100 tracking-tight">
+          🏆 Achievements & Progress
+        </h1>
+        <p className="text-sm text-slate-400 mt-1">
+          Your financial journey, gamified. Earn XP, unlock badges, and level up.
+        </p>
+      </div>
+
+      {/* Multiplier event banner (only shows when active) */}
+      <MultiplierBanner />
+
+      {/* Profile hero */}
+      <LevelCard />
+
+      {/* Tab navigation */}
+      <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              activeTab === tab.id
+                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+          >
+            <span>{tab.icon}</span>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab: Overview */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Season + Showcase row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SeasonCard />
+            <AchievementShowcase />
           </div>
 
-          {/* Categories/State filters scroll area */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-thin">
-            {filterOptions.map(filter => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition-all flex-shrink-0 cursor-pointer ${
-                  activeFilter === filter
-                    ? 'bg-primary-600 border-primary-500 text-white shadow-lg'
-                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
+          {/* Challenges + Streak row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <DailyChallenges />
+            <StreakCard />
           </div>
+
+          {/* Leaderboard */}
+          <Leaderboard />
         </div>
+      )}
 
-        {/* Achievements Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
-          {paginatedAchievements.length > 0 ? (
-            paginatedAchievements.map(ach => (
-              <div
-                key={ach.id}
-                className={`relative border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 min-h-[190px] select-none hover:scale-[1.03] group ${
-                  ach.unlocked
-                    ? `bg-gradient-to-br ${ach.theme} shadow-md`
-                    : 'bg-slate-900/20 border-slate-800/80 opacity-40 blur-[0.3px]'
-                }`}
-              >
-                {/* Badge/Icon Container */}
-                <div>
-                  <div className="flex justify-between items-start">
-                    <div
-                      className={`text-3xl w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner ${
-                        ach.unlocked
-                          ? 'bg-slate-950/40 border-white/10 badge-shine scale-105'
-                          : 'bg-slate-950/20 border-slate-900 grayscale'
-                      }`}
-                    >
-                      {ach.icon}
-                    </div>
-                    <span className={`text-[9px] uppercase tracking-widest font-extrabold px-2 py-0.5 rounded-full border ${
-                      ach.tier === 'Legendary'
-                        ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400 animate-pulse'
-                        : ach.tier === 'Epic'
-                        ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
-                        : ach.tier === 'Rare'
-                        ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
-                    }`}>
-                      {ach.tier}
-                    </span>
-                  </div>
+      {/* Tab: Badges */}
+      {activeTab === 'badges' && (
+        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+          <div className="pb-4 border-b border-slate-700/40 mb-5">
+            <h3 className="text-base font-black text-slate-100">All Badges</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {achievements.filter(a => a.unlocked).length} / {achievements.length} unlocked •{' '}
+              Pin up to 3 badges to your showcase
+            </p>
+          </div>
+          <BadgeGrid />
+        </div>
+      )}
 
-                  <h4 className="font-extrabold text-sm text-slate-100 mt-4 leading-tight group-hover:text-primary-300 transition-colors">
-                    {ach.title}
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-1 leading-normal">
-                    {ach.description}
-                  </p>
-                </div>
+      {/* Tab: Timeline */}
+      {activeTab === 'timeline' && (
+        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+          <div className="pb-4 border-b border-slate-700/40 mb-6">
+            <h3 className="text-base font-black text-slate-100">XP Timeline</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Your progression history, grouped by date</p>
+          </div>
+          <Timeline />
+        </div>
+      )}
 
-                {/* Progress bar inside card */}
-                <div className="mt-4 pt-3 border-t border-slate-700/20">
-                  {ach.unlocked ? (
-                    <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400">
-                      <span>✓ Completed</span>
-                      <span>+{ach.xpReward} XP</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-500 font-semibold truncate max-w-[120px]">{ach.requirement}</span>
-                        <span className="text-slate-400 font-bold">
-                          {ach.currentProgress.toLocaleString()} / {ach.progressNeeded.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="bg-primary-500 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min((ach.currentProgress / ach.progressNeeded) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Custom Tooltip on Hover */}
-                <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-64 bg-dark-900 border border-slate-700/80 rounded-xl p-3 shadow-2xl z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-dark-900" />
-                  <p className="text-xs font-extrabold text-slate-100 flex items-center gap-1">
-                    {ach.icon} {ach.title}
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    {ach.unlocked ? `Unlocked! ${ach.description}` : `Target: ${ach.requirement}`}
-                  </p>
-                  <div className="mt-2 pt-2 border-t border-slate-800 text-[10px] space-y-1">
-                    <div className="flex justify-between text-slate-400">
-                      <span>Rewards:</span>
-                      <span className="font-bold text-indigo-400">+{ach.xpReward} XP, +{ach.coinsReward}🪙</span>
-                    </div>
-                    {ach.rewardsText && (
-                      <div className="text-slate-500 italic">
-                        {ach.rewardsText}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full py-12 text-center text-slate-500 text-sm font-semibold">
-              No achievements match your filters. 🔍 Try another search or category.
+      {/* Tab: Analytics */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+            <div className="pb-4 border-b border-slate-700/40 mb-6">
+              <h3 className="text-base font-black text-slate-100">XP Analytics</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Track your financial XP earnings over time</p>
             </div>
-          )}
-        </div>
-
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-slate-700/30">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
-            >
-              ← Previous
-            </button>
-            <span className="text-xs text-slate-400 font-semibold px-2">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700 px-4 py-2 rounded-lg text-xs font-semibold active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
-            >
-              Next →
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Progression details */}
-      <div className="mt-6">
-        
-        {/* Progression Levels Reference */}
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl w-full">
-          <h3 className="text-base font-bold text-slate-100 pb-3 border-b border-slate-700/50">
-            🌌 Progression Tiers & Rewards
-          </h3>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {PROGRESSION_LEVELS.map(lvl => {
-              const isCurrent = currentLvl.level === lvl.level;
-              const isUnlocked = xp >= lvl.xpRequired;
-              
-              return (
-                <div
-                  key={lvl.level}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
-                    isCurrent
-                      ? 'bg-primary-600/10 border-primary-500/40 glow-card-green font-bold'
-                      : isUnlocked
-                      ? 'bg-slate-900/30 border-slate-800/80 text-slate-300'
-                      : 'bg-slate-950/40 border-slate-900/50 text-slate-600'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{lvl.icon}</span>
-                    <div>
-                      <p className={`font-semibold ${isCurrent ? 'text-primary-400' : isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
-                        Lvl {lvl.level} — {lvl.name}
-                      </p>
-                      <p className="text-[10px] text-slate-500">Requires: {lvl.xpRequired.toLocaleString()} XP</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                      isCurrent
-                        ? 'bg-primary-600 text-white'
-                        : isUnlocked
-                        ? 'bg-slate-800 text-slate-400'
-                        : 'bg-slate-900/20 text-slate-700'
-                    }`}>
-                      {isCurrent ? 'Current' : isUnlocked ? 'Unlocked' : 'Locked'}
-                    </span>
-                    <p className="text-[9px] text-slate-500 mt-1 line-clamp-1 max-w-[120px]">{lvl.reward}</p>
-                  </div>
-                </div>
-              );
-            })}
+            <XPAnalytics />
           </div>
         </div>
+      )}
 
-      </div>
-
+      {/* Tab: Progression */}
+      {activeTab === 'progression' && (
+        <ProgressionTab
+          xp={xp}
+          simulatedActions={simulatedActions}
+          applyReward={applyReward}
+        />
+      )}
     </div>
   );
 }

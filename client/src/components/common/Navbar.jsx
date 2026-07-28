@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
@@ -44,6 +44,39 @@ export default function Navbar({ onMenuToggle }) {
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
+
+  const notificationRef = useRef(null);
+  const themeRef = useRef(null);
+
+  // Click-outside and Escape key closer for dropdown menus
+  useEffect(() => {
+    if (!showDropdown && !showThemeDropdown) return;
+
+    const handleOutsideClick = (event) => {
+      if (
+        notificationRef.current && !notificationRef.current.contains(event.target) &&
+        themeRef.current && !themeRef.current.contains(event.target)
+      ) {
+        setShowDropdown(false);
+        setShowThemeDropdown(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowDropdown(false);
+        setShowThemeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showDropdown, showThemeDropdown]);
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -98,7 +131,7 @@ export default function Navbar({ onMenuToggle }) {
         </span>
 
         {/* Notifications Icon with Dropdown */}
-        <div className="relative">
+        <div ref={notificationRef} className="relative">
           <button
             onClick={() => {
               setShowDropdown(!showDropdown);
@@ -117,7 +150,7 @@ export default function Navbar({ onMenuToggle }) {
           {showDropdown && (
             <div className="absolute right-0 mt-2 w-72 bg-dark-900 border border-slate-700 rounded-2xl p-4 shadow-xl z-50 animate-fade-in space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                <span className="text-xs font-bold text-slate-200">Alerts & Notifications</span>
+                <span className="text-xs font-bold text-slate-205">Alerts & Notifications</span>
                 {unreadCount > 0 && (
                   <button onClick={markAllRead} className="text-[10px] text-indigo-400 hover:underline">
                     Mark all read
@@ -145,7 +178,7 @@ export default function Navbar({ onMenuToggle }) {
         </div>
 
         {/* Theme Picker Dropdown */}
-        <div className="relative">
+        <div ref={themeRef} className="relative">
           <button
             onClick={() => {
               setShowThemeDropdown(!showThemeDropdown);
@@ -187,8 +220,12 @@ export default function Navbar({ onMenuToggle }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-            {user?.name?.[0]?.toUpperCase() || 'U'}
+          <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user?.name || 'User avatar'} className="w-full h-full object-cover rounded-full" />
+            ) : (
+              user?.name?.[0]?.toUpperCase() || 'U'
+            )}
           </div>
           <button onClick={logout} className="btn-ghost text-xs px-3 py-1.5">
             Logout

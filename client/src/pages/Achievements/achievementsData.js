@@ -38,7 +38,28 @@ export const XP_ACTIONS = [
   { id: "view_analytics", label: "View Analytics", xp: 75, coins: 7 },
   { id: "maintain_streak", label: "Maintain Daily Streak (+1 Day)", xp: 150, coins: 15 },
   { id: "invite_friends", label: "Invite Friends", xp: 500, coins: 50 },
-  { id: "backup_data", label: "Backup Data", xp: 100, coins: 10 }
+  { id: "backup_data", label: "Backup Data", xp: 100, coins: 10 },
+  { id: "create_family", label: "Create Family Group", xp: 150, coins: 15 },
+  { id: "invite_family_member", label: "Invite Family Member", xp: 200, coins: 20 },
+  { id: "log_family_expense", label: "Log Shared Family Expense", xp: 200, coins: 20 },
+  { id: "set_family_budget", label: "Set Family Budget", xp: 300, coins: 30 },
+  { id: "family_active_30d", label: "Keep Family Group Active 30 Days", xp: 1000, coins: 100 },
+  { id: "create_split_bill", label: "Create Split Bill", xp: 300, coins: 30 },
+  { id: "settle_split_bill", label: "Settle Split Bill", xp: 500, coins: 50 },
+  { id: "add_loan", label: "Add Loan", xp: 150, coins: 15 },
+  { id: "make_loan_payment", label: "Make Loan Payment", xp: 200, coins: 20 },
+  { id: "payoff_loan", label: "Pay off Loan", xp: 1000, coins: 100 },
+  { id: "pay_loan_on_time", label: "Pay Loan On Time", xp: 250, coins: 25 },
+  { id: "add_subscription", label: "Add Subscription", xp: 150, coins: 15 },
+  { id: "view_subscriptions", label: "View Renewals", xp: 75, coins: 7 },
+  { id: "cancel_subscription", label: "Cancel Subscription", xp: 250, coins: 25 },
+  { id: "review_sub_budget", label: "Review Subscriptions Budget Limit", xp: 300, coins: 30 },
+  { id: "switch_annual_plan", label: "Switch to Annual Plan", xp: 400, coins: 40 },
+  { id: "create_wallet", label: "Create Wallet", xp: 150, coins: 15 },
+  { id: "wallet_transfer", label: "Transfer Wallet Balance", xp: 200, coins: 20 },
+  { id: "wallet_balance_30d", label: "Wallet Balance Positive 30 Days", xp: 1000, coins: 100 },
+  { id: "diverse_wallets", label: "Diverse Wallets (Cash + Digital)", xp: 300, coins: 30 },
+  { id: "wallet_milestone", label: "Reach ₹1,00,000 Combined Balance", xp: 1500, coins: 150 }
 ];
 
 // Expanded Achievements (100+ items across 10 categories)
@@ -170,5 +191,43 @@ export const INITIAL_ACHIEVEMENTS = [
   { id: "se8", title: "Tax Auditor Pro", description: "Review and print reports for tax season (April)", requirement: "Print tax files", xpReward: 300, coinsReward: 30, icon: "📂", category: "Seasonal", tier: "Rare", progressNeeded: 1, currentProgress: 0, unlocked: false },
   { id: "se9", title: "Birthday Treat Split", description: "Settle a split bill on your birthday month", requirement: "Settle birthday split", xpReward: 250, coinsReward: 25, icon: "🎂", category: "Seasonal", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
   { id: "se10", title: "Midnight Auditor", description: "Log a transaction between 12:00 AM and 2:00 AM", requirement: "Late night log", xpReward: 150, coinsReward: 15, icon: "🌌", category: "Seasonal", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
-  { id: "se11", title: "Weekend Warrior Pro", description: "Log 5 transactions on a Saturday", requirement: "Busy Saturday", xpReward: 200, coinsReward: 20, icon: "🚀", category: "Seasonal", tier: "Common", progressNeeded: 5, currentProgress: 0, unlocked: false }
+  { id: "se11", title: "Weekend Warrior Pro", description: "Log 5 transactions on a Saturday", requirement: "Busy Saturday", xpReward: 200, coinsReward: 20, icon: "🚀", category: "Seasonal", tier: "Common", progressNeeded: 5, currentProgress: 0, unlocked: false },
+
+  // ─── CATEGORY 11: FAMILY (8 achievements) ───
+  { id: "fam1", title: "First Steps: Group", description: "Created your first family group", requirement: "Create family group", xpReward: 150, coinsReward: 15, icon: "🏠", category: "Family", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "fam2", title: "Growing Together", description: "Invite first member to family group", requirement: "Invite 1 member", xpReward: 200, coinsReward: 20, icon: "✉️", category: "Family", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "fam3", title: "Family Assembly", description: "Have 3+ members in your family group", requirement: "Have 3 members", xpReward: 350, coinsReward: 35, icon: "👨‍👩‍👧", category: "Family", tier: "Rare", progressNeeded: 3, currentProgress: 0, unlocked: false },
+  { id: "fam4", title: "Shared Ledger", description: "Log your first shared expense", requirement: "Log 1 shared expense", xpReward: 200, coinsReward: 20, icon: "📊", category: "Family", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "fam5", title: "Family Budgeting", description: "Set a family budget limit", requirement: "Set family budget", xpReward: 300, coinsReward: 30, icon: "🧱", category: "Family", tier: "Rare", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "fam6", title: "Settle & Smile", description: "Settle a family split bill", requirement: "Settle family bill", xpReward: 400, coinsReward: 40, icon: "🤝", category: "Family", tier: "Rare", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "fam7", title: "Household Synergy", description: "Log 10 shared expenses", requirement: "Log 10 shared expenses", xpReward: 600, coinsReward: 60, icon: "🛒", category: "Family", tier: "Rare", progressNeeded: 10, currentProgress: 0, unlocked: false },
+  { id: "fam8", title: "Consistent Clan", description: "Keep the family group active for 30 days", requirement: "Keep group active 30d", xpReward: 1200, coinsReward: 120, icon: "⏳", category: "Family", tier: "Epic", progressNeeded: 30, currentProgress: 0, unlocked: false },
+
+  // ─── CATEGORY 12: LOANS (8 achievements) ───
+  { id: "loan1", title: "Borrower Debut", description: "Add your first loan account", requirement: "Add 1 loan", xpReward: 150, coinsReward: 15, icon: "💸", category: "Loans", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "loan2", title: "First Installment", description: "Make your first loan payment", requirement: "Make 1 payment", xpReward: 200, coinsReward: 20, icon: "🧾", category: "Loans", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "loan3", title: "Responsible Payer", description: "Make 5 loan payments", requirement: "Make 5 payments", xpReward: 400, coinsReward: 40, icon: "💰", category: "Loans", tier: "Rare", progressNeeded: 5, currentProgress: 0, unlocked: false },
+  { id: "loan4", title: "Decade of Dues", description: "Make 10 loan payments", requirement: "Make 10 payments", xpReward: 700, coinsReward: 70, icon: "📊", category: "Loans", tier: "Rare", progressNeeded: 10, currentProgress: 0, unlocked: false },
+  { id: "loan5", title: "Debt Free Starter", description: "Fully pay off one loan account", requirement: "Pay off 1 loan", xpReward: 1000, coinsReward: 100, icon: "🕊️", category: "Loans", tier: "Epic", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "loan6", title: "Multitasking Debtor", description: "Track 3 active loans simultaneously", requirement: "Track 3 loans", xpReward: 600, coinsReward: 60, icon: "💼", category: "Loans", tier: "Rare", progressNeeded: 3, currentProgress: 0, unlocked: false },
+  { id: "loan7", title: "Punctual Streak", description: "Make 5 on-time payments in a row", requirement: "5 on-time payments", xpReward: 800, coinsReward: 80, icon: "🔥", category: "Loans", tier: "Epic", progressNeeded: 5, currentProgress: 0, unlocked: false },
+  { id: "loan8", title: "Debt Annihilator", description: "Fully pay off 2 or more loans", requirement: "Pay off 2+ loans", xpReward: 2000, coinsReward: 200, icon: "👑", category: "Loans", tier: "Legendary", progressNeeded: 2, currentProgress: 0, unlocked: false },
+
+  // ─── CATEGORY 13: SUBSCRIPTIONS (7 achievements) ───
+  { id: "sub1", title: "Streaming Age", description: "Log your first recurring subscription", requirement: "Add 1 subscription", xpReward: 150, coinsReward: 15, icon: "📺", category: "Subscriptions", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "sub2", title: "App Enthusiast", description: "Track 3 active subscriptions", requirement: "Track 3 subscriptions", xpReward: 300, coinsReward: 30, icon: "🔁", category: "Subscriptions", tier: "Rare", progressNeeded: 3, currentProgress: 0, unlocked: false },
+  { id: "sub3", title: "Horizon Watcher", description: "View upcoming subscription renewals", requirement: "View renewals", xpReward: 100, coinsReward: 10, icon: "📅", category: "Subscriptions", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "sub4", title: "Leak Plugger", description: "Cancel an unused subscription", requirement: "Cancel 1 subscription", xpReward: 250, coinsReward: 25, icon: "✂️", category: "Subscriptions", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "sub5", title: "Frugal Streamer", description: "Keep monthly subscriptions under ₹2,000/month", requirement: "Subs < ₹2,000/mo", xpReward: 500, coinsReward: 50, icon: "🛡️", category: "Subscriptions", tier: "Rare", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "sub6", title: "Smart Saver Option", description: "Switch a subscription to an annual plan", requirement: "Switch to annual plan", xpReward: 400, coinsReward: 40, icon: "💳", category: "Subscriptions", tier: "Rare", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "sub7", title: "Subscription Overlord", description: "Manage 5 or more active subscriptions", requirement: "Manage 5+ active subs", xpReward: 1000, coinsReward: 100, icon: "👑", category: "Subscriptions", tier: "Epic", progressNeeded: 5, currentProgress: 0, unlocked: false },
+
+  // ─── CATEGORY 14: WALLETS (7 achievements) ───
+  { id: "wal1", title: "Vault Creator", description: "Create your first wallet", requirement: "Create 1 wallet", xpReward: 100, coinsReward: 10, icon: "👛", category: "Wallets", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "wal2", title: "Multiple Cashboxes", description: "Create 3 distinct wallets", requirement: "Create 3 wallets", xpReward: 400, coinsReward: 40, icon: "💳", category: "Wallets", tier: "Rare", progressNeeded: 3, currentProgress: 0, unlocked: false },
+  { id: "wal3", title: "Bridge Builder", description: "First transfer between wallets", requirement: "First transfer", xpReward: 150, coinsReward: 15, icon: "⇄", category: "Wallets", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "wal4", title: "Liquidity Flow", description: "Make 5 wallet transfers", requirement: "5 wallet transfers", xpReward: 450, coinsReward: 45, icon: "🔄", category: "Wallets", tier: "Rare", progressNeeded: 5, currentProgress: 0, unlocked: false },
+  { id: "wal5", title: "Safe Harbors", description: "Keep all wallets positive for 30 days", requirement: "Wallets positive 30d", xpReward: 1000, coinsReward: 100, icon: "🟢", category: "Wallets", tier: "Epic", progressNeeded: 30, currentProgress: 0, unlocked: false },
+  { id: "wal6", title: "Hybrid Pockets", description: "Hold both cash and digital wallets", requirement: "Cash + digital wallet", xpReward: 300, coinsReward: 30, icon: "📱", category: "Wallets", tier: "Common", progressNeeded: 1, currentProgress: 0, unlocked: false },
+  { id: "wal7", title: "Lac Vault Club", description: "Reach a combined wallet balance of ₹1,00,000", requirement: "Balance ₹1,00,000", xpReward: 1500, coinsReward: 150, icon: "🏆", category: "Wallets", tier: "Epic", progressNeeded: 100000, currentProgress: 0, unlocked: false }
 ];
