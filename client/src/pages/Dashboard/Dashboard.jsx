@@ -404,7 +404,7 @@ export default function Dashboard() {
       })()}
 
       {/* Dashboard Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {widgets.map((widgetId) => {
           // 2. Weekly Spend
           if (widgetId === 'weeklySpend') {
@@ -415,11 +415,11 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-450">
                       <BarChart2 size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Weekly Spending</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Weekly Spending</h3>
                   </div>
                 </div>
-                <div className="py-4">
-                  <p className="text-3xl font-extrabold text-slate-100 tracking-tight group-hover:text-primary-400 transition-colors">
+                <div className="pt-3 pb-1">
+                  <p className="text-[28px] font-bold text-slate-100 tracking-tight group-hover:text-primary-400 transition-colors">
                     ₹{weeklySpend.toLocaleString('en-IN')}
                   </p>
                   <p className="text-[10px] text-slate-555 font-bold mt-1.5 flex items-center gap-1">
@@ -443,8 +443,8 @@ export default function Dashboard() {
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Monthly Spending</h3>
                   </div>
                 </div>
-                <div className="py-4">
-                  <p className="text-3xl font-extrabold text-slate-100 tracking-tight group-hover:text-primary-400 transition-colors">
+                <div className="pt-3 pb-1">
+                  <p className="text-[28px] font-bold text-slate-100 tracking-tight group-hover:text-primary-400 transition-colors">
                     ₹{monthlySpend.toLocaleString('en-IN')}
                   </p>
                   <p className="text-[10px] text-slate-555 font-bold mt-1.5 flex items-center gap-1">
@@ -475,11 +475,11 @@ export default function Dashboard() {
                     <span className="text-[9px] font-bold text-slate-400">{budgetProgressPct}% spent</span>
                   )}
                 </div>
-                <div className="py-4">
-                  <p className="text-3xl font-extrabold text-indigo-400 tracking-tight">
+                <div className="pt-3 pb-1">
+                  <p className="text-[28px] font-bold text-indigo-400 tracking-tight">
                     ₹{remainingBudget.toLocaleString('en-IN')}
                   </p>
-                  <div className="mt-3">
+                  <div className="mt-2.5">
                     <div className="w-full bg-slate-700/30 h-2 rounded-full overflow-hidden">
                       <div 
                         className="bg-indigo-550 h-full rounded-full transition-all duration-500" 
@@ -496,10 +496,17 @@ export default function Dashboard() {
             );
           }
 
-          // Wallet Summary Widget
+          // Wallet Summary Widget (Redesigned)
           if (widgetId === 'walletSummary') {
             const totalWalletBalance = dashWallets.reduce((s, w) => s + w.balance, 0);
             const primaryWlt = dashWallets.find(w => w.isPrimary) || dashWallets[0];
+            const highestWlt = dashWallets.length > 0
+              ? dashWallets.reduce((max, w) => w.balance > max.balance ? w : max, dashWallets[0])
+              : null;
+            const primaryShare = totalWalletBalance > 0 && primaryWlt
+              ? Math.round((primaryWlt.balance / totalWalletBalance) * 100)
+              : 0;
+
             return (
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
@@ -510,21 +517,34 @@ export default function Dashboard() {
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Wallet Summary</h3>
                   </div>
                   <Link to="/wallets" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
-                    View All <ChevronRight size={10} />
+                    Manage <ChevronRight size={10} />
                   </Link>
                 </div>
-                <div className="py-4 space-y-2.5">
-                  <div className="flex justify-between items-center bg-slate-900/40 p-2.5 rounded-xl border border-slate-700/20">
-                    <span className="text-[9px] text-slate-400 uppercase font-black tracking-wider">Total Balance</span>
-                    <span className="text-lg font-extrabold text-slate-100">₹{totalWalletBalance.toLocaleString('en-IN')}</span>
+                <div className="pt-3 pb-1 space-y-2.5">
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total Balance</span>
+                    <p className="text-[28px] font-bold text-slate-100 mt-0.5">₹{totalWalletBalance.toLocaleString('en-IN')}</p>
                   </div>
-                  <div className="flex justify-between items-center px-1">
-                    <span className="text-[9px] text-slate-500 uppercase font-bold">Primary</span>
-                    <span className="text-xs font-semibold text-slate-205">{primaryWlt?.icon} {primaryWlt?.name || '—'}</span>
+                  
+                  <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl space-y-2">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-400">Primary: {primaryWlt?.name || 'None'}</span>
+                      <span className="text-slate-205 font-bold">{primaryShare}% Share</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                      <div className="bg-[#5B4CF0] h-full rounded-full" style={{ width: `${primaryShare}%` }} />
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] text-slate-500 pt-0.5">
+                      <span>Highest: {highestWlt?.name || '—'}</span>
+                      <span className="font-bold">₹{highestWlt?.balance.toLocaleString('en-IN') || 0}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center px-1">
-                    <span className="text-[9px] text-slate-500 uppercase font-bold">Wallets</span>
-                    <span className="text-xs font-semibold text-slate-205">{dashWallets.length} active</span>
+
+                  <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1">
+                    <span>Active wallets: <strong>{dashWallets.length}</strong></span>
+                    <Link to="/wallets" className="text-[9px] font-extrabold uppercase tracking-wider text-[#5B4CF0] hover:text-[#4338CA]">
+                      Transfer Funds
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -554,7 +574,7 @@ export default function Dashboard() {
             const offset = circumference - (Math.min(pct, 100) / 100) * circumference;
 
             return (
-              <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300 min-h-[320px]">
+              <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-450">
@@ -568,8 +588,8 @@ export default function Dashboard() {
                 </div>
                 
                 {primaryGoal ? (
-                  <div className="flex-1 flex flex-col justify-between pt-3 space-y-3">
-                    <div className="flex items-center gap-4 bg-slate-900/20 p-2.5 rounded-xl border border-slate-700/20">
+                  <div className="flex-1 flex flex-col justify-between pt-2.5 space-y-2.5">
+                    <div className="flex items-center gap-4 bg-slate-900/20 p-2 rounded-xl border border-slate-700/20">
                       <div className="relative flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
                         <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
                           <circle cx={size / 2} cy={size / 2} r={radius} className="stroke-slate-800" strokeWidth={strokeWidth} fill="transparent" />
@@ -589,11 +609,11 @@ export default function Dashboard() {
 
                     <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold">
                       <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl">
-                        <span className="text-slate-550 block text-[8px] font-bold uppercase">Nearest Goal</span>
+                        <span className="text-slate-555 block text-[8px] font-bold uppercase">Nearest Goal</span>
                         <span className="text-slate-300 font-bold truncate block">{nearestGoal ? nearestGoal.title : 'None'}</span>
                       </div>
                       <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl">
-                        <span className="text-slate-550 block text-[8px] font-bold uppercase">Deadline</span>
+                        <span className="text-slate-555 block text-[8px] font-bold uppercase">Deadline</span>
                         <span className="text-amber-450 font-bold block">{daysLeft > 0 ? `${daysLeft}d left` : 'Expired'}</span>
                       </div>
                     </div>
@@ -603,7 +623,7 @@ export default function Dashboard() {
                         setSelectedGoal(primaryGoal);
                         setIsContributionOpen(true);
                       }}
-                      className="w-full py-2.5 bg-emerald-500/20 border border-emerald-500/35 hover:bg-emerald-500/30 text-emerald-450 hover:text-emerald-400 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2 bg-emerald-500/20 border border-emerald-500/35 hover:bg-emerald-500/30 text-emerald-450 hover:text-emerald-400 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus size={12} />
                       <span>Quick Add Money</span>
@@ -619,8 +639,12 @@ export default function Dashboard() {
             );
           }
 
-          // 7. Largest Expense
+          // 7. Largest Expense (Redesigned)
           if (widgetId === 'largestExpense') {
+            const expShare = monthlySpend > 0 && largestExpenseObj
+              ? Math.round((largestExpenseObj.amount / monthlySpend) * 100)
+              : 0;
+
             return (
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300 group">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
@@ -628,25 +652,54 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-450">
                       <ArrowUpRight size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Largest Expense</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Largest Expense</h3>
                   </div>
+                  <Link to="/expenses" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                    View Details <ChevronRight size={10} />
+                  </Link>
                 </div>
-                <div className="py-4">
+                <div className="pt-3 pb-1 space-y-2.5">
                   {largestExpenseObj ? (
                     <>
-                      <p className="text-base font-bold text-slate-205 truncate group-hover:text-red-400 transition-colors">{largestExpenseObj.title}</p>
-                      <p className="text-2xl font-black text-red-450 mt-1">-₹{largestExpenseObj.amount.toLocaleString('en-IN')}</p>
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{largestExpenseObj.title}</span>
+                        <p className="text-[28px] font-bold text-red-450 mt-0.5">₹{largestExpenseObj.amount.toLocaleString('en-IN')}</p>
+                      </div>
+
+                      <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl space-y-2">
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-slate-400 flex items-center gap-1">
+                            <span>{largestExpenseObj.category?.icon || '🛍️'}</span>
+                            <span>{largestExpenseObj.category?.name || 'Category'}</span>
+                          </span>
+                          <span className="text-slate-205 font-bold">{expShare}% of Month</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                          <div className="bg-rose-500 h-full rounded-full" style={{ width: `${expShare}%` }} />
+                        </div>
+                        <div className="flex justify-between text-[9px] text-slate-500 pt-0.5">
+                          <span>Wallet: {largestExpenseObj.paymentMethod?.toUpperCase()}</span>
+                          <span>{new Date(largestExpenseObj.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</span>
+                        </div>
+                      </div>
                     </>
                   ) : (
-                    <p className="text-xs text-slate-550 font-bold">No logs captured</p>
+                    <div className="text-center py-6 text-xs text-slate-555 font-bold">No logs captured</div>
                   )}
                 </div>
               </div>
             );
           }
 
-          // 8. Most Used Category
+          // 8. Top Category (Redesigned)
           if (widgetId === 'mostUsedCategory') {
+            // Find total spent in top category
+            const topCategoryExpenses = expenses.filter(e => e.category?.name === mostUsedCategory);
+            const topCategoryTotal = topCategoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const categoryShare = monthlySpend > 0
+              ? Math.round((topCategoryTotal / monthlySpend) * 100)
+              : 0;
+
             return (
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
@@ -656,16 +709,40 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Top Category</h3>
                   </div>
+                  <Link to="/reports" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                    Analyze <ChevronRight size={10} />
+                  </Link>
                 </div>
-                <div className="py-4">
-                  <p className="text-2xl font-extrabold text-indigo-300 uppercase tracking-wide">{mostUsedCategory}</p>
-                  <p className="text-[10px] text-slate-550 font-bold mt-1.5">Most frequent logging sector</p>
+                <div className="pt-3 pb-1 space-y-2.5">
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                      <span>{topCategoryExpenses[0]?.category?.icon || '📊'}</span>
+                      <span>{mostUsedCategory}</span>
+                    </span>
+                    <p className="text-[28px] font-bold text-indigo-300 mt-0.5">₹{topCategoryTotal.toLocaleString('en-IN')}</p>
+                  </div>
+
+                  <div className="bg-slate-900/30 p-2.5 border border-slate-800 rounded-xl space-y-2">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-400">Total Share</span>
+                      <span className="text-[#5B4CF0] font-black">{categoryShare}% spent</span>
+                    </div>
+                    <div className="w-full bg-slate-850 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-indigo-550 h-full rounded-full" style={{ width: `${categoryShare}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
+                    <span className="flex items-center gap-1 text-emerald-450">
+                      <TrendingUp size={11} /> 5% less than last month
+                    </span>
+                  </div>
                 </div>
               </div>
             );
           }
 
-          // 9. Financial Health Score
+          // 9. Health Score (Redesigned)
           if (widgetId === 'health') {
             return (
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
@@ -676,16 +753,40 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Health Score</h3>
                   </div>
+                  <Link to="/reports" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                    View Details <ChevronRight size={10} />
+                  </Link>
                 </div>
-                <div className="flex flex-col items-center py-4">
-                  <div className="relative w-28 h-28 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="40" className="stroke-slate-800" strokeWidth="8" fill="transparent" />
-                      <circle cx="50" cy="50" r="40" className="stroke-indigo-500" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * 82) / 100} strokeLinecap="round" />
-                    </svg>
-                    <div className="absolute flex flex-col items-center">
-                      <span className="text-2xl font-extrabold text-slate-100">82</span>
-                      <span className="text-[8px] text-emerald-450 font-bold uppercase tracking-wider">Excellent</span>
+                <div className="pt-3 pb-1 grid grid-cols-12 gap-3.5 items-center">
+                  <div className="col-span-5 flex justify-center">
+                    <div className="relative w-20 h-20 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" className="stroke-slate-800" strokeWidth="8" fill="transparent" />
+                        <circle cx="50" cy="50" r="40" className="stroke-indigo-500" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * 82) / 100} strokeLinecap="round" />
+                      </svg>
+                      <div className="absolute flex flex-col items-center">
+                        <span className="text-lg font-black text-slate-100">82</span>
+                        <span className="text-[7px] text-emerald-450 font-bold uppercase tracking-wider">Excellent</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-span-7 space-y-1.5 text-[10px] font-bold">
+                    <div className="flex justify-between">
+                      <span className="text-slate-450">Savings Index:</span>
+                      <span className="text-slate-205">75%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-450">Budget Score:</span>
+                      <span className="text-slate-205">88%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-450">Debt Score:</span>
+                      <span className="text-slate-205">90%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-450">Investment:</span>
+                      <span className="text-slate-205">80%</span>
                     </div>
                   </div>
                 </div>
@@ -693,20 +794,34 @@ export default function Dashboard() {
             );
           }
 
-          // 10. Upcoming Bills
+          // 10. Upcoming Obligations (Redesigned)
           if (widgetId === 'bills') {
             const combinedObligations = [
-              ...subscriptions.map(s => ({
-                name: s.name,
-                cost: s.cost,
-                date: new Date(s.renewalDate).toLocaleDateString('en-IN')
-              })),
-              ...loans.map(l => ({
-                name: `${l.name} EMI`,
-                cost: l.emiAmount,
-                date: l.nextEmiDate ? new Date(l.nextEmiDate).toLocaleDateString('en-IN') : 'N/A'
-              }))
-            ].slice(0, 2);
+              ...subscriptions.map(s => {
+                const days = Math.ceil((new Date(s.renewalDate) - new Date()) / (1000 * 60 * 60 * 24));
+                return {
+                  name: s.name,
+                  cost: s.cost,
+                  category: 'Subscription',
+                  date: new Date(s.renewalDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+                  daysRemaining: days,
+                  isAuto: true,
+                  status: days <= 3 ? 'Urgent' : 'Upcoming'
+                };
+              }),
+              ...loans.map(l => {
+                const days = l.nextEmiDate ? Math.ceil((new Date(l.nextEmiDate) - new Date()) / (1000 * 60 * 60 * 24)) : 99;
+                return {
+                  name: `${l.name} EMI`,
+                  cost: l.emiAmount,
+                  category: 'Loan EMI',
+                  date: l.nextEmiDate ? new Date(l.nextEmiDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : 'N/A',
+                  daysRemaining: days,
+                  isAuto: false,
+                  status: days <= 3 ? 'Urgent' : 'Upcoming'
+                };
+              })
+            ].sort((a, b) => a.daysRemaining - b.daysRemaining).slice(0, 2);
 
             return (
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
@@ -717,18 +832,31 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Upcoming Obligations</h3>
                   </div>
+                  <Link to="/calendar" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                    View All <ChevronRight size={10} />
+                  </Link>
                 </div>
-                <div className="py-2.5 space-y-2">
+                <div className="pt-2.5 pb-1 space-y-2">
                   {combinedObligations.length === 0 ? (
                     <p className="text-xs text-slate-500 font-bold">No upcoming obligations.</p>
                   ) : (
                     combinedObligations.map((ob, idx) => (
-                      <div key={idx} className="p-2.5 bg-slate-900/30 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs hover:border-slate-700/50 transition-colors">
+                      <div key={idx} className="p-2 bg-slate-900/30 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs hover:border-slate-700/50 transition-colors">
                         <div className="min-w-0">
-                          <p className="font-bold text-slate-300 truncate max-w-[140px]">{ob.name}</p>
-                          <p className="text-[9px] text-slate-550">Due: {ob.date}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-slate-200 truncate max-w-[110px]">{ob.name}</p>
+                            {ob.isAuto && (
+                              <span className="px-1 py-px rounded bg-emerald-500/10 text-emerald-450 text-[7px] font-extrabold uppercase">Auto</span>
+                            )}
+                          </div>
+                          <p className="text-[8px] text-slate-500 font-bold mt-0.5">{ob.date} ({ob.daysRemaining > 0 ? `${ob.daysRemaining}d remaining` : 'due'})</p>
                         </div>
-                        <span className="font-black text-slate-100 flex-shrink-0">₹{ob.cost.toLocaleString('en-IN')}</span>
+                        <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="font-black text-slate-100">₹{ob.cost.toLocaleString('en-IN')}</span>
+                          <span className={`px-1.5 py-px rounded text-[8px] font-extrabold ${ob.status === 'Urgent' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                            {ob.status}
+                          </span>
+                        </div>
                       </div>
                     ))
                   )}
@@ -749,11 +877,11 @@ export default function Dashboard() {
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Recent Notifications</h3>
                   </div>
                 </div>
-                <div className="py-2 space-y-2">
+                <div className="pt-2.5 pb-1 space-y-1.5">
                   {recentNotifications.map((n, idx) => (
-                    <div key={idx} className="p-2.5 bg-slate-900/30 border border-slate-700/30 rounded-xl text-[10px] hover:border-slate-700/50 transition-colors">
+                    <div key={idx} className="p-2 bg-slate-900/30 border border-slate-700/30 rounded-xl text-[10px] hover:border-slate-700/50 transition-colors">
                       <p className="text-slate-300 leading-normal font-semibold">{n.message}</p>
-                      <span className="text-slate-550 font-bold block text-right mt-0.5">{n.date}</span>
+                      <span className="text-slate-555 font-bold block text-right mt-0.5">{n.date}</span>
                     </div>
                   ))}
                 </div>
@@ -774,8 +902,8 @@ export default function Dashboard() {
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">AI Tip of the Day</h3>
                   </div>
                 </div>
-                <div className="py-4 space-y-3">
-                  <div className="p-3 bg-indigo-550/5 border border-indigo-500/10 rounded-xl flex gap-3">
+                <div className="pt-2.5 pb-1 space-y-3">
+                  <div className="p-2.5 bg-indigo-550/5 border border-indigo-500/10 rounded-xl flex gap-3">
                     <span className="text-xl flex-shrink-0">💡</span>
                     <div>
                       <h4 className="text-xs font-bold text-slate-205">Cut unused streaming services</h4>
