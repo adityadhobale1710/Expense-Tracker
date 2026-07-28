@@ -27,6 +27,11 @@ export const AuthProvider = ({ children }) => {
   const verifyRegistrationOtp = async (email, otp) => {
     const { data } = await api.post('/auth/verify-registration-otp', { email, otp });
     const { accessToken, refreshToken, ...userData } = data.data;
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('gam_cache')) {
+        localStorage.removeItem(key);
+      }
+    });
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
@@ -43,6 +48,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     const { accessToken, refreshToken, ...userData } = data.data;
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('gam_cache')) {
+        localStorage.removeItem(key);
+      }
+    });
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));

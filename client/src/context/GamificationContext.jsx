@@ -218,6 +218,27 @@ function gamificationReducer(state, action) {
 // ─── CONTEXT ─────────────────────────────────────────────────────────────────
 const GamificationContext = createContext(null);
 
+const getUserId = () => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      if (parsed._id || parsed.id) return parsed._id || parsed.id;
+    }
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      const payloadBase64 = token.split('.')[1];
+      if (payloadBase64) {
+        const decoded = JSON.parse(atob(payloadBase64));
+        return decoded.id || decoded._id || decoded.userId;
+      }
+    }
+  } catch (err) {
+    console.error('Error getting user ID for gamification cache:', err);
+  }
+  return null;
+};
+
 export const GamificationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gamificationReducer, initialState);
   const syncTimerRef = useRef(null);
@@ -229,23 +250,33 @@ export const GamificationProvider = ({ children }) => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
+    const userId = getUserId();
+
     isLoadingRef.current = true;
     try {
       const { data } = await api.get('/gamification/profile');
       if (data.success && data.data) {
         dispatch({ type: 'SET_PROFILE', payload: data.data });
         // Update localStorage cache (secondary)
-        localStorage.setItem('gam_cache', JSON.stringify({ ...data.data, cachedAt: Date.now() }));
+        if (userId) {
+          localStorage.setItem(`gam_cache_${userId}`, JSON.stringify({ ...data.data, userId, cachedAt: Date.now() }));
+        }
       }
     } catch {
       // Fallback: try localStorage cache
-      try {
-        const cached = localStorage.getItem('gam_cache');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          dispatch({ type: 'SET_PROFILE', payload: parsed });
-        }
-      } catch {}
+      if (userId) {
+        try {
+          const cached = localStorage.getItem(`gam_cache_${userId}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.userId === userId) {
+              dispatch({ type: 'SET_PROFILE', payload: parsed });
+            } else {
+              localStorage.removeItem(`gam_cache_${userId}`);
+            }
+          }
+        } catch {}
+      }
     } finally {
       isLoadingRef.current = false;
     }

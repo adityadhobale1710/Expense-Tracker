@@ -1,6 +1,13 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { calculateLevel } from '../utils/levelUtils.js';
+import {
+  REWARD_ACTIONS,
+  actionToAchievementMap,
+  getActiveMultiplier,
+  verifyAchievementEligibility
+} from '../utils/rewardUtils.js';
 
 // ─── RANK TIER CONFIG (mirrors client constants) ────────────────────────────
 const RANK_TIERS = [
@@ -165,25 +172,32 @@ export const getGamificationHistory = asyncHandler(async (req, res) => {
 // ─── POST REWARD ─────────────────────────────────────────────────────────────
 // @route POST /api/gamification/reward
 export const applyGamificationReward = asyncHandler(async (req, res) => {
-  const { actionId, xp, coins, description, achievementsUnlocked = [], levelUp, chestUnlocked } = req.body;
+  const { actionId, description, achievementsUnlocked = [], chestUnlocked } = req.body;
 
   if (!actionId) { res.status(400); throw new Error('actionId is required'); }
 
   const user = await User.findById(req.user._id);
   if (!user) { res.status(404); throw new Error('User not found'); }
 
-  // Apply XP and coins
-  const earnedXP = Number(xp) || 0;
-  const earnedCoins = Number(coins) || 0;
+  const knownAction = REWARD_ACTIONS[actionId];
+  if (!knownAction) {
+    res.status(400);
+    throw new Error(`Invalid actionId: ${actionId}`);
+  }
+
+  // Enforce server-side multiplier using the server's own clock, ignoring any client inputs.
+  const multiplier = getActiveMultiplier(new Date());
+
+  // Ignore client-provided values and calculate earned XP and coins strictly server-side.
+  const earnedXP = Math.round(knownAction.xp * multiplier);
+  const earnedCoins = Math.round(knownAction.coins * multiplier);
 
   user.xp = (user.xp || 0) + earnedXP;
   user.coins = (user.coins || 0) + earnedCoins;
   user.lifetimeXP = (user.lifetimeXP || 0) + earnedXP;
 
-  // Update level from XP
-  if (levelUp && levelUp.to) {
-    user.level = levelUp.to;
-  }
+  // Recompute level server-side rather than trusting the client payload
+  user.level = calculateLevel(user.xp);
 
   // Update rank
   user.rank = getRankFromXP(user.lifetimeXP);
@@ -193,9 +207,18 @@ export const applyGamificationReward = asyncHandler(async (req, res) => {
     user.season.seasonalXP = (user.season.seasonalXP || 0) + earnedXP;
   }
 
-  // Apply achievement unlocks
+  // Apply achievement unlocks with server-side justification check (Option A)
   if (Array.isArray(achievementsUnlocked) && achievementsUnlocked.length > 0) {
+    const validCandidateIds = actionToAchievementMap[actionId] || [];
     for (const achId of achievementsUnlocked) {
+      if (!validCandidateIds.includes(achId)) {
+        continue; // skip if achievement does not correspond to the logged actionId
+      }
+      const isEligible = verifyAchievementEligibility(user, achId);
+      if (!isEligible) {
+        continue; // skip if eligibility criteria are not met on the server
+      }
+
       const existing = user.achievements?.find(a => a.id === achId);
       if (existing && !existing.unlocked) {
         existing.unlocked = true;
@@ -359,10 +382,19 @@ export const syncAchievements = asyncHandler(async (req, res) => {
 
   for (const incoming of achievements) {
     const existing = existingMap[incoming.id];
+    
+    let shouldUnlock = false;
+    if (incoming.unlocked) {
+      const isEligible = verifyAchievementEligibility(user, incoming.id);
+      if (isEligible) {
+        shouldUnlock = true;
+      }
+    }
+
     if (existing) {
       // Never regress progress, never un-unlock
       existing.currentProgress = Math.max(existing.currentProgress || 0, incoming.currentProgress || 0);
-      if (!existing.unlocked && incoming.unlocked) {
+      if (!existing.unlocked && shouldUnlock) {
         existing.unlocked = true;
         existing.unlockedAt = new Date();
       }
@@ -370,8 +402,8 @@ export const syncAchievements = asyncHandler(async (req, res) => {
       user.achievements.push({
         id: incoming.id,
         currentProgress: incoming.currentProgress || 0,
-        unlocked: incoming.unlocked || false,
-        unlockedAt: incoming.unlocked ? new Date() : undefined,
+        unlocked: shouldUnlock,
+        unlockedAt: shouldUnlock ? new Date() : undefined,
       });
     }
   }
