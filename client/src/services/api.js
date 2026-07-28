@@ -68,6 +68,11 @@ api.interceptors.response.use(
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('gam_cache')) {
+              localStorage.removeItem(key);
+            }
+          });
           if (!isRedirecting) {
             isRedirecting = true;
             window.location.replace('/login');
@@ -101,6 +106,11 @@ api.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('gam_cache')) {
+            localStorage.removeItem(key);
+          }
+        });
         
         if (!isRedirecting) {
           isRedirecting = true;
