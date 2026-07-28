@@ -4,6 +4,31 @@ import Budget from '../models/Budget.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
+// ---------------------------------------------------------------------------
+// Helper: Recalculate Budget.spent by summing all Expense amounts for a given
+// user + category. This guarantees Budget.spent can never drift out of sync
+// regardless of whether an expense is added, edited, or deleted.
+// Only updates an EXISTING Budget document — never creates one (avoids
+// incomplete documents missing required fields like `limit`).
+// ---------------------------------------------------------------------------
+const recalcBudgetSpent = async (userId, categoryId) => {
+  if (!categoryId) return;
+  // categoryId may be a raw ObjectId or a populated sub-document — normalise.
+  const catId = categoryId._id ?? categoryId;
+
+  const [result] = await Expense.aggregate([
+    { $match: { user: userId, category: catId } },
+    { $group: { _id: null, total: { $sum: '$amount' } } },
+  ]);
+
+  const spent = result ? result.total : 0;
+
+  await Budget.updateOne(
+    { user: userId, category: catId },
+    { $set: { spent } }
+  );
+};
+
 // @desc  Get all expenses
 // @route GET /api/expenses
 export const getExpenses = asyncHandler(async (req, res) => {
@@ -50,27 +75,21 @@ export const addExpense = asyncHandler(async (req, res) => {
   }
 
   const expense = await Expense.create(payload);
-  await expense.populate('category', 'name icon color');
 
-  // Update budget spent amount
+  // Recalculate budget spent from source of truth
   if (expense.category) {
-    const budget = await Budget.findOne({
-      user: req.user._id,
-      category: expense.category,
-    });
-    if (budget) {
-      budget.spent += expense.amount;
-      await budget.save();
-    }
+    await recalcBudgetSpent(req.user._id, expense.category);
   }
 
+  await expense.populate('category', 'name icon color');
   sendSuccess(res, 201, 'Expense added', expense);
 });
 
 // @desc  Get expense by ID
 // @route GET /api/expenses/:id
 export const getExpense = asyncHandler(async (req, res) => {
-  const expense = await Expense.findOne({ _id: req.params.id, user: req.user._id }).populate('category', 'name icon color');
+  const expense = await Expense.findOne({ _id: req.params.id, user: req.user._id })
+    .populate('category', 'name icon color');
   if (!expense) { res.status(404); throw new Error('Expense not found'); }
   sendSuccess(res, 200, 'Expense fetched', expense);
 });
@@ -78,20 +97,121 @@ export const getExpense = asyncHandler(async (req, res) => {
 // @desc  Update expense
 // @route PUT /api/expenses/:id
 export const updateExpense = asyncHandler(async (req, res) => {
-  const expense = await Expense.findOneAndUpdate(
+  // Fetch the old record BEFORE applying updates so we can capture the original
+  // category and wallet details (needed when the category or wallet changes during editing).
+  const oldExpense = await Expense.findOne({ _id: req.params.id, user: req.user._id });
+  if (!oldExpense) { res.status(404); throw new Error('Expense not found'); }
+
+  const oldCategoryId = oldExpense.category; // raw ObjectId or null
+  const oldWalletId = oldExpense.wallet;
+  const oldAmount = Number(oldExpense.amount || 0);
+
+  const newWalletId = req.body.walletId !== undefined
+    ? (req.body.walletId || null)
+    : (req.body.wallet !== undefined ? (req.body.wallet || null) : oldWalletId);
+
+  const newAmount = req.body.amount !== undefined ? Number(req.body.amount) : oldAmount;
+
+  // Map to target schema field 'wallet' for persistence
+  req.body.wallet = newWalletId;
+  delete req.body.walletId;
+
+  // Atomic read-check-write sequence for wallet balances
+  if (newWalletId && String(oldWalletId) === String(newWalletId)) {
+    // Case 1: Same wallet, amount changed
+    if (newAmount !== oldAmount) {
+      const wallet = await Wallet.findOne({ _id: newWalletId, user: req.user._id });
+      if (!wallet) {
+        res.status(404);
+        throw new Error('Wallet not found');
+      }
+      if (newAmount > oldAmount) {
+        const diff = newAmount - oldAmount;
+        if (wallet.balance < diff) {
+          res.status(400);
+          throw new Error('Insufficient wallet balance');
+        }
+        wallet.balance -= diff;
+      } else {
+        const diff = oldAmount - newAmount;
+        wallet.balance += diff;
+      }
+      await wallet.save();
+    }
+  } else {
+    // Case 2, 3, 4: Wallet changed, removed, or added
+    let oldWallet = null;
+    let newWallet = null;
+
+    if (oldWalletId) {
+      oldWallet = await Wallet.findOne({ _id: oldWalletId, user: req.user._id });
+    }
+    if (newWalletId) {
+      newWallet = await Wallet.findOne({ _id: newWalletId, user: req.user._id });
+      if (!newWallet) {
+        res.status(404);
+        throw new Error('Wallet not found');
+      }
+    }
+
+    // Validate balance on new wallet BEFORE modifying anything
+    if (newWallet && newWallet.balance < newAmount) {
+      res.status(400);
+      throw new Error('Insufficient wallet balance');
+    }
+
+    // Adjustments are safe to write
+    if (oldWallet) {
+      oldWallet.balance += oldAmount;
+      await oldWallet.save();
+    }
+    if (newWallet) {
+      newWallet.balance -= newAmount;
+      await newWallet.save();
+    }
+  }
+
+  const updatedExpense = await Expense.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
     req.body,
     { new: true, runValidators: true }
   ).populate('category', 'name icon color');
-  if (!expense) { res.status(404); throw new Error('Expense not found'); }
-  sendSuccess(res, 200, 'Expense updated', expense);
+
+  // Always recalculate the old category's budget
+  if (oldCategoryId) {
+    await recalcBudgetSpent(req.user._id, oldCategoryId);
+  }
+
+  // If the category changed, also recalculate the new category's budget
+  const newCatId = updatedExpense.category?._id ?? updatedExpense.category;
+  if (newCatId && String(oldCategoryId) !== String(newCatId)) {
+    await recalcBudgetSpent(req.user._id, newCatId);
+  }
+
+  sendSuccess(res, 200, 'Expense updated', updatedExpense);
 });
 
 // @desc  Delete expense
 // @route DELETE /api/expenses/:id
 export const deleteExpense = asyncHandler(async (req, res) => {
+  // findOneAndDelete returns the deleted document, giving us its category and wallet
   const expense = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user._id });
   if (!expense) { res.status(404); throw new Error('Expense not found'); }
+
+  // Refund the expense amount to the associated wallet
+  if (expense.wallet) {
+    const wallet = await Wallet.findOne({ _id: expense.wallet, user: req.user._id });
+    if (wallet) {
+      wallet.balance += Number(expense.amount || 0);
+      await wallet.save();
+    }
+  }
+
+  // Recalculate budget spent for the deleted expense's category
+  if (expense.category) {
+    await recalcBudgetSpent(req.user._id, expense.category);
+  }
+
   sendSuccess(res, 200, 'Expense deleted');
 });
 

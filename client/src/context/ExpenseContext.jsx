@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import GamificationContext from './GamificationContext';
 
 const ExpenseContext = createContext();
 
@@ -12,24 +13,39 @@ export const ExpenseProvider = ({ children }) => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Safe optional gamification reward — won't throw if context not ready
+  const gamification = useContext(GamificationContext);
+  const rewardAction = (actionKey) => {
+    try { gamification?.applyReward?.(actionKey); } catch {}
+  };
+
   // ─── Incomes ──────────────────────────────────────────
   const fetchIncomes = useCallback(async (params = {}) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     setLoading(true);
     try {
       const { data } = await api.get('/income', { params });
       setIncomes(data.data.incomes || []);
-    } catch (e) { toast.error(e.response?.data?.message || 'Failed to fetch incomes'); }
+    } catch (e) {
+      if (e.name !== 'CanceledError' && e.message !== 'canceled') {
+        toast.error(e.response?.data?.message || 'Failed to fetch incomes');
+      }
+    }
     finally { setLoading(false); }
   }, []);
 
   const addIncome = async (payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.post('/income', payload);
     setIncomes((prev) => [data.data, ...prev]);
     toast.success('Income added!');
+    rewardAction('ADD_INCOME');
     return data.data;
   };
 
   const updateIncome = async (id, payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.put(`/income/${id}`, payload);
     setIncomes((prev) => prev.map((i) => (i._id === id ? data.data : i)));
     toast.success('Income updated!');
@@ -43,22 +59,31 @@ export const ExpenseProvider = ({ children }) => {
 
   // ─── Expenses ─────────────────────────────────────────
   const fetchExpenses = useCallback(async (params = {}) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     setLoading(true);
     try {
       const { data } = await api.get('/expenses', { params });
       setExpenses(data.data.expenses || []);
-    } catch (e) { toast.error(e.response?.data?.message || 'Failed to fetch expenses'); }
+    } catch (e) {
+      if (e.name !== 'CanceledError' && e.message !== 'canceled') {
+        toast.error(e.response?.data?.message || 'Failed to fetch expenses');
+      }
+    }
     finally { setLoading(false); }
   }, []);
 
   const addExpense = async (payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.post('/expenses', payload);
     setExpenses((prev) => [data.data, ...prev]);
     toast.success('Expense added!');
+    rewardAction('ADD_EXPENSE');
     return data.data;
   };
 
   const updateExpense = async (id, payload) => {
+    console.log("Outgoing Payload:", payload);
     const { data } = await api.put(`/expenses/${id}`, payload);
     setExpenses((prev) => prev.map((e) => (e._id === id ? data.data : e)));
     toast.success('Expense updated!');
@@ -90,12 +115,15 @@ export const ExpenseProvider = ({ children }) => {
     const { data } = await api.post('/budgets', payload);
     setBudgets((prev) => [...prev, data.data]);
     toast.success('Budget created!');
+    rewardAction('CREATE_BUDGET');
+    return data.data;
   };
 
   const updateBudget = async (id, payload) => {
     const { data } = await api.put(`/budgets/${id}`, payload);
     setBudgets((prev) => prev.map((b) => (b._id === id ? data.data : b)));
     toast.success('Budget updated!');
+    return data.data;
   };
 
   const deleteBudget = async (id) => {
@@ -106,10 +134,37 @@ export const ExpenseProvider = ({ children }) => {
 
   // ─── Summary ──────────────────────────────────────────
   const fetchSummary = useCallback(async (params = {}) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
     try {
       const { data } = await api.get('/reports/summary', { params });
       setSummary(data.data);
     } catch {}
+  }, []);
+
+  // ─── Unified Dashboard API Call ───────────────────────
+  const fetchDashboardData = useCallback(async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return null;
+    setLoading(true);
+    try {
+      const { data } = await api.get('/dashboard');
+      if (data.success && data.data) {
+        const payload = data.data;
+        setIncomes(payload.incomes || []);
+        setExpenses(payload.expenses || []);
+        setCategories(payload.categories || []);
+        setBudgets(payload.budgets || []);
+        setSummary(payload.summary || null);
+        return payload;
+      }
+    } catch (e) {
+      if (e.name !== 'CanceledError' && e.message !== 'canceled') {
+        toast.error(e.response?.data?.message || 'Failed to fetch dashboard data');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   return (
@@ -118,11 +173,12 @@ export const ExpenseProvider = ({ children }) => {
       fetchIncomes, addIncome, updateIncome, deleteIncome,
       fetchExpenses, addExpense, updateExpense, deleteExpense,
       fetchCategories, fetchBudgets, addBudget, updateBudget, deleteBudget,
-      fetchSummary,
+      fetchSummary, fetchDashboardData,
     }}>
       {children}
     </ExpenseContext.Provider>
   );
+
 };
 
 export const useExpense = () => {

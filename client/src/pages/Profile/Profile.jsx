@@ -418,12 +418,10 @@ export default function Profile() {
                       value={selectedLanguage}
                       onChange={(e) => {
                         setSelectedLanguage(e.target.value);
-                        toast.success(`Language changed to ${e.target.value === 'en' ? 'English' : 'Alternative'}`);
+                        toast.success('Language set to English');
                       }}
                     >
                       <option value="en">English</option>
-                      <option value="es">Español</option>
-                      <option value="hi">हिन्दी</option>
                     </select>
                   </div>
                   <div className="form-group">
@@ -444,7 +442,7 @@ export default function Profile() {
                   <div className="flex justify-between items-center pb-2 border-b border-slate-700/30">
                     <div>
                       <h4 className="font-bold text-slate-200 text-sm">Currency Converter & Rates</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Convert currencies with live or fallback exchange rates.</p>
+                      <p className="text-[10px] text-slate-50 mt-0.5">Convert currencies with live or fallback exchange rates.</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-semibold text-slate-400">Live Sync</span>
@@ -511,13 +509,13 @@ export default function Profile() {
                   {/* Result Panel */}
                   <div className="p-3 bg-dark-900/50 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs transition-all">
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Converted Amount</p>
+                      <p className="text-[10px] text-slate-505 uppercase tracking-wider font-semibold">Converted Amount</p>
                       <p className="text-base font-extrabold text-slate-200 mt-1">
                         {CURRENCIES.find(c => c.code === toCurr)?.symbol || ''} {getConvertedVal()} <span className="text-[10px] text-slate-400 font-normal">{toCurr}</span>
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Exchange Rate</p>
+                      <p className="text-[10px] text-slate-505 uppercase tracking-wider font-semibold">Exchange Rate</p>
                       <p className="text-xs font-bold text-primary-400 mt-1">
                         1 {fromCurr} = {getActiveRate()} {toCurr}
                       </p>

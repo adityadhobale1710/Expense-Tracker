@@ -36,10 +36,37 @@ const userSchema = new mongoose.Schema(
     level: { type: Number, default: 1 },
     streak: { type: Number, default: 0 },
     longestStreak: { type: Number, default: 0 },
+    // lifetimeXP never resets between seasons — used for rank tier calculation
+    lifetimeXP: { type: Number, default: 0 },
+    rank: { type: String, default: 'Bronze' },
     unlockedTitles: { type: [String], default: [] },
     unlockedAvatars: { type: [String], default: [] },
     unlockedThemes: { type: [String], default: ['light', 'dark'] },
     simulatedActions: { type: [String], default: [] },
+    // Pinned badges displayed in Achievement Showcase (max 3 IDs)
+    pinnedBadges: { type: [String], default: [] },
+    // Season tracking — XP resets each season, badges/titles preserved
+    season: {
+      number:         { type: Number, default: 1 },
+      name:           { type: String, default: 'Season 1: Foundation' },
+      startDate:      { type: Date, default: Date.now },
+      endDate:        { type: Date },
+      seasonalXP:     { type: Number, default: 0 },
+    },
+    // Reward chests opened per level milestone
+    rewardChests: [{
+      level:    { type: Number },
+      openedAt: { type: Date, default: Date.now },
+      rewards:  { type: mongoose.Schema.Types.Mixed },
+    }],
+    // XP event history for timeline feed (capped at 200 entries)
+    xpHistory: [{
+      action:      { type: String },
+      xp:          { type: Number, default: 0 },
+      coins:       { type: Number, default: 0 },
+      description: { type: String },
+      timestamp:   { type: Date, default: Date.now },
+    }],
     achievements: [{
       id: { type: String },
       currentProgress: { type: Number, default: 0 },

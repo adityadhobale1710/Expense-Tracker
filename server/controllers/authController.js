@@ -1,8 +1,10 @@
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
+
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
@@ -51,63 +53,74 @@ export const register = asyncHandler(async (req, res) => {
     await existingUser.save();
 
     const emailHtml = getHtmlTemplate({
-      title: 'Verify Your Email',
-      greeting: `Hello, ${existingUser.name}`,
-      body: 'Thank you for registering with My Expense Pro. Please use the verification code below to confirm your email and activate your account. This code will expire in 10 minutes.',
+      title: 'Email Verification',
+      greeting: `Welcome, ${existingUser.name}`,
+      body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
       code: otp,
-      footerText: 'If you did not register for an account, please ignore this email.',
+      footerText: 'If you did not initiate this registration, you can safely ignore this email.',
     });
 
     await sendEmail({
       to: existingUser.email,
-      subject: 'Verify Your Email - My Expense Pro',
+      subject: 'Your verification code',
       html: emailHtml,
-      text: `Hello, ${existingUser.name}.\n\nThank you for registering. Your 6-digit verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+      text: `Hello ${existingUser.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
     });
 
     return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: existingUser.email });
   }
 
   // Brand new user registration path
-  const user = await User.create({ name, email, password, phone: phone || '', isEmailVerified: false });
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const [user] = await User.create([{ name, email, password, phone: phone || '', isEmailVerified: false }], { session });
 
-  // Seed default categories
-  const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
-  await Category.insertMany(cats);
+    // Seed default categories
+    const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
+    await Category.insertMany(cats, { session });
 
-  // Seed default primary wallet
-  await Wallet.create({
-    user: user._id,
-    name: `${name.split(' ')[0]}'s Bank Account`,
-    type: 'bank',
-    balance: 0,
-    currency: 'INR',
-    color: '#6366f1',
-    icon: '🏦',
-    isPrimary: true,
-  });
+    // Seed default primary wallet
+    await Wallet.create([{
+      user: user._id,
+      name: `${name.split(' ')[0]}'s Bank Account`,
+      type: 'bank',
+      balance: 0,
+      currency: 'INR',
+      color: '#6366f1',
+      icon: '🏦',
+      isPrimary: true,
+    }], { session });
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.registrationOtp = otp;
-  user.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-  await user.save();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.registrationOtp = otp;
+    user.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ session });
 
-  const emailHtml = getHtmlTemplate({
-    title: 'Verify Your Email',
-    greeting: `Hello, ${user.name}`,
-    body: 'Thank you for registering with My Expense Pro. Please use the verification code below to confirm your email and activate your account. This code will expire in 10 minutes.',
-    code: otp,
-    footerText: 'If you did not register for an account, please ignore this email.',
-  });
+    await session.commitTransaction();
+    session.endSession();
 
-  await sendEmail({
-    to: user.email,
-    subject: 'Verify Your Email - My Expense Pro',
-    html: emailHtml,
-    text: `Hello, ${user.name}.\n\nThank you for registering. Your 6-digit verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
-  });
+    const emailHtml = getHtmlTemplate({
+      title: 'Email Verification',
+      greeting: `Welcome, ${user.name}`,
+      body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
+      code: otp,
+      footerText: 'If you did not initiate this registration, you can safely ignore this email.',
+    });
 
-  return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email });
+    await sendEmail({
+      to: user.email,
+      subject: 'Your verification code',
+      html: emailHtml,
+      text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
+    });
+
+    return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 });
 
 // @desc  Login user
@@ -244,18 +257,18 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   // Send Email
   const emailHtml = getHtmlTemplate({
-    title: 'Reset Password Verification Code',
-    greeting: `Hello, ${user.name}`,
-    body: 'You recently requested to reset your password for My Expense Pro. Please use the verification code below to complete the reset process. This code will expire in 15 minutes.',
+    title: 'Reset Password Code',
+    greeting: `Hello ${user.name}`,
+    body: 'We received a request to reset the password associated with your account. Please enter the verification code below to authorize the password change. This code is valid for 15 minutes.',
     code: otp,
-    footerText: 'If you did not request a password reset, please ignore this email or contact support if you have concerns.',
+    footerText: 'If you did not request a password reset, you can safely ignore this email or contact support if you have security concerns.',
   });
 
   await sendEmail({
     to: user.email,
-    subject: 'Reset Password Verification Code - My Expense Pro',
+    subject: 'Your verification code',
     html: emailHtml,
-    text: `Hello, ${user.name}.\n\nYou requested to reset your password. Your 6-digit verification code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please ignore this email.`,
+    text: `Hello ${user.name},\n\nWe received a request to reset your password. Your 6-digit verification code is:\n\n${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this reset, please ignore this email.`,
   });
 
   sendSuccess(res, 200, 'Verification code sent to email');
@@ -289,19 +302,19 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const confirmHtml = getHtmlTemplate({
-    title: 'Password Successfully Reset',
-    greeting: `Hello, ${user.name}`,
-    body: 'Your password for My Expense Pro has been successfully updated. You can now log in using your new password.',
+    title: 'Password Updated',
+    greeting: `Hello ${user.name}`,
+    body: 'The password associated with your account has been successfully updated. You can now log in securely using your new credentials.',
     ctaText: 'Go to Login',
     ctaUrl: `${clientUrl}/login`,
-    footerText: 'If you did not perform this action, please contact support immediately to secure your account.',
+    footerText: 'If you did not make this change, please contact support immediately to lock and secure your account.',
   });
 
   await sendEmail({
     to: user.email,
-    subject: 'Password Successfully Reset - My Expense Pro',
+    subject: 'Password successfully updated',
     html: confirmHtml,
-    text: `Hello, ${user.name}.\n\nYour password has been successfully reset. You can now log in to My Expense Pro using your new password.\n\nIf you did not perform this action, please contact support immediately.`,
+    text: `Hello ${user.name},\n\nYour account password has been successfully updated. You can now log in using your new credentials at: ${clientUrl}/login\n\nIf you did not make this change, please contact support immediately.`,
   });
 
   sendSuccess(res, 200, 'Password has been reset successfully');
@@ -379,18 +392,18 @@ export const resendRegistrationOtp = asyncHandler(async (req, res) => {
   await user.save();
 
   const emailHtml = getHtmlTemplate({
-    title: 'Verify Your Email',
-    greeting: `Hello, ${user.name}`,
-    body: 'Thank you for registering with My Expense Pro. Please use the verification code below to confirm your email and activate your account. This code will expire in 10 minutes.',
+    title: 'Email Verification',
+    greeting: `Welcome, ${user.name}`,
+    body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
     code: otp,
-    footerText: 'If you did not register for an account, please ignore this email.',
+    footerText: 'If you did not initiate this registration, you can safely ignore this email.',
   });
 
   await sendEmail({
     to: user.email,
-    subject: 'Verify Your Email - My Expense Pro',
+    subject: 'Your verification code',
     html: emailHtml,
-    text: `Hello, ${user.name}.\n\nThank you for registering. Your 6-digit verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+    text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
   });
 
   sendSuccess(res, 200, 'A new verification code has been sent');

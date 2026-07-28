@@ -4,24 +4,38 @@ import Income from '../models/Income.js';
 import Category from '../models/Category.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import PDFDocument from 'pdfkit';
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+
+
+/**
+ * Issue #5 fix: sanitize cell values to prevent CSV/Excel formula injection.
+ * Prefixes dangerous-leading characters (=, +, -, @, TAB, CR) with a single quote.
+ */
+const sanitizeCell = (val) => {
+  if (typeof val !== 'string') return val;
+  return /^[=+\-@\t\r]/.test(val) ? `'${val}` : val;
+};
 
 /**
  * Helper: Parses query parameters for start and end dates
  * Fallback is current month
  */
 const getQueryDateRange = (req) => {
-  const { startDate, endDate } = req.query;
-  let start = startDate ? new Date(startDate) : null;
-  let end = endDate ? new Date(endDate) : null;
+  const { startDate, endDate, start: qStart, end: qEnd } = req.query;
+  const rawStart = startDate || qStart;
+  const rawEnd = endDate || qEnd;
+  let start = rawStart ? new Date(rawStart) : null;
+  let end = rawEnd ? new Date(rawEnd) : null;
 
-  if (!start || isNaN(start.getTime()) || !end || isNaN(end.getTime())) {
-    const now = new Date();
+  const now = new Date();
+  if (!start || isNaN(start.getTime())) {
     start = new Date(now.getFullYear(), now.getMonth(), 1);
+  } else {
+    start.setHours(0, 0, 0, 0);
+  }
+  if (!end || isNaN(end.getTime())) {
     end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
   } else {
-    // Ensure start is beginning of day and end is end of day
-    start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 59, 999);
   }
   return { start, end };
@@ -406,14 +420,10 @@ export const getAnalyticsCashflow = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsHeatmap = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  
-  // Return last 365 days of activity for heat grid
-  const oneYearAgo = new Date();
-  oneYearAgo.setDate(oneYearAgo.getDate() - 364);
-  oneYearAgo.setHours(0, 0, 0, 0);
+  const { start, end } = getQueryDateRange(req);
 
   const dailyTotals = await Expense.aggregate([
-    { $match: { user: userId, date: { $gte: oneYearAgo } } },
+    { $match: { user: userId, date: { $gte: start, $lte: end } } },
     {
       $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
@@ -449,7 +459,7 @@ export const getAnalyticsIncome = asyncHandler(async (req, res) => {
 
   const totalIncome = sources.reduce((sum, s) => sum + s.amount, 0);
   const data = sources.map((s) => ({
-    source: s._id || 'Other',
+    source: s._id || 'Uncategorized',
     amount: s.amount,
     count: s.count,
     percentage: totalIncome > 0 ? parseFloat(((s.amount / totalIncome) * 100).toFixed(2)) : 0
@@ -501,37 +511,53 @@ export const exportExcel = asyncHandler(async (req, res) => {
     Expense.find({ user: userId, date: { $gte: start, $lte: end } }).populate('category').sort({ date: -1 })
   ]);
 
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  const wsExpenses = workbook.addWorksheet('Expenses');
+  const wsIncome = workbook.addWorksheet('Income');
 
   const expenseRows = expenses.map((exp) => ({
     Date: exp.date.toISOString().split('T')[0],
-    Category: exp.category?.name || 'Uncategorized',
-    Title: exp.title,
+    Category: sanitizeCell(exp.category?.name || 'Uncategorized'),
+    Title: sanitizeCell(exp.title),
     Amount: exp.amount,
-    'Payment Method': exp.paymentMethod,
-    Description: exp.description || ''
+    'Payment Method': sanitizeCell(exp.paymentMethod),
+    Description: sanitizeCell(exp.description || '')
   }));
 
   const incomeRows = incomes.map((inc) => ({
     Date: inc.date.toISOString().split('T')[0],
-    Source: inc.category || 'Other',
-    Title: inc.title,
+    Source: sanitizeCell(inc.category || 'Other'),
+    Title: sanitizeCell(inc.title),
     Amount: inc.amount,
-    Description: inc.description || ''
+    Description: sanitizeCell(inc.description || '')
   }));
 
-  const wsExpenses = XLSX.utils.json_to_sheet(expenseRows);
-  const wsIncome = XLSX.utils.json_to_sheet(incomeRows);
+  wsExpenses.columns = [
+    { header: 'Date', key: 'Date', width: 15 },
+    { header: 'Category', key: 'Category', width: 20 },
+    { header: 'Title', key: 'Title', width: 25 },
+    { header: 'Amount', key: 'Amount', width: 15 },
+    { header: 'Payment Method', key: 'Payment Method', width: 18 },
+    { header: 'Description', key: 'Description', width: 30 }
+  ];
+  expenseRows.forEach(row => wsExpenses.addRow(row));
 
-  XLSX.utils.book_append_sheet(wb, wsExpenses, 'Expenses');
-  XLSX.utils.book_append_sheet(wb, wsIncome, 'Income');
+  wsIncome.columns = [
+    { header: 'Date', key: 'Date', width: 15 },
+    { header: 'Source', key: 'Source', width: 20 },
+    { header: 'Title', key: 'Title', width: 25 },
+    { header: 'Amount', key: 'Amount', width: 15 },
+    { header: 'Description', key: 'Description', width: 30 }
+  ];
+  incomeRows.forEach(row => wsIncome.addRow(row));
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buf = await workbook.xlsx.writeBuffer();
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename=financial_report_${start.toISOString().split('T')[0]}.xlsx`);
   res.status(200).send(buf);
 });
+
 
 /**
  * @desc  GET /analytics/export/pdf

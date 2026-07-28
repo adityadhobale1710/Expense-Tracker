@@ -2,7 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExpenseProvider } from './context/ExpenseContext';
+import { GamificationProvider } from './context/GamificationContext';
 import { ThemeProvider } from './context/ThemeContext';
+import XPAnimation from './components/gamification/XPAnimation';
+import LevelUpModal from './components/gamification/LevelUpModal';
+import RewardChestModal from './components/gamification/RewardChestModal';
+import NotificationToast from './components/gamification/NotificationToast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient({
@@ -26,6 +31,7 @@ import Reports from './pages/Reports/Reports';
 import Profile from './pages/Profile/Profile';
 import BillCalendar from './pages/Calendar/BillCalendar';
 import AIInsights from './pages/AIInsights/AIInsights';
+import AIAssistant from './pages/AIAssistant/AIAssistant';
 import Achievements from './pages/Achievements/Achievements';
 import Loans from './pages/Loans/Loans';
 import Wallets from './pages/Wallets/Wallets';
@@ -34,6 +40,8 @@ import SplitBills from './pages/Split/SplitBills';
 import FamilySharing from './pages/Family/FamilySharing';
 import AnalyticsPro from './pages/Analytics/AnalyticsPro';
 import AdminPortal from './pages/Admin/AdminPortal';
+import GoalsDashboard from './pages/Goals/GoalsDashboard';
+import GoalDetails from './pages/Goals/GoalDetails';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -66,6 +74,7 @@ const AppRoutes = () => (
       <Route path="profile" element={<Profile />} />
       <Route path="calendar" element={<BillCalendar />} />
       <Route path="ai-insights" element={<AIInsights />} />
+      <Route path="ai-assistant" element={<AIAssistant />} />
       <Route path="achievements" element={<Achievements />} />
       <Route path="loans" element={<Loans />} />
       <Route path="subscriptions" element={<Subscriptions />} />
@@ -73,10 +82,14 @@ const AppRoutes = () => (
       <Route path="family" element={<FamilySharing />} />
       <Route path="analytics-pro" element={<AnalyticsPro />} />
       <Route path="admin-portal" element={<AdminPortal />} />
+      <Route path="goals" element={<GoalsDashboard />} />
+      <Route path="goals/:id" element={<GoalDetails />} />
     </Route>
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes>
 );
+
+import { DialogProvider } from './context/DialogContext';
 
 export default function App() {
   return (
@@ -84,16 +97,25 @@ export default function App() {
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <ExpenseProvider>
-              <AppRoutes />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
-                  success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
-                }}
-              />
-            </ExpenseProvider>
+            <GamificationProvider>
+              <ExpenseProvider>
+                <DialogProvider>
+                  <AppRoutes />
+                  {/* Global gamification overlays — rendered once at root */}
+                  <XPAnimation />
+                  <LevelUpModal />
+                  <RewardChestModal />
+                  <NotificationToast />
+                  <Toaster
+                    position="top-right"
+                    toastOptions={{
+                      style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' },
+                      success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+                    }}
+                  />
+                </DialogProvider>
+              </ExpenseProvider>
+            </GamificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

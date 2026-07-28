@@ -13,6 +13,8 @@ import {
   Wallet,
   X
 } from 'lucide-react';
+import { FaApple } from "react-icons/fa";
+
 
 const GoldCoin = ({ className }) => (
   <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -181,27 +183,9 @@ export default function Login() {
     }
   };
 
-  const simulateSocialLogin = (provider) => {
-    toast.success(`Simulating Single-Sign-On with ${provider}...`);
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      // Create a dummy user
-      const dummyUser = {
-        name: 'Aditya Dhobale',
-        email: `aditya@${provider.toLowerCase()}.com`,
-        currency: 'INR',
-        role: 'user',
-        phone: '+91 9876543210',
-        company: 'SSO Account',
-        twoFactorEnabled: false
-      };
-      localStorage.setItem('accessToken', 'mock-sso-token');
-      localStorage.setItem('user', JSON.stringify(dummyUser));
-      // Reload page state or update auth
-      window.location.href = '/dashboard';
-    }, 1200);
-  };
+  // Issue #6 fix: removed simulateSocialLogin — it wrote fake mock tokens to
+  // localStorage (mock-sso-token) without any real server authentication,
+  // creating a false sense of logged-in state. SSO is not yet implemented.
 
   return (
     <div className="min-h-screen bg-[#F3F4FE] text-[#475569] flex items-center justify-center p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#5B4CF0]/20 selection:text-[#5B4CF0]">
@@ -338,12 +322,13 @@ export default function Login() {
               </span>
             </div>
 
-            {/* Social Login Buttons */}
-            <div className="flex">
+            {/* Social Login Buttons: Google & Apple */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Google Login Button */}
               <button
                 type="button"
-                onClick={() => simulateSocialLogin('Google')}
-                className="w-full h-[46px] px-3 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#334155] text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2 transition-all shadow-xs"
+                onClick={() => toast.error('Google Sign-In is coming soon!')}
+                className="w-full h-[46px] px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-slate-200/80 text-[#334155] text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2.5 transition-all cursor-pointer hover:border-slate-300 font-jakarta shadow-xs"
               >
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                   <path
@@ -364,6 +349,16 @@ export default function Login() {
                   />
                 </svg>
                 <span>Google</span>
+              </button>
+
+              {/* Apple Login Button */}
+              <button
+                type="button"
+                onClick={() => toast.error('Apple Sign-In is coming soon!')}
+                className="apple-btn"
+              >
+                <FaApple className="text-xl" />
+                <span>Apple</span>
               </button>
             </div>
           </div>
