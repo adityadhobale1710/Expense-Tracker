@@ -10,7 +10,16 @@ const NAV_ITEMS = [
   { to: '/goals',        icon: '🎯', label: 'Goals' },
   { to: '/loans',        icon: '🏛️', label: 'Loans & EMIs' },
   { to: '/subscriptions',icon: '🔁', label: 'Subscriptions' },
-  { to: '/split-bills',  icon: '/split-bill.png', label: 'Split Bills' },
+  { to: '/split-bills',  icon: (
+    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="8" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.6"/>
+      <circle cx="16" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.6"/>
+      <path d="M3 17.5c0-2.5 2-4 5-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M21 17.5c0-2.5-2-4-5-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <line x1="12" y1="11" x2="12" y2="19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="1.5 1.5"/>
+      <circle cx="12" cy="15" r="2" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
+    </svg>
+  ), label: 'Split Bills' },
   { to: '/family',       icon: '👪', label: 'Family Sharing' },
   { to: '/calendar',     icon: '📅', label: 'Bill Calendar' },
   { to: '/ai-insights',  icon: '💡', label: 'AI Insights', badge: 'Soon' },
@@ -50,8 +59,14 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Logo — full brand on desktop/mobile drawer, icon-only on tablet rail */}
         <div className="p-3 lg:p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-center lg:justify-start gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm border border-slate-700/35 bg-slate-800">
-              <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+            <div className="w-9 h-9 rounded-xl flex-shrink-0 shadow-lg flex items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-700">
+              <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+                <rect x="5" y="22" width="5" height="9" rx="1.5" fill="white" fillOpacity="0.9"/>
+                <rect x="13" y="15" width="5" height="16" rx="1.5" fill="white" fillOpacity="0.9"/>
+                <rect x="21" y="10" width="5" height="21" rx="1.5" fill="white" fillOpacity="0.9"/>
+                <path d="M5 14l8-6 8 4 8-8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="29" cy="4" r="2.5" fill="white"/>
+              </svg>
             </div>
             {/* Brand name: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
             <div className="block md:hidden lg:block">
@@ -77,6 +92,8 @@ export default function Sidebar({ isOpen, onClose }) {
                   <span className="text-lg flex-shrink-0 flex items-center justify-center">
                     {typeof icon === 'string' && icon.startsWith('/') ? (
                       <img src={icon} alt="" className="w-5 h-5 object-contain" />
+                    ) : typeof icon === 'string' ? (
+                      icon
                     ) : (
                       icon
                     )}
@@ -99,6 +116,8 @@ export default function Sidebar({ isOpen, onClose }) {
                 <span className="text-lg flex-shrink-0 flex items-center justify-center">
                   {typeof icon === 'string' && icon.startsWith('/') ? (
                     <img src={icon} alt="" className="w-5 h-5 object-contain" />
+                  ) : typeof icon === 'string' ? (
+                    icon
                   ) : (
                     icon
                   )}
