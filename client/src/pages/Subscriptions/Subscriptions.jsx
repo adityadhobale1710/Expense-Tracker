@@ -5,8 +5,8 @@ import {
   Calendar, CreditCard, Banknote, Search, ShieldAlert, Sparkles, RefreshCw,
   Info, LayoutGrid, BarChart3, PieChart as PieIcon, ArrowUpRight, ArrowDownRight,
   Shield, CheckCircle2, SlidersHorizontal, Check, Copy, Flame, Lock, Unlock,
-  ChevronRight, ArrowLeft, MoreVertical, Layers, Settings, FileText, Download,
-  Upload, Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, Zap, X,
+  ChevronRight, ArrowLeft, MoreVertical, Layers, Settings, FileText,
+  Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, Zap, X,
   Play, Pause, Star, Clock, XCircle, DollarSign
 } from 'lucide-react';
 import {
@@ -248,9 +248,6 @@ export default function Subscriptions() {
   const [filterPriceRange, setFilterPriceRange] = useState('');
   const [filterTag, setFilterTag] = useState('');
   const [sortBy, setSortBy] = useState('cost-desc');
-
-  // File Input Ref for Import
-  const fileInputRef = useRef(null);
 
   // Sync Extended properties from localStorage
   const syncExtendedProps = useCallback(() => {
@@ -724,83 +721,6 @@ export default function Subscriptions() {
     }
   };
 
-  // CSV Import / Export
-  const handleExport = useCallback(() => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Service Name,Cost,Billing Cycle,Renewal Date,Category,Plan,Payment Method,Auto Renewal,Priority,Tags\n";
-
-    filteredSubs.forEach(s => {
-      const row = `"${s.name}",${s.cost},"${s.billingCycle}","${s.renewalDate}","${s.category}","${s.plan}","${s.paymentMethod}",${s.autoRenewal},"${s.priority}","${s.tags || ''}"`;
-      csvContent += row + "\n";
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const dlAnchorElem = document.createElement('a');
-    dlAnchorElem.setAttribute("href", encodedUri);
-    dlAnchorElem.setAttribute("download", `Subscriptions_${new Date().toISOString().slice(0, 10)}.csv`);
-    dlAnchorElem.click();
-    toast.success('CSV report exported! 📊');
-  }, [filteredSubs]);
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImportCSV = (e) => {
-    const reader = new FileReader();
-    reader.readAsText(e.target.files[0], "UTF-8");
-    reader.onload = async (event) => {
-      try {
-        const text = event.target.result;
-        const lines = text.split('\n').map(line => line.split(','));
-        let successCount = 0;
-
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i];
-          if (row.length < 4 || !row[0]) continue;
-
-          const nameVal = row[0].replace(/"/g, '');
-          const costVal = parseFloat(row[1]);
-          const cycleVal = row[2].replace(/"/g, '').trim();
-          const dateVal = row[3].replace(/"/g, '').trim();
-
-          const dbPayload = {
-            name: nameVal,
-            cost: costVal || 0,
-            billingCycle: ['monthly', 'yearly'].includes(cycleVal) ? cycleVal : 'monthly',
-            renewalDate: dateVal || new Date().toISOString().slice(0, 10),
-            reminder: true
-          };
-
-          const { data } = await api.post('/subscriptions', dbPayload);
-          const newSub = data.data;
-
-          if (newSub?._id) {
-            const extPayload = {
-              category: row[4]?.replace(/"/g, '') || 'SaaS / Services',
-              plan: row[5]?.replace(/"/g, '') || 'Basic Plan',
-              paymentMethod: row[6]?.replace(/"/g, '') || 'credit_card',
-              autoRenewal: row[7]?.trim() !== 'false',
-              priority: row[8]?.replace(/"/g, '') || 'medium',
-              color: '#6366f1',
-              icon: '🔔',
-              notes: '',
-              tags: row[9]?.replace(/"/g, '') || ''
-            };
-            localStorage.setItem(`subscription_ext_${newSub._id}`, JSON.stringify(extPayload));
-          }
-          successCount++;
-        }
-
-        toast.success(`Successfully imported ${successCount} subscriptions! 📥`);
-        fetchSubscriptions();
-        syncExtendedProps();
-      } catch {
-        toast.error('Failed to parse CSV. Ensure correct column alignment.');
-      }
-    };
-  };
-
   // Reset Filters
   const handleResetFilters = () => {
     setSearch('');
@@ -865,15 +785,6 @@ export default function Subscriptions() {
   return (
     <div className="space-y-6 pb-24 animate-fade-in text-slate-100 font-sans relative">
       
-      {/* Hidden file input for CSV Import */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleImportCSV}
-        accept=".csv"
-        className="hidden"
-      />
-
       {/* ── HEADER ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/40 pb-5">
         <div>
@@ -889,23 +800,6 @@ export default function Subscriptions() {
         </div>
         
         <div className="flex flex-wrap gap-2 self-stretch md:self-auto">
-          <button
-            onClick={handleImportClick}
-            className="flex-1 md:flex-initial btn bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all"
-            title="Import CSV"
-          >
-            <Upload size={14} />
-            <span>Import</span>
-          </button>
-          
-          <button
-            onClick={handleExport}
-            className="flex-1 md:flex-initial btn bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all"
-            title="Export CSV"
-          >
-            <Download size={14} />
-            <span>Export</span>
-          </button>
 
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -1961,19 +1855,6 @@ export default function Subscriptions() {
                   <Plus size={14} className="text-indigo-400" /> Log Subscription
                 </button>
 
-                <button
-                  onClick={() => { setFabOpen(false); handleExport(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl text-left transition-colors"
-                >
-                  <Download size={14} className="text-cyan-400" /> Export CSV
-                </button>
-
-                <button
-                  onClick={() => { setFabOpen(false); handleImportClick(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl text-left transition-colors"
-                >
-                  <Upload size={14} className="text-indigo-400" /> Import CSV
-                </button>
 
                 <button
                   onClick={() => { setFabOpen(false); window.print(); }}
