@@ -4,9 +4,9 @@ import {
   TrendingUp, TrendingDown, Target, Wallet, AlertCircle, Plus, Edit3, Trash2,
   Calendar, CreditCard, Banknote, Search, ShieldAlert, Sparkles, RefreshCw,
   Info, LayoutGrid, BarChart3, PieChart as PieIcon, ArrowUpRight, ArrowDownRight,
-  Shield, CheckCircle2, SlidersHorizontal, Check, Copy, Flame, Lock, Unlock,
-  ChevronRight, ArrowLeft, MoreVertical, Layers, Settings, FileText, Download,
-  Upload, Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, Zap, X
+  CheckCircle2, SlidersHorizontal, Check, Flame, Lock, Unlock,
+  ChevronRight, ArrowLeft, MoreVertical, Settings, FileText,
+  Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, Zap, X
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
@@ -30,11 +30,6 @@ const SORT_OPTIONS = [
 ];
 
 const PRIORITY_OPTIONS = ['low', 'medium', 'high'];
-const TEMPLATE_OPTIONS = [
-  { name: '50-30-20 Rule', desc: '50% Essentials, 30% Wants, 20% Savings', tags: ['Standard', 'Fintech'] },
-  { name: 'Zero-Based Budgeting', desc: 'Every rupee gets a specific job', tags: ['Aggressive', 'Notion'] },
-  { name: 'Envelope System', desc: 'Strict cash-style category caps', tags: ['Traditional', 'Revolut'] }
-];
 
 const EMPTY_BUDGET = {
   category: '',
@@ -247,9 +242,6 @@ export default function Budget() {
   // Local storage extended values mapper
   const [extendedStore, setExtendedStore] = useState({});
 
-  // File Input Ref for Import
-  const fileInputRef = useRef(null);
-
   // Fetch wallets and active records
   const loadData = useCallback(async () => {
     try {
@@ -366,7 +358,6 @@ export default function Budget() {
   const remainingBudget = useMemo(() => Math.max(0, totalBudgeted - totalSpent), [totalBudgeted, totalSpent]);
   const utilizationPct = useMemo(() => (totalBudgeted > 0 ? Math.min(Math.round((totalSpent / totalBudgeted) * 100), 100) : 0), [totalBudgeted, totalSpent]);
   const overspentCount = useMemo(() => combinedBudgets.filter(b => b.spent > b.limit).length, [combinedBudgets]);
-  const healthScore = useMemo(() => Math.max(0, 100 - utilizationPct), [utilizationPct]);
   const savingsEstimate = useMemo(() => totalBudgeted > totalSpent ? totalBudgeted - totalSpent : 0, [totalBudgeted, totalSpent]);
 
   // Insights compiler
@@ -663,73 +654,6 @@ export default function Budget() {
     }
   };
 
-  // Duplicate Previous Month Setup
-  const handleDuplicateLastMonth = useCallback(() => {
-    if (combinedBudgets.length === 0) return toast.error('No budgets currently set up to duplicate.');
-    
-    const count = combinedBudgets.length;
-    toast.success(`Duplicated all ${count} budget allocation schemas into active calendar! 🎉`);
-  }, [combinedBudgets]);
-
-  // Import / Export handlers
-  const handleExport = useCallback(() => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(combinedBudgets, null, 2));
-    const dlAnchorElem = document.createElement('a');
-    dlAnchorElem.setAttribute("href", dataStr);
-    dlAnchorElem.setAttribute("download", `ExpenseTracker_Budgets_${new Date().toISOString().slice(0,10)}.json`);
-    dlAnchorElem.click();
-    toast.success('Budget configurations exported successfully! 📤');
-  }, [combinedBudgets]);
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImportFile = (e) => {
-    const fileReader = new FileReader();
-    fileReader.readAsText(e.target.files[0], "UTF-8");
-    fileReader.onload = async (event) => {
-      try {
-        const parsed = JSON.parse(event.target.result);
-        if (!Array.isArray(parsed)) throw new Error('Data format should be a budget array.');
-
-        let successCount = 0;
-        for (let b of parsed) {
-          // Verify required fields
-          if (b.category && b.limit) {
-            const catId = typeof b.category === 'object' ? b.category._id : b.category;
-            const newBudget = await addBudget({
-              category: catId,
-              limit: Number(b.limit),
-              period: b.period || 'monthly',
-              alertThreshold: b.alertThreshold || 80
-            });
-
-            // Save extra settings locally
-            if (newBudget?._id) {
-              const extPayload = {
-                wallet: b.wallet || '',
-                priority: b.priority || 'medium',
-                color: b.color || b.category?.color || '#6366f1',
-                icon: b.icon || b.category?.icon || '📁',
-                description: b.description || '',
-                carryForward: b.carryForward || false,
-                isLocked: b.isLocked || false,
-                notes: b.notes || ''
-              };
-              localStorage.setItem(`budget_ext_${newBudget._id}`, JSON.stringify(extPayload));
-            }
-            successCount++;
-          }
-        }
-        toast.success(`Successfully imported ${successCount} budget rules! 📥`);
-        loadData();
-      } catch (err) {
-        toast.error('Failed to parse file. Ensure it is a valid JSON export.');
-      }
-    };
-  };
-
   // Reset all budget parameters
   const handleResetAll = async () => {
     const isConfirmed = window.confirm('Are you sure you want to delete ALL active budgets? This cannot be undone.');
@@ -868,15 +792,6 @@ export default function Budget() {
 
   return (
     <div className="space-y-6 pb-24 animate-fade-in text-slate-100 font-sans relative">
-      
-      {/* Hidden file input for Import */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleImportFile}
-        accept=".json"
-        className="hidden"
-      />
 
       {/* ── HEADER ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/40 pb-5">
@@ -892,30 +807,6 @@ export default function Budget() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 self-stretch md:self-auto">
-          <button
-            onClick={handleDuplicateLastMonth}
-            className="flex-1 md:flex-initial btn bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all"
-          >
-            <Copy size={13} />
-            <span>Copy Previous</span>
-          </button>
-          
-          <button
-            onClick={handleImportClick}
-            className="btn bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-200 text-xs font-semibold p-2 rounded-xl flex items-center justify-center gap-1.5 transition-all"
-            title="Import JSON Schema"
-          >
-            <Upload size={14} />
-          </button>
-          
-          <button
-            onClick={handleExport}
-            className="btn bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-200 text-xs font-semibold p-2 rounded-xl flex items-center justify-center gap-1.5 transition-all"
-            title="Export JSON Schema"
-          >
-            <Download size={14} />
-          </button>
-
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -956,14 +847,6 @@ export default function Budget() {
           sparkData={combinedBudgets.map(b => Math.max(0, b.limit - b.spent))}
         />
         <PremiumSummaryCard
-          icon={Shield}
-          label="Budget Health"
-          value={healthScore}
-          color="#f59e0b"
-          sub={`${overspentCount} limits breached`}
-          sparkData={combinedBudgets.map(b => 100 - Math.min(100, Math.round((b.spent / b.limit) * 100)))}
-        />
-        <PremiumSummaryCard
           icon={Flame}
           label="Overspent Categories"
           value={`${overspentCount}`}
@@ -986,14 +869,6 @@ export default function Budget() {
           color="#8b5cf6"
           sub="Category specific bounds"
           sparkData={[1, Math.max(1, combinedBudgets.length)]}
-        />
-        <PremiumSummaryCard
-          icon={ArrowUpRight}
-          label="Budget Utilization"
-          value={`${utilizationPct}%`}
-          color="#ec4899"
-          sub="Pacing speed this cycle"
-          sparkData={[10, 30, utilizationPct]}
         />
       </div>
 
@@ -1496,62 +1371,6 @@ export default function Budget() {
             </div>
           </div>
 
-          {/* Smart Budget Templates suggestions */}
-          <div className="card p-5 border-slate-800 space-y-4 bg-slate-900/20 backdrop-blur-sm">
-            <div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                <Layers size={14} className="text-emerald-400" /> Smart Templates
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Premade cognitive frameworks</p>
-            </div>
-
-            <div className="space-y-2.5">
-              {TEMPLATE_OPTIONS.map((tmpl, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    if (tmpl.name.includes('50-30-20')) {
-                      setForm(prev => ({
-                        ...prev,
-                        limit: 30000,
-                        priority: 'high',
-                        description: 'Essentials allocation rule'
-                      }));
-                      toast.success('Applied 50-30-20 Rule preset! Limit set to ₹30,000.');
-                    } else if (tmpl.name.includes('Zero-Based')) {
-                      setForm(prev => ({
-                        ...prev,
-                        limit: 15000,
-                        priority: 'medium',
-                        description: 'Zero allocation target'
-                      }));
-                      toast.success('Applied Zero-Based limit preset! Limit set to ₹15,005.');
-                    } else {
-                      setForm(prev => ({
-                        ...prev,
-                        limit: 20000,
-                        priority: 'high',
-                        description: 'Envelope limit allocation'
-                      }));
-                      toast.success('Applied Envelope limit preset! Limit set to ₹20,000.');
-                    }
-                    openAdd();
-                  }}
-                  className="p-3 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer hover:border-indigo-500/40 hover:bg-slate-850/30 transition-all space-y-1.5"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-200">{tmpl.name}</span>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 font-bold">
-                      {tmpl.tags[0]}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-450 leading-relaxed font-medium">
-                    {tmpl.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -2060,26 +1879,6 @@ export default function Budget() {
                   <ArrowRightLeft className="text-emerald-400" size={14} /> Transfer Credit
                 </button>
 
-                <button
-                  onClick={() => { setFabOpen(false); handleDuplicateLastMonth(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl text-left transition-colors"
-                >
-                  <Copy size={14} className="text-amber-400" /> Duplicate Setup
-                </button>
-
-                <button
-                  onClick={() => { setFabOpen(false); handleExport(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl text-left transition-colors"
-                >
-                  <Download size={14} className="text-cyan-400" /> Export JSON
-                </button>
-
-                <button
-                  onClick={() => { setFabOpen(false); handleImportClick(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl text-left transition-colors"
-                >
-                  <Upload size={14} className="text-indigo-400" /> Import JSON
-                </button>
 
                 <button
                   onClick={() => { setFabOpen(false); handlePrint(); }}
