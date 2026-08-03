@@ -59,14 +59,8 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Logo — full brand on desktop/mobile drawer, icon-only on tablet rail */}
         <div className="p-3 lg:p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-center lg:justify-start gap-3">
-            <div className="w-9 h-9 rounded-xl flex-shrink-0 shadow-lg flex items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-700">
-              <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
-                <rect x="5" y="22" width="5" height="9" rx="1.5" fill="white" fillOpacity="0.9"/>
-                <rect x="13" y="15" width="5" height="16" rx="1.5" fill="white" fillOpacity="0.9"/>
-                <rect x="21" y="10" width="5" height="21" rx="1.5" fill="white" fillOpacity="0.9"/>
-                <path d="M5 14l8-6 8 4 8-8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="29" cy="4" r="2.5" fill="white"/>
-              </svg>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg border border-slate-700/50 bg-white">
+              <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
             {/* Brand name: visible on desktop (≥1024px) and mobile drawer, hidden on tablet rail */}
             <div className="block md:hidden lg:block">

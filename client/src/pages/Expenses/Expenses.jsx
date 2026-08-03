@@ -15,6 +15,7 @@ import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
+import api from '../../services/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAYMENT_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
@@ -40,7 +41,7 @@ const getLocalTimeString = () => {
 };
 const EMPTY_FORM = {
   title: '', amount: '', category: '', date: getLocalTodayString(),
-  time: getLocalTimeString(), paymentMethod: 'upi', description: '', tags: '',
+  time: getLocalTimeString(), paymentMethod: 'upi', description: '', tags: '', walletId: '',
 };
 
 // ─── Mini Sparkline ───────────────────────────────────────────────────────────
@@ -178,6 +179,7 @@ export default function Expenses() {
   // Modal state
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_FORM);
+  const [wallets, setWallets] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Delete confirm
@@ -203,6 +205,7 @@ export default function Expenses() {
   useEffect(() => {
     fetchExpenses();
     fetchCategories('expense');
+    api.get('/wallets').then(res => setWallets(res.data.data || [])).catch(() => {});
   }, []);
 
   // ── Computed data ────────────────────────────────────────────────────────────
@@ -312,6 +315,7 @@ export default function Expenses() {
     setForm({
       ...item,
       category: item.category?._id || item.category || '',
+      walletId: item.wallet?._id || item.wallet || '',
       date: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
       time: `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`,
       tags: (item.tags || []).join(', '),
@@ -768,7 +772,7 @@ export default function Expenses() {
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <span className="w-4 h-0.5 bg-rose-500 rounded" /> Financial Details
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="form-group">
                 <label className="label">Date *</label>
                 <input type="date" className="input" value={form.date}
@@ -784,6 +788,14 @@ export default function Expenses() {
                 <select className="select" value={form.paymentMethod}
                   onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}>
                   {PAYMENT_METHODS.map(m => <option key={m} value={m}>{PM_LABELS[m]}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="label">Wallet</label>
+                <select className="select" value={form.walletId || ''}
+                  onChange={e => setForm(f => ({ ...f, walletId: e.target.value }))}>
+                  <option value="">Select Wallet (Optional)</option>
+                  {wallets.map(w => <option key={w._id} value={w._id}>{w.icon} {w.name} ({fmt(w.balance)})</option>)}
                 </select>
               </div>
             </div>
