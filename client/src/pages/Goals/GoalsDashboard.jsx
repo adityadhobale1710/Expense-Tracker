@@ -8,13 +8,21 @@ import {
 import useGoals from '../../hooks/useGoals';
 import { useDialog } from '../../hooks/useDialog';
 
-// Components
 import GoalCard from '../../components/Goals/GoalCard';
 import GoalSearch from '../../components/Goals/GoalSearch';
 import GoalFilters from '../../components/Goals/GoalFilters';
 import GoalModal from '../../components/Goals/GoalModal';
 import ContributionModal from '../../components/Goals/ContributionModal';
 import GoalInsights from '../../components/Goals/GoalInsights';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 export default function GoalsDashboard() {
   const { showConfirm } = useDialog();
@@ -160,7 +168,7 @@ export default function GoalsDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {isLoadingStats ? (
           [...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-dark-800/80 border border-slate-800 rounded-2xl animate-pulse" />
+            <Skeleton key={i} className="h-24" />
           ))
         ) : (
           <>
@@ -227,25 +235,17 @@ export default function GoalsDashboard() {
           {isLoadingGoals ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-64 bg-dark-800/80 border border-slate-800 rounded-3xl animate-pulse" />
+                <Skeleton.Card key={i} />
               ))}
             </div>
           ) : goals.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center p-12 bg-dark-800 border border-slate-700/60 rounded-3xl text-center shadow-xl space-y-4"
-            >
-              <div className="p-4 rounded-full bg-slate-800/60 border border-slate-750 text-slate-500">
-                <Target size={36} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-slate-200">No active goals found</h3>
-                <p className="text-[11px] text-slate-500 max-w-sm">
-                  Create a goal from scratch or use one of our quick start templates to initiate savings tracks!
-                </p>
-              </div>
-            </motion.div>
+            <EmptyState
+              title="No active goals found"
+              description="Create a goal from scratch or use one of our quick start templates to initiate savings tracks!"
+              icon={Target}
+              actionText="New Goal"
+              onAction={handleOpenCreate}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <AnimatePresence mode="popLayout">

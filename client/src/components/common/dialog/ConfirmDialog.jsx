@@ -14,7 +14,7 @@ export default function ConfirmDialog({ dialog, config, IconComponent }) {
         </div>
         <button
           onClick={() => dialog.resolve(false)}
-          className="text-slate-500 hover:text-slate-300 transition-colors p-1 bg-slate-955/20 hover:bg-slate-850 border border-slate-800 rounded-lg cursor-pointer"
+          className="text-slate-500 hover:text-slate-300 transition-colors p-1 bg-slate-900/20 hover:bg-slate-800 border border-slate-800 rounded-lg cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -28,11 +28,11 @@ export default function ConfirmDialog({ dialog, config, IconComponent }) {
       </div>
 
       {/* Footer Actions */}
-      <div className="flex justify-end gap-2 pt-2 border-t border-slate-850/50">
+      <div className="flex justify-end gap-2 pt-2 border-t border-slate-800/50">
         <button
           type="button"
           onClick={() => dialog.resolve(false)}
-          className="px-4 py-2 bg-slate-950/30 hover:bg-slate-850 border border-slate-800 text-slate-400 rounded-xl text-xs font-black transition-all cursor-pointer"
+          className="px-4 py-2 bg-slate-950/30 hover:bg-slate-800 border border-slate-800 text-slate-400 rounded-xl text-xs font-black transition-all cursor-pointer"
         >
           {dialog.cancelText || 'Cancel'}
         </button>

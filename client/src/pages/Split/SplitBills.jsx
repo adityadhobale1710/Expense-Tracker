@@ -7,6 +7,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, DollarSign, Plus, CheckCircle, ChevronDown, Trash2, Search, Info, Scale, CheckCircle2, AlertTriangle
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 const CATEGORY_ICONS = {
   Restaurant: '🍔',
@@ -410,21 +419,21 @@ export default function SplitBills() {
             label: 'Total Net Balance',
             value: `${stats.outstanding >= 0 ? '+' : ''}₹${stats.outstanding.toLocaleString('en-IN')}`,
             icon: '💵',
-            color: stats.outstanding >= 0 ? 'text-emerald-450' : 'text-rose-400',
+            color: stats.outstanding >= 0 ? 'text-emerald-400' : 'text-rose-400',
             glow: stats.outstanding >= 0 ? 'from-emerald-500/5 to-transparent' : 'from-rose-500/5 to-transparent',
           },
           {
             label: 'You Owe',
             value: `₹${stats.owe.toLocaleString('en-IN')}`,
             icon: '📉',
-            color: 'text-rose-455',
+            color: 'text-rose-400',
             glow: 'from-rose-500/5 to-transparent',
           },
           {
             label: 'You Are Owed',
             value: `₹${stats.owed.toLocaleString('en-IN')}`,
             icon: '📈',
-            color: 'text-emerald-455',
+            color: 'text-emerald-400',
             glow: 'from-emerald-500/5 to-transparent',
           },
           {
@@ -437,7 +446,7 @@ export default function SplitBills() {
         ].map((stat, idx) => (
           <div
             key={idx}
-            className="relative overflow-hidden card p-5 flex items-center gap-4 hover:scale-[1.02] hover:border-slate-650 transition-all duration-300 group cursor-default"
+            className="relative overflow-hidden card p-5 flex items-center gap-4 hover:scale-[1.02] hover:border-slate-600 transition-all duration-300 group cursor-default"
           >
             <div className="absolute inset-0 bg-gradient-to-br opacity-50 group-hover:opacity-100 transition-opacity" style={{ background: stat.glow }} />
             <span className="text-3xl select-none relative z-10">{stat.icon}</span>
@@ -452,41 +461,19 @@ export default function SplitBills() {
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
-            <div className="card h-48 animate-pulse bg-slate-800/40" />
-            <div className="card h-48 animate-pulse bg-slate-800/40" />
+            <Skeleton.Card />
+            <Skeleton.Card />
           </div>
-          <div className="card h-96 animate-pulse bg-slate-800/40" />
+          <Skeleton className="h-96" />
         </div>
       ) : safeSplits.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="card text-center py-16 px-6 max-w-2xl mx-auto space-y-6 border-dashed border-indigo-500/30"
-        >
-          <div className="mx-auto w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40" style={{animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite'}}>
-            <svg viewBox="0 0 48 48" fill="none" className="w-14 h-14" xmlns="http://www.w3.org/2000/svg">
-              <rect x="8" y="4" width="32" height="40" rx="4" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
-              <line x1="16" y1="15" x2="32" y2="15" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-              <line x1="24" y1="10" x2="24" y2="20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-              <line x1="16" y1="27" x2="32" y2="27" stroke="white" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 3"/>
-              <circle cx="19" cy="35" r="2.5" fill="white" fillOpacity="0.9"/>
-              <circle cx="29" cy="35" r="2.5" fill="white" fillOpacity="0.9"/>
-              <circle cx="24" cy="35" r="2.5" fill="white" fillOpacity="0.9"/>
-            </svg>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-black text-slate-100">No Shared Bills Yet</h2>
-            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              Create your first shared check, divide trip expenses, or split utilities with your friends to track balances.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="btn bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-extrabold px-8 py-3 rounded-xl shadow-xl transition-all cursor-pointer"
-          >
-            Create Split Bill
-          </button>
-        </motion.div>
+        <EmptyState
+          title="No Shared Bills Yet"
+          description="Create your first shared check, divide trip expenses, or split utilities with your friends to track balances."
+          icon={Users}
+          actionText="Create Split Bill"
+          onAction={() => setShowCreate(true)}
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Bills List Column */}
@@ -499,7 +486,7 @@ export default function SplitBills() {
                   placeholder="Search shared bills..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-150 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all w-full sm:w-48"
+                  className="bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all w-full sm:w-48"
                 />
               </div>
 
@@ -553,7 +540,7 @@ export default function SplitBills() {
                         <span
                           className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                             split.status === 'settled'
-                              ? 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                               : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
                           }`}
                         >
@@ -572,7 +559,7 @@ export default function SplitBills() {
 
                         <button
                           onClick={() => toggleExpandBill(split._id)}
-                          className="p-1.5 bg-slate-900/60 hover:bg-slate-850 border border-slate-800 text-slate-400 rounded-lg text-xs cursor-pointer flex items-center justify-center"
+                          className="p-1.5 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 rounded-lg text-xs cursor-pointer flex items-center justify-center"
                         >
                           <ChevronDown size={12} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
@@ -586,7 +573,7 @@ export default function SplitBills() {
                           {settledMembers}/{totalMembers} Settled ({progressPct}%)
                         </span>
                       </div>
-                      <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-850">
+                      <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
                         <div
                           className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-500"
                           style={{ width: `${progressPct}%` }}
@@ -594,7 +581,7 @@ export default function SplitBills() {
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-850/50">
+                    <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-800/50">
                       <div>
                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Total Bill</p>
                         <p className="text-sm font-black text-slate-200">₹{split.amount.toLocaleString('en-IN')}</p>
@@ -612,14 +599,14 @@ export default function SplitBills() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden space-y-3 pt-3 border-t border-slate-850/50"
+                          className="overflow-hidden space-y-3 pt-3 border-t border-slate-800/50"
                         >
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Workspace Debts Ledger</p>
                           <div className="space-y-2">
                             {split.members.map((member) => (
                               <div
                                 key={member._id}
-                                className="flex justify-between items-center bg-slate-900/30 border border-slate-850 p-2.5 rounded-xl text-xs"
+                                className="flex justify-between items-center bg-slate-900/30 border border-slate-800 p-2.5 rounded-xl text-xs"
                               >
                                 <span className="text-slate-300 font-medium truncate max-w-[200px]">{member.userEmail}</span>
                                 <div className="flex items-center gap-3">
@@ -635,7 +622,7 @@ export default function SplitBills() {
                                       Settle Debt
                                     </button>
                                   ) : (
-                                    <span className="text-emerald-450 text-[9px] font-black uppercase bg-emerald-500/10 border border-emerald-500/15 px-2 py-0.5 rounded-full">
+                                    <span className="text-emerald-400 text-[9px] font-black uppercase bg-emerald-500/10 border border-emerald-500/15 px-2 py-0.5 rounded-full">
                                       Settled
                                     </span>
                                   )}
@@ -679,7 +666,7 @@ export default function SplitBills() {
                     className="p-3 bg-slate-900/35 border border-slate-800 hover:border-indigo-500/30 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all text-center cursor-pointer"
                   >
                     <span className="text-xl">{act.icon}</span>
-                    <span className="text-[9px] font-extrabold text-slate-350">{act.title}</span>
+                    <span className="text-[9px] font-extrabold text-slate-300">{act.title}</span>
                   </button>
                 ))}
               </div>
@@ -697,7 +684,7 @@ export default function SplitBills() {
                   <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3.5 flex justify-between items-center gap-3">
                     <div>
                       <p className="text-[9px] font-bold text-rose-400 uppercase tracking-wide">You Owe Others</p>
-                      <p className="text-base font-black text-rose-455 font-mono mt-0.5">₹{stats.owe.toLocaleString('en-IN')}</p>
+                      <p className="text-base font-black text-rose-400 font-mono mt-0.5">₹{stats.owe.toLocaleString('en-IN')}</p>
                     </div>
                     <span className="text-2xl">📉</span>
                   </div>
@@ -707,7 +694,7 @@ export default function SplitBills() {
                   <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3.5 flex justify-between items-center gap-3">
                     <div>
                       <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wide">You Are Owed By Others</p>
-                      <p className="text-base font-black text-emerald-455 font-mono mt-0.5">₹{stats.owed.toLocaleString('en-IN')}</p>
+                      <p className="text-base font-black text-emerald-400 font-mono mt-0.5">₹{stats.owed.toLocaleString('en-IN')}</p>
                     </div>
                     <span className="text-2xl">📈</span>
                   </div>
@@ -757,7 +744,7 @@ export default function SplitBills() {
                   className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
                     splitMethod === 'Equal'
                       ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-205'
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   ⚖️ Equal Split
@@ -768,7 +755,7 @@ export default function SplitBills() {
                   className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
                     splitMethod === 'Manual'
                       ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-205'
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   📝 Manual Split
@@ -785,7 +772,7 @@ export default function SplitBills() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g. Olive Garden Dinner, Airbnb Cabin"
-                      className="input py-2 text-xs bg-dark-900 border-slate-750"
+                      className="input py-2 text-xs bg-dark-900 border-slate-700"
                       required
                     />
                   </div>
@@ -794,7 +781,7 @@ export default function SplitBills() {
                     <select
                       value={groupName}
                       onChange={(e) => setGroupName(e.target.value)}
-                      className="select py-2 text-xs bg-dark-900 border-slate-750"
+                      className="select py-2 text-xs bg-dark-900 border-slate-700"
                     >
                       <option value="Restaurant">Restaurant Dinner</option>
                       <option value="Trip">Shared Trip/Travel</option>
@@ -814,7 +801,7 @@ export default function SplitBills() {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
-                      className="input py-2 text-xs bg-dark-900 border-slate-750"
+                      className="input py-2 text-xs bg-dark-900 border-slate-700"
                       required
                     />
                   </div>
@@ -823,7 +810,7 @@ export default function SplitBills() {
                     <select
                       value={paidBy}
                       onChange={(e) => setPaidBy(e.target.value)}
-                      className="select py-2 text-xs bg-dark-900 border-slate-750"
+                      className="select py-2 text-xs bg-dark-900 border-slate-700"
                     >
                       {participants.map(email => (
                         <option key={email} value={email}>
@@ -846,7 +833,7 @@ export default function SplitBills() {
                       setManualShares({});
                     }}
                     placeholder="e.g. rahul@gmail.com, amit@gmail.com"
-                    className="input py-2 text-xs bg-dark-900 border-slate-750 resize-none"
+                    className="input py-2 text-xs bg-dark-900 border-slate-700 resize-none"
                     required
                   />
                   <p className="text-[10px] text-slate-500 mt-1">
@@ -860,7 +847,7 @@ export default function SplitBills() {
                     <span>Summary</span>
                     <div className="flex items-center gap-1.5">
                       {isBalanced ? (
-                        <span className="flex items-center gap-1 text-emerald-450 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                           <CheckCircle2 size={10} /> Balanced
                         </span>
                       ) : (
@@ -937,14 +924,14 @@ export default function SplitBills() {
                       return (
                         <div
                           key={email}
-                          className="flex flex-col sm:flex-row justify-between sm:items-center bg-slate-950 border border-slate-850 p-2.5 rounded-xl gap-2 transition-all"
+                          className="flex flex-col sm:flex-row justify-between sm:items-center bg-slate-950 border border-slate-800 p-2.5 rounded-xl gap-2 transition-all"
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-[10px] uppercase">
                               {email[0]}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[11px] font-bold text-slate-205 truncate">
+                              <p className="text-[11px] font-bold text-slate-200 truncate">
                                 {isMe ? 'Aditya (You)' : email}
                               </p>
                               <span className="text-[8px] text-slate-500 font-black uppercase tracking-wide">

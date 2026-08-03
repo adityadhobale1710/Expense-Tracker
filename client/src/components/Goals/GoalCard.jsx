@@ -164,7 +164,7 @@ export default function GoalCard({
           <button
             onClick={() => onDelete(goal._id)}
             title="Delete Goal"
-            className="w-7 h-7 rounded-lg flex items-center justify-center bg-dark-900 border border-slate-750 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
+            className="w-7 h-7 rounded-lg flex items-center justify-center bg-dark-900 border border-slate-700 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
           >
             <Trash2 size={12} />
           </button>

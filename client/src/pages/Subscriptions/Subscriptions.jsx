@@ -18,6 +18,15 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 // ─── Service Configuration Mapper ──────────────────────────
 const SERVICES_CONFIG = {
@@ -782,6 +791,24 @@ export default function Subscriptions() {
 
   const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
+  if (loading && combinedSubscriptions.length === 0) {
+    return (
+      <div className="space-y-6 pb-24 animate-fade-in text-slate-100 font-sans relative">
+        {/* Header skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/40 pb-5">
+          <Skeleton className="h-10 w-48 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+        {/* Summary grid skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton.Card key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-24 animate-fade-in text-slate-100 font-sans relative">
       
@@ -993,23 +1020,13 @@ export default function Subscriptions() {
 
           {/* SUBSCRIPTION CARDS GRID LIST */}
           {filteredSubs.length === 0 ? (
-            <div className="card text-center py-20 border-slate-800 space-y-4 shadow-xl">
-              <div className="w-16 h-16 bg-slate-800/80 border border-slate-700/40 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
-                <Layers size={24} className="text-slate-500" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-slate-200">No subscriptions found</h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                  Log recurring payments to receive automatic pacing indicators, warning details, and budget projection trends.
-                </p>
-              </div>
-              <button
-                onClick={openAdd}
-                className="btn-primary text-xs px-4 py-2 rounded-xl inline-flex font-bold"
-              >
-                Add First Subscription
-              </button>
-            </div>
+            <EmptyState
+              title="No subscriptions found"
+              description="Log recurring payments to receive automatic pacing indicators, warning details, and budget projection trends."
+              icon={Layers}
+              actionText="Add First Subscription"
+              onAction={openAdd}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <AnimatePresence mode="popLayout">
@@ -1075,7 +1092,7 @@ export default function Subscriptions() {
                           </div>
                           <div>
                             <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Payments</span>
-                            <span className="text-slate-350 text-[10px] font-bold uppercase tracking-wider">
+                            <span className="text-slate-300 text-[10px] font-bold uppercase tracking-wider">
                               {sub.paymentMethod.replace('_', ' ')}
                             </span>
                           </div>
@@ -1285,7 +1302,7 @@ export default function Subscriptions() {
               {aiInsights.map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-xl border border-slate-850 bg-slate-900/60 flex gap-2 text-xs transition-transform hover:translate-x-1"
+                  className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 flex gap-2 text-xs transition-transform hover:translate-x-1"
                 >
                   <div className="flex-shrink-0 mt-0.5">
                     {item.type === 'danger' ? (
@@ -1296,7 +1313,7 @@ export default function Subscriptions() {
                       <CheckCircle2 size={13} className="text-emerald-400" />
                     )}
                   </div>
-                  <p className="text-slate-350 leading-relaxed font-semibold text-[11px]">
+                  <p className="text-slate-300 leading-relaxed font-semibold text-[11px]">
                     {item.message}
                   </p>
                 </div>
@@ -1348,7 +1365,7 @@ export default function Subscriptions() {
                   {calendarGroups.thisWeek.map(s => (
                     <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
                       <span className="font-bold text-slate-200">{s.name}</span>
-                      <span className="font-bold text-slate-350">{fmt(s.cost)}</span>
+                      <span className="font-bold text-slate-300">{fmt(s.cost)}</span>
                     </div>
                   ))}
                 </div>
@@ -1361,7 +1378,7 @@ export default function Subscriptions() {
                   {calendarGroups.nextWeek.map(s => (
                     <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
                       <span className="font-bold text-slate-200">{s.name}</span>
-                      <span className="font-bold text-slate-450">{fmt(s.cost)}</span>
+                      <span className="font-bold text-slate-400">{fmt(s.cost)}</span>
                     </div>
                   ))}
                 </div>
@@ -1402,10 +1419,10 @@ export default function Subscriptions() {
                 notifications.map(notif => (
                   <div
                     key={notif.id}
-                    className="p-3 bg-slate-900 border border-slate-850 rounded-xl flex gap-2.5 text-xs"
+                    className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2.5 text-xs"
                   >
                     <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-slate-350 text-[10px] leading-relaxed font-semibold">
+                    <p className="text-slate-300 text-[10px] leading-relaxed font-semibold">
                       {notif.message}
                     </p>
                   </div>
@@ -1464,7 +1481,7 @@ export default function Subscriptions() {
               
               {/* Primary values card */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl flex flex-col justify-between">
+                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Billing cost</span>
                   <span className="text-xl font-black text-slate-200 mt-2">{fmt(selectedDetails.cost)}</span>
                   <span className="text-[8px] text-slate-500 uppercase font-bold tracking-wider mt-1">
@@ -1472,7 +1489,7 @@ export default function Subscriptions() {
                   </span>
                 </div>
                 
-                <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl flex flex-col justify-between">
+                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Remaining Pacing</span>
                   <span className={`text-xl font-black mt-2 ${daysRemaining < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {daysRemaining < 0 ? `Expired` : daysRemaining === 0 ? 'Renews Today' : `${daysRemaining} days`}
@@ -1484,25 +1501,25 @@ export default function Subscriptions() {
               </div>
 
               {/* Status and priorities check */}
-              <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan settings</h4>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-450 font-semibold">Service Plan</span>
+                    <span className="text-slate-400 font-semibold">Service Plan</span>
                     <span className="text-slate-200 font-bold">{selectedDetails.plan}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-450 font-semibold">Payment Linked</span>
+                    <span className="text-slate-400 font-semibold">Payment Linked</span>
                     <span className="text-slate-200 font-bold uppercase tracking-wider">
                       {selectedDetails.paymentMethod.replace('_', ' ')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-450 font-semibold">Billing status</span>
+                    <span className="text-slate-400 font-semibold">Billing status</span>
                     <span className={`font-bold ${statusConfig.text}`}>{statusConfig.label}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-450 font-semibold">Auto-Renewal Setup</span>
+                    <span className="text-slate-400 font-semibold">Auto-Renewal Setup</span>
                     <span className={`font-extrabold ${selectedDetails.autoRenewal ? 'text-emerald-400' : 'text-slate-500'}`}>
                       {selectedDetails.autoRenewal ? 'ENABLED 🟢' : 'DISABLED 🔴'}
                     </span>
@@ -1511,12 +1528,12 @@ export default function Subscriptions() {
               </div>
 
               {/* Notepad Usage notes */}
-              <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <FileText size={11} className="text-slate-500" /> Usage & Settings Notes
                 </h4>
                 <textarea
-                  className="w-full h-20 bg-slate-950/80 border border-slate-850 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-350"
+                  className="w-full h-20 bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
                   placeholder="Record credentials advice, cancellation policies, or usage settings..."
                   value={selectedDetails.notes || ''}
                   onChange={(e) => {
@@ -1533,7 +1550,7 @@ export default function Subscriptions() {
               </div>
 
               {/* Tag system settings */}
-              <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Configuration Tags</span>
                   <span className="text-[8px] text-slate-500 font-bold">Comma separated values</span>
@@ -1552,7 +1569,7 @@ export default function Subscriptions() {
                     localStorage.setItem(key, JSON.stringify(updated));
                     syncExtendedProps();
                   }}
-                  className="w-full bg-slate-950/80 border border-slate-850 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
+                  className="w-full bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
                 />
               </div>
 
@@ -1560,16 +1577,16 @@ export default function Subscriptions() {
               <div className="space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Billing History</h4>
                 <div className="space-y-2">
-                  <div className="p-3 bg-slate-900/40 border border-slate-850 rounded-xl flex justify-between items-center">
+                  <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center">
                     <div className="space-y-0.5">
                       <span className="font-bold text-slate-200 block">Cycle renewal charge</span>
                       <span className="text-[9px] text-slate-500 block">
                         Renews: {new Date(selectedDetails.renewalDate).toLocaleDateString('en-IN')}
                       </span>
                     </div>
-                    <span className="font-bold text-slate-350">{fmt(selectedDetails.cost)}</span>
+                    <span className="font-bold text-slate-300">{fmt(selectedDetails.cost)}</span>
                   </div>
-                  <div className="p-3 bg-slate-900/40 border border-slate-850 rounded-xl flex justify-between items-center opacity-60">
+                  <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center opacity-60">
                     <div className="space-y-0.5">
                       <span className="font-bold text-slate-300 block">Previous billing settlement</span>
                       <span className="text-[9px] text-slate-500 block">Settled successfully via linked wallet</span>
@@ -1585,7 +1602,7 @@ export default function Subscriptions() {
             <div className="p-6 border-t border-slate-800 bg-slate-900/40 flex gap-2">
               <button
                 onClick={() => handleTogglePause(selectedDetails)}
-                className="flex-1 btn bg-slate-850 hover:bg-slate-800 text-slate-300 font-bold py-2 rounded-xl text-xs"
+                className="flex-1 btn bg-slate-800 hover:bg-slate-800 text-slate-300 font-bold py-2 rounded-xl text-xs"
               >
                 {selectedDetails.autoRenewal ? 'Pause Sub' : 'Resume Sub'}
               </button>

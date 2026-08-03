@@ -99,7 +99,7 @@ export default function UpcomingPayments({
               </div>
 
               {/* Contents box */}
-              <div className="flex-1 min-w-0 bg-dark-900/50 border border-slate-850 p-3 rounded-2xl flex justify-between items-center hover:border-slate-800 transition-colors">
+              <div className="flex-1 min-w-0 bg-dark-900/50 border border-slate-800 p-3 rounded-2xl flex justify-between items-center hover:border-slate-800 transition-colors">
                 <div className="min-w-0">
                   <h4 className="font-bold text-slate-200 truncate">{item.name}</h4>
                   <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
@@ -120,10 +120,10 @@ export default function UpcomingPayments({
             </div>
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-850 rounded-3xl text-center space-y-2 mt-4">
+          <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-800 rounded-3xl text-center space-y-2 mt-4">
             <Bell size={24} className="text-slate-655" />
-            <p className="text-[11px] font-bold text-slate-450">No Impending Expenses</p>
-            <p className="text-[9px] text-slate-550">Active subscriptions and loans will populate reminder intervals automatically.</p>
+            <p className="text-[11px] font-bold text-slate-400">No Impending Expenses</p>
+            <p className="text-[9px] text-slate-500">Active subscriptions and loans will populate reminder intervals automatically.</p>
           </div>
         )}
       </div>

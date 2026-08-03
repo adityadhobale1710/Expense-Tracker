@@ -150,7 +150,7 @@ export default function Navbar({ onMenuToggle }) {
           {showDropdown && (
             <div className="absolute right-0 mt-2 w-72 bg-dark-900 border border-slate-700 rounded-2xl p-4 shadow-xl z-50 animate-fade-in space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                <span className="text-xs font-bold text-slate-205">Alerts & Notifications</span>
+                <span className="text-xs font-bold text-slate-200">Alerts & Notifications</span>
                 {unreadCount > 0 && (
                   <button onClick={markAllRead} className="text-[10px] text-indigo-400 hover:underline">
                     Mark all read

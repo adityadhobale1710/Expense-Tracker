@@ -9,6 +9,15 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Modal from '../../components/common/Modal';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 // Constants
 const LOAN_TYPES = [
@@ -334,7 +343,7 @@ export default function Loans() {
             onChange={e => setSearch(e.target.value)}
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350">
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
               <X size={13} />
             </button>
           )}
@@ -366,21 +375,17 @@ export default function Loans() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="card h-48 animate-pulse bg-dark-800/80" />
+            <Skeleton.Card key={i} className="h-48" />
           ))}
         </div>
       ) : filteredLoans.length === 0 ? (
-        <div className="card text-center py-16 space-y-4">
-          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto">
-            <Landmark size={24} className="text-rose-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-200">No active loans found</h3>
-            <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-              Stay debt-free or log your SBI home loan/credit card balances to begin tracking EMI schedules.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          title="No active loans found"
+          description="Stay debt-free or log your SBI home loan/credit card balances to begin tracking EMI schedules."
+          icon={Landmark}
+          actionText="Log Loan"
+          onAction={() => setShowCreate(true)}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <AnimatePresence mode="popLayout">
@@ -463,7 +468,7 @@ export default function Loans() {
                           disabled={wallets.length === 0}
                           className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md ${
                             wallets.length === 0
-                              ? 'bg-slate-800 text-slate-550 cursor-not-allowed'
+                              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                               : 'bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-400 shadow-rose-500/5'
                           }`}
                         >
@@ -619,7 +624,7 @@ export default function Loans() {
                 <div className="p-3 bg-rose-500/5 border border-rose-500/15 rounded-xl flex items-center justify-between text-xs">
                   <div>
                     <p className="text-slate-500">Repayment Estimate</p>
-                    <p className="text-slate-350 font-semibold">{name || 'SBI Loan'}</p>
+                    <p className="text-slate-300 font-semibold">{name || 'SBI Loan'}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-rose-400 font-bold block">{fmt(emiAmount)} / mo</p>

@@ -70,7 +70,7 @@ export default function FinancialHealthGauge({
 
   if (score >= 85) {
     status = 'Excellent';
-    badgeColor = 'text-emerald-450 bg-emerald-500/10 border-emerald-500/20';
+    badgeColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
     gaugeColor = '#10b981'; // emerald-500
     icon = <ShieldCheck className="text-emerald-400" size={18} />;
   } else if (score >= 70) {
@@ -139,7 +139,7 @@ export default function FinancialHealthGauge({
             <span className="text-3xl font-black text-slate-100 tracking-tight leading-none">
               {score}
             </span>
-            <span className="text-[9px] font-bold text-slate-550 uppercase tracking-widest mt-1">
+            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
               Rating
             </span>
           </div>

@@ -53,8 +53,8 @@ export default function GoalInsights({ insights = [], isLoading = false }) {
       {/* Body List */}
       {isLoading ? (
         <div className="space-y-3">
-          <div className="h-16 bg-dark-900 border border-slate-750 rounded-2xl animate-pulse" />
-          <div className="h-16 bg-dark-900 border border-slate-750 rounded-2xl animate-pulse" />
+          <div className="h-16 bg-dark-900 border border-slate-700 rounded-2xl animate-pulse" />
+          <div className="h-16 bg-dark-900 border border-slate-700 rounded-2xl animate-pulse" />
         </div>
       ) : insights.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-6 text-center">

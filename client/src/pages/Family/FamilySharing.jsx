@@ -2,6 +2,15 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 export default function FamilySharing() {
   const [family, setFamily] = useState(null);
@@ -264,9 +273,21 @@ export default function FamilySharing() {
   // If loading primary family details
   if (loading && !family) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-semibold text-slate-500">Loading family hub workspace...</p>
+      <div className="space-y-6 pb-20 animate-fade-in">
+        {/* Banner skeleton */}
+        <Skeleton className="h-28 w-full" />
+        
+        {/* Hub content split grid skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-60 w-full" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -407,13 +428,13 @@ export default function FamilySharing() {
                             }`}>
                               {member.role}
                             </span>
-                            <span className="text-[9px] text-slate-555">Joined</span>
+                            <span className="text-[9px] text-slate-500">Joined</span>
                           </div>
                         </div>
 
                         {/* View Action buttons */}
                         <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                          <button className="p-1 bg-slate-850 hover:bg-slate-800 text-slate-400 rounded-lg text-xs" title="View details">👁️</button>
+                          <button className="p-1 bg-slate-800 hover:bg-slate-800 text-slate-400 rounded-lg text-xs" title="View details">👁️</button>
                         </div>
                       </div>
                     );
@@ -461,7 +482,7 @@ export default function FamilySharing() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {safeGoals.length === 0 ? (
-                    <div className="col-span-full py-8 text-center text-slate-555 text-xs">
+                    <div className="col-span-full py-8 text-center text-slate-500 text-xs">
                       No savings goals defined. Start tracking savings from the Goals dashboard.
                     </div>
                   ) : (
@@ -509,7 +530,7 @@ export default function FamilySharing() {
 
                 <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
                   {safeApprovals.length === 0 ? (
-                    <p className="text-xs text-slate-555 text-center py-6">No approvals logged yet.</p>
+                    <p className="text-xs text-slate-500 text-center py-6">No approvals logged yet.</p>
                   ) : (
                     safeApprovals.map((req) => (
                       <div key={req._id} className="bg-slate-900/30 border border-slate-800 rounded-xl p-3.5 space-y-3">
@@ -523,8 +544,8 @@ export default function FamilySharing() {
 
                         <div className="flex justify-between items-center pt-2 border-t border-slate-800/60 text-[10px]">
                           <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                            req.status === 'approved' ? 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20' :
-                            req.status === 'rejected' ? 'bg-rose-500/10 text-rose-455 border border-rose-500/20' :
+                            req.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            req.status === 'rejected' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
                             'bg-orange-500/10 text-orange-405 border border-orange-500/20'
                           }`}>
                             {req.status}
@@ -540,7 +561,7 @@ export default function FamilySharing() {
                               </button>
                               <button
                                 onClick={() => handleReject(req._id)}
-                                className="px-2 py-1 bg-rose-500/10 text-rose-450 border border-rose-500/20 rounded-lg hover:bg-rose-500 hover:text-white font-bold transition-all cursor-pointer"
+                                className="px-2 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg hover:bg-rose-500 hover:text-white font-bold transition-all cursor-pointer"
                               >
                                 Reject
                               </button>
@@ -566,7 +587,7 @@ export default function FamilySharing() {
                       <div key={invite._id} className="bg-slate-900/30 border border-slate-800 rounded-xl p-3 flex justify-between items-center gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-slate-200 truncate">{invite.email}</p>
-                          <p className="text-[9px] text-slate-555 mt-0.5">Role: {invite.role}</p>
+                          <p className="text-[9px] text-slate-500 mt-0.5">Role: {invite.role}</p>
                         </div>
                         <span className="text-[8px] font-black uppercase bg-orange-500/10 text-orange-400 border border-orange-500/25 px-2 py-0.5 rounded-full">
                           Sent
@@ -612,7 +633,7 @@ export default function FamilySharing() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {safeWallets.length === 0 ? (
-                <div className="col-span-full py-8 text-center text-slate-555 text-xs">
+                <div className="col-span-full py-8 text-center text-slate-500 text-xs">
                   No active wallets found. Setup wallets inside the Wallets dashboard.
                 </div>
               ) : (
@@ -621,7 +642,7 @@ export default function FamilySharing() {
                     <div className="flex justify-between items-center">
                       <span className="text-2xl">👛</span>
                       <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                        wallet.isPrimary ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-slate-850 text-slate-550'
+                        wallet.isPrimary ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-slate-800 text-slate-500'
                       }`}>
                         {wallet.isPrimary ? 'Primary' : 'Secondary'}
                       </span>
@@ -670,7 +691,7 @@ export default function FamilySharing() {
             <div className="overflow-x-auto rounded-2xl border border-slate-800/80">
               <table className="w-full text-xs text-left">
                 <thead>
-                  <tr className="bg-slate-900/40 border-b border-slate-850 text-slate-450 font-bold">
+                  <tr className="bg-slate-900/40 border-b border-slate-800 text-slate-400 font-bold">
                     <th className="px-4 py-3">Item / Description</th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Amount</th>
@@ -680,7 +701,7 @@ export default function FamilySharing() {
                 <tbody className="divide-y divide-slate-855/50">
                   {paginatedExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-slate-555 font-semibold">
+                      <td colSpan={4} className="px-4 py-8 text-center text-slate-500 font-semibold">
                         No transactions match your filters.
                       </td>
                     </tr>
@@ -712,15 +733,15 @@ export default function FamilySharing() {
                 <button
                   disabled={txPage === 1}
                   onClick={() => setTxPage(p => Math.max(p - 1, 1))}
-                  className="bg-slate-900/40 border border-slate-850 text-slate-450 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
                 >
                   ←
                 </button>
-                <span className="text-xs text-slate-450 font-bold px-1">Page {txPage} of {totalTxPages}</span>
+                <span className="text-xs text-slate-400 font-bold px-1">Page {txPage} of {totalTxPages}</span>
                 <button
                   disabled={txPage === totalTxPages}
                   onClick={() => setTxPage(p => Math.min(p + 1, totalTxPages))}
-                  className="bg-slate-900/40 border border-slate-850 text-slate-450 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
                 >
                   →
                 </button>
@@ -743,7 +764,7 @@ export default function FamilySharing() {
             >
               <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                 <h3 className="font-black text-slate-100">Request Expense Approval</h3>
-                <button onClick={() => setShowRequest(false)} className="text-slate-400 hover:text-slate-150 cursor-pointer text-sm">✕</button>
+                <button onClick={() => setShowRequest(false)} className="text-slate-400 hover:text-slate-200 cursor-pointer text-sm">✕</button>
               </div>
               <form onSubmit={handleRequestApproval} className="space-y-4">
                 <div className="form-group">
@@ -806,7 +827,7 @@ export default function FamilySharing() {
             >
               <div className="flex justify-between items-center pb-2 border-b border-slate-700/50">
                 <h3 className="font-black text-slate-100">Invite Workspace Member</h3>
-                <button onClick={() => setShowInviteModal(false)} className="text-slate-400 hover:text-slate-150 cursor-pointer text-sm">✕</button>
+                <button onClick={() => setShowInviteModal(false)} className="text-slate-400 hover:text-slate-200 cursor-pointer text-sm">✕</button>
               </div>
 
               <form onSubmit={handleInvite} className="space-y-4">

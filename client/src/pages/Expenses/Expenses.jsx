@@ -15,6 +15,15 @@ import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 import api from '../../services/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -155,22 +164,7 @@ const AreaTooltip = ({ active, payload, label }) => {
   );
 };
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-const EmptyState = memo(({ onAdd }) => (
-  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-    className="flex flex-col items-center justify-center py-20 px-4 text-center">
-    <div className="w-20 h-20 rounded-3xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-5">
-      <TrendingDown size={32} className="text-rose-400" />
-    </div>
-    <h3 className="text-lg font-bold text-slate-200 mb-2">No expenses yet</h3>
-    <p className="text-slate-500 text-sm mb-6 max-w-xs">Track your spending by adding your first expense. Every rupee counts!</p>
-    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-      onClick={onAdd}
-      className="btn-primary gap-2">
-      <Plus size={16} /> Add Your First Expense
-    </motion.button>
-  </motion.div>
-));
+// Reusable EmptyState component from components/ui/EmptyState is now used.
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Expenses() {
@@ -585,7 +579,13 @@ export default function Expenses() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState onAdd={openAdd} />
+          <EmptyState
+            title="No expenses yet"
+            description="Track your spending by adding your first expense. Every rupee counts!"
+            icon={TrendingDown}
+            actionText="Add Your First Expense"
+            onAction={openAdd}
+          />
         ) : (
           <>
             {/* Desktop table */}

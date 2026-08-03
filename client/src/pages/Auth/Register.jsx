@@ -346,23 +346,23 @@ export default function Register() {
 
                           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-1 text-[10px] font-medium text-slate-500">
                             <div className="flex items-center gap-1">
-                              {isMinLength ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-350" />}
+                              {isMinLength ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>6+ characters</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              {isUppercase ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-350" />}
+                              {isUppercase ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>Uppercase letter</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              {isLowercase ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-350" />}
+                              {isLowercase ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>Lowercase letter</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              {isNumber ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-350" />}
+                              {isNumber ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>Numeric digit</span>
                             </div>
                             <div className="flex items-center gap-1 col-span-2">
-                              {isSpecialChar ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-350" />}
+                              {isSpecialChar ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>Special character (!@#$%)</span>
                             </div>
                           </div>

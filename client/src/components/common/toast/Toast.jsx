@@ -16,13 +16,13 @@ const TOAST_CONFIGS = {
     Icon: CheckCircle,
   },
   error: {
-    iconColor: 'text-rose-455',
+    iconColor: 'text-rose-400',
     iconBg: 'bg-rose-500/10 border-rose-500/25',
     progressBg: 'bg-rose-500',
     Icon: XCircle,
   },
   warning: {
-    iconColor: 'text-amber-455',
+    iconColor: 'text-amber-400',
     iconBg: 'bg-amber-500/10 border-amber-500/25',
     progressBg: 'bg-amber-500',
     Icon: AlertTriangle,
@@ -83,7 +83,7 @@ export default function Toast({ toast, onClose }) {
 
       <button
         onClick={onClose}
-        className="text-slate-500 hover:text-slate-300 transition-colors p-1 bg-slate-950/20 hover:bg-slate-850 border border-slate-800 rounded-lg cursor-pointer h-7 self-start"
+        className="text-slate-500 hover:text-slate-300 transition-colors p-1 bg-slate-950/20 hover:bg-slate-800 border border-slate-800 rounded-lg cursor-pointer h-7 self-start"
       >
         <X className="w-3.5 h-3.5" />
       </button>
