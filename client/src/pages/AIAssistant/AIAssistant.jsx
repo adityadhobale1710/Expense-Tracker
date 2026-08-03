@@ -89,7 +89,7 @@ export default function AIAssistant() {
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const res = await api.post('/ai/chat', { message: text });
+      const res = await api.post('/ai/chat', { message: text }, { timeout: 45000 });
       const { userMessage, aiMessage } = res.data.data;
 
       setMessages((prev) => {

@@ -35,8 +35,9 @@ const withTimeout = (promise, ms = 15000) => {
  * @param {string} systemInstructionText 
  */
 const executeGeminiCall = async (ai, contents, systemInstructionText) => {
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
   return await ai.models.generateContent({
-    model: 'gemini-3.5-flash',
+    model: modelName,
     contents,
     config: {
       systemInstruction: {
