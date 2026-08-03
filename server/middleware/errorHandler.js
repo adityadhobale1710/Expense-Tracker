@@ -8,8 +8,8 @@ const errorHandler = (err, req, res, next) => {
   // Log error with stack trace via Winston
   logger.error(err);
 
-  // 1. Handle Joi Validation Errors
-  if (err.isJoi || err.name === 'ValidationError' && err.details) {
+  // 1. Handle Joi Validation Errors (parentheses enforce correct operator precedence)
+  if (err.isJoi || (err.name === 'ValidationError' && err.details)) {
     statusCode = 400;
     message = 'Validation failed';
     errors = err.details.map((d) => ({

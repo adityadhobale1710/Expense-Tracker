@@ -90,83 +90,71 @@ export const getCategoryReport = asyncHandler(async (req, res) => {
   }
 
   const { startDate, endDate } = req.query;
+  const match = { user: new mongoose.Types.ObjectId(req.user._id) };
 
-  try {
-    const match = { user: new mongoose.Types.ObjectId(req.user._id) };
-
-    // Build date filter — only add keys that parse to valid dates
-    if (startDate || endDate) {
-      const dateFilter = {};
-      if (startDate && startDate !== 'undefined' && startDate !== 'null') {
-        const parsedStart = new Date(startDate);
-        if (!isNaN(parsedStart.getTime())) {
-          dateFilter.$gte = parsedStart;
-        }
-      }
-      if (endDate && endDate !== 'undefined' && endDate !== 'null') {
-        const parsedEnd = new Date(endDate);
-        if (!isNaN(parsedEnd.getTime())) {
-          dateFilter.$lte = parsedEnd;
-        }
-      }
-      if (Object.keys(dateFilter).length > 0) {
-        match.date = dateFilter;
+  // Build date filter — only add keys that parse to valid dates
+  if (startDate || endDate) {
+    const dateFilter = {};
+    if (startDate && startDate !== 'undefined' && startDate !== 'null') {
+      const parsedStart = new Date(startDate);
+      if (!isNaN(parsedStart.getTime())) {
+        dateFilter.$gte = parsedStart;
       }
     }
-
-    const breakdown = await Expense.aggregate([
-      { $match: match },
-      {
-        $lookup: {
-          from: 'categories',
-          localField: 'category',
-          foreignField: '_id',
-          as: 'cat',
-        },
-      },
-      // ✅ FIX: was `preserveNullAndEmpty` (silent no-op) — must be `preserveNullAndEmptyArrays`
-      // Without this, expenses with category:null are DROPPED from the pipeline entirely,
-      // producing incorrect totals and potential 500s on downstream stages.
-      { $unwind: { path: '$cat', preserveNullAndEmptyArrays: true } },
-      {
-        $group: {
-          _id: { $ifNull: ['$cat._id', null] },
-          name: { $first: { $ifNull: ['$cat.name', 'Uncategorized'] } },
-          icon: { $first: { $ifNull: ['$cat.icon', '📁'] } },
-          color: { $first: { $ifNull: ['$cat.color', '#6b7280'] } },
-          total: { $sum: { $ifNull: ['$amount', 0] } },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { total: -1 } },
-    ]);
-
-    // Compute grand total for percentage calculation
-    const grandTotal = breakdown.reduce((sum, item) => sum + (item.total || 0), 0);
-
-    // Defensive sanitization — guarantee every field is a valid, serializable value
-    const sanitized = (breakdown || []).map((item) => ({
-      _id: item._id ?? null,
-      name: typeof item.name === 'string' && item.name.trim() !== '' ? item.name : 'Uncategorized',
-      icon: typeof item.icon === 'string' && item.icon.trim() !== '' ? item.icon : '📁',
-      color: typeof item.color === 'string' && item.color.trim() !== '' ? item.color : '#6b7280',
-      total: typeof item.total === 'number' && !isNaN(item.total) ? item.total : 0,
-      count: typeof item.count === 'number' && !isNaN(item.count) ? item.count : 0,
-      percentage: grandTotal > 0 && typeof item.total === 'number' && !isNaN(item.total)
-        ? parseFloat(((item.total / grandTotal) * 100).toFixed(2))
-        : 0,
-    }));
-
-    sendSuccess(res, 200, 'Category report fetched', sanitized);
-  } catch (error) {
-    // Log full error with stack for debugging — do NOT swallow it
-    console.error('[getCategoryReport] Error generating category report:', error);
-    console.error('[getCategoryReport] Stack trace:', error.stack);
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to generate category report',
-      ...(process.env.NODE_ENV === 'development' && { error: error.message }),
-    });
+    if (endDate && endDate !== 'undefined' && endDate !== 'null') {
+      const parsedEnd = new Date(endDate);
+      if (!isNaN(parsedEnd.getTime())) {
+        dateFilter.$lte = parsedEnd;
+      }
+    }
+    if (Object.keys(dateFilter).length > 0) {
+      match.date = dateFilter;
+    }
   }
+
+  const breakdown = await Expense.aggregate([
+    { $match: match },
+    {
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'cat',
+      },
+    },
+    // ✅ FIX: was `preserveNullAndEmpty` (silent no-op) — must be `preserveNullAndEmptyArrays`
+    // Without this, expenses with category:null are DROPPED from the pipeline entirely,
+    // producing incorrect totals and potential 500s on downstream stages.
+    { $unwind: { path: '$cat', preserveNullAndEmptyArrays: true } },
+    {
+      $group: {
+        _id: { $ifNull: ['$cat._id', null] },
+        name: { $first: { $ifNull: ['$cat.name', 'Uncategorized'] } },
+        icon: { $first: { $ifNull: ['$cat.icon', '📁'] } },
+        color: { $first: { $ifNull: ['$cat.color', '#6b7280'] } },
+        total: { $sum: { $ifNull: ['$amount', 0] } },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { total: -1 } },
+  ]);
+
+  // Compute grand total for percentage calculation
+  const grandTotal = breakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+
+  // Defensive sanitization — guarantee every field is a valid, serializable value
+  const sanitized = (breakdown || []).map((item) => ({
+    _id: item._id ?? null,
+    name: typeof item.name === 'string' && item.name.trim() !== '' ? item.name : 'Uncategorized',
+    icon: typeof item.icon === 'string' && item.icon.trim() !== '' ? item.icon : '📁',
+    color: typeof item.color === 'string' && item.color.trim() !== '' ? item.color : '#6b7280',
+    total: typeof item.total === 'number' && !isNaN(item.total) ? item.total : 0,
+    count: typeof item.count === 'number' && !isNaN(item.count) ? item.count : 0,
+    percentage: grandTotal > 0 && typeof item.total === 'number' && !isNaN(item.total)
+      ? parseFloat(((item.total / grandTotal) * 100).toFixed(2))
+      : 0,
+  }));
+
+  sendSuccess(res, 200, 'Category report fetched', sanitized);
 });
+

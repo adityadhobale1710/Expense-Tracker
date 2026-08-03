@@ -258,7 +258,7 @@ export const getAnalyticsCategory = asyncHandler(async (req, res) => {
         as: 'catDetails'
       }
     },
-    { $unwind: { path: '$catDetails', preserveNullAndEmpty: true } },
+    { $unwind: { path: '$catDetails', preserveNullAndEmptyArrays: true } },
     {
       $group: {
         _id: '$category',

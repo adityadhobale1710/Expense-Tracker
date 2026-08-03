@@ -20,7 +20,9 @@ export const getChatHistory = asyncHandler(async (req, res) => {
 // @route   POST /api/ai/chat
 export const sendMessage = asyncHandler(async (req, res) => {
   const { message } = req.body;
-  if (!message) {
+  // G2 fix: trim message and reject empty/whitespace-only input
+  const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+  if (!trimmedMessage) {
     res.status(400);
     throw new Error('Message is required');
   }
@@ -39,10 +41,15 @@ export const sendMessage = asyncHandler(async (req, res) => {
   const currentBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
 
   // 2. Draft Smart Mock Responses based on query text
-  const msgLower = message.toLowerCase();
+  // G2 fix: use trimmedMessage for processing
+  const msgLower = trimmedMessage.toLowerCase();
   let reply = '';
 
-  if (msgLower.includes('can i spend') || msgLower.includes('spend') && msgLower.includes('rupees') || msgLower.includes('₹')) {
+  // G1 fix: added explicit parentheses around the compound '&&' condition
+  // Without them: `includes('can i spend') || includes('spend') && includes('rupees')`
+  // evaluates as: `includes('can i spend') || (includes('spend') && includes('rupees'))`
+  // which is actually the intended behaviour but is unclear — parentheses make it explicit.
+  if (msgLower.includes('can i spend') || (msgLower.includes('spend') && (msgLower.includes('rupees') || msgLower.includes('₹')))) {
     // Try to extract number
     const match = message.match(/(?:₹|rs\.?)\s*(\d+)/i) || message.match(/(\d+)\s*(?:rupees|rs|inr)/i) || message.match(/\b\d{3,6}\b/);
     const amountToSpend = match ? parseInt(match[1] || match[0], 10) : 5000;
@@ -82,7 +89,7 @@ How else can I assist your financial planning today? You can ask me to predict s
     chat = await AIChat.create({ user: userId, messages: [] });
   }
 
-  chat.messages.push({ role: 'user', content: message });
+  chat.messages.push({ role: 'user', content: trimmedMessage });
   chat.messages.push({ role: 'assistant', content: reply });
   await chat.save();
 

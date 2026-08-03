@@ -360,6 +360,21 @@ export const updateGamification = asyncHandler(async (req, res) => {
 // @route PUT /api/users/me/password
 export const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
+
+  // A9 fix: validate inputs before hitting bcrypt
+  if (!currentPassword || !newPassword) {
+    res.status(400);
+    throw new Error('Current password and new password are required');
+  }
+  if (typeof newPassword !== 'string' || newPassword.trim().length < 6) {
+    res.status(400);
+    throw new Error('New password must be at least 6 characters');
+  }
+  if (newPassword.length > 128) {
+    res.status(400);
+    throw new Error('New password must not exceed 128 characters');
+  }
+
   const user = await User.findById(req.user._id);
 
   if (!(await user.matchPassword(currentPassword))) {
