@@ -183,7 +183,7 @@ export default function GoalDetails() {
           {goal.status !== 'Archived' ? (
             <button
               onClick={() => handleStatusToggle('Archived')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700/60 hover:border-slate-550 rounded-xl transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700/60 hover:border-slate-500 rounded-xl transition-all"
             >
               <Archive size={12} />
               <span>Archive</span>
@@ -317,7 +317,7 @@ export default function GoalDetails() {
                           <td className="py-2.5">{new Date(c.date).toLocaleDateString()}</td>
                           <td className="py-2.5 text-emerald-400 font-bold">₹{c.amount.toLocaleString('en-IN')}</td>
                           <td className="py-2.5">
-                            <span className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-lg bg-slate-800 border border-slate-750 text-slate-400">
+                            <span className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-lg bg-slate-800 border border-slate-700 text-slate-400">
                               {c.type}
                             </span>
                           </td>
@@ -470,7 +470,7 @@ export default function GoalDetails() {
                     setShowCelebration(false);
                     navigate('/goals');
                   }}
-                  className="w-full py-2 bg-dark-900 border border-slate-700/40 text-xs font-bold text-slate-350 hover:text-slate-100 rounded-xl transition-all"
+                  className="w-full py-2 bg-dark-900 border border-slate-700/40 text-xs font-bold text-slate-300 hover:text-slate-100 rounded-xl transition-all"
                 >
                   Plan Next Goal
                 </button>

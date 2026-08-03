@@ -199,7 +199,7 @@ export default function DonutChart({
         {(selectedCategory || drillDownCategory) && (
           <button
             onClick={handleExitDrillDown}
-            className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-extrabold bg-rose-500/10 border border-rose-500/20 text-rose-455 rounded-xl hover:bg-rose-500/20 transition-all cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-extrabold bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl hover:bg-rose-500/20 transition-all cursor-pointer"
           >
             <FilterX size={10} />
             <span>Reset</span>
@@ -265,7 +265,7 @@ export default function DonutChart({
                 <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">
                   {drillDownCategory ? 'Subtotal' : 'Total spent'}
                 </span>
-                <span className="text-base font-black text-slate-150 font-mono">
+                <span className="text-base font-black text-slate-200 font-mono">
                   {currencySymbol}{Math.round(Number(currentTotalSum ?? 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </span>
               </>
@@ -286,8 +286,8 @@ export default function DonutChart({
                   selectedCategory && !drillDownCategory
                     ? isSelected
                       ? 'bg-slate-800/80 border-slate-700 text-white font-bold scale-[1.01]'
-                      : 'border-transparent text-slate-550 opacity-40 hover:opacity-60'
-                    : 'border-transparent text-slate-350 hover:bg-slate-800/40 hover:text-white'
+                      : 'border-transparent text-slate-500 opacity-40 hover:opacity-60'
+                    : 'border-transparent text-slate-300 hover:bg-slate-800/40 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-1.5 truncate">
@@ -299,7 +299,7 @@ export default function DonutChart({
                   <span className="truncate max-w-[80px] sm:max-w-[120px]">{String(cat?.name || '')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 font-mono text-right">
-                  <span className="font-bold text-slate-205">{currencySymbol}{Math.round(Number(cat?.total ?? 0)).toLocaleString()}</span>
+                  <span className="font-bold text-slate-200">{currencySymbol}{Math.round(Number(cat?.total ?? 0)).toLocaleString()}</span>
                   <span className="text-[9px] text-slate-500 font-bold">{Number(cat?.percentage ?? 0).toFixed(0)}%</span>
                 </div>
               </div>

@@ -992,7 +992,7 @@ export default function BillCalendar() {
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-black text-rose-450">
+                <p className="text-2xl font-black text-rose-400">
                   <CountUp value={stats?.overdueAmount || 0} />
                 </p>
                 <p className="text-[10px] text-rose-400 mt-1 font-semibold">{stats?.overdueCount || 0} accounts needing action</p>
@@ -1041,7 +1041,7 @@ export default function BillCalendar() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleMonthChange('prev')}
-                    className="btn-icon p-2 rounded-xl border border-slate-700/40 text-slate-450 hover:bg-slate-700/20"
+                    className="btn-icon p-2 rounded-xl border border-slate-700/40 text-slate-400 hover:bg-slate-700/20"
                   >
                     <ChevronLeft size={16} />
                   </button>
@@ -1050,7 +1050,7 @@ export default function BillCalendar() {
                   </h2>
                   <button
                     onClick={() => handleMonthChange('next')}
-                    className="btn-icon p-2 rounded-xl border border-slate-700/40 text-slate-450 hover:bg-slate-700/20"
+                    className="btn-icon p-2 rounded-xl border border-slate-700/40 text-slate-400 hover:bg-slate-700/20"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -1100,7 +1100,7 @@ export default function BillCalendar() {
               </div>
 
               {/* Weekday Headers */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] font-black text-slate-450 tracking-wider mb-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] font-black text-slate-400 tracking-wider mb-2">
                 <div>SUN</div>
                 <div>MON</div>
                 <div>TUE</div>
@@ -1148,7 +1148,7 @@ export default function BillCalendar() {
                             {cellDate.getDate()}
                           </span>
                         ) : (
-                          <span className={`text-xs font-semibold ${cell.isCurrentMonth ? 'text-slate-350' : 'text-slate-600'}`}>
+                          <span className={`text-xs font-semibold ${cell.isCurrentMonth ? 'text-slate-300' : 'text-slate-600'}`}>
                             {cellDate.getDate()}
                           </span>
                         )}
@@ -1174,7 +1174,7 @@ export default function BillCalendar() {
                           </div>
                         ))}
                         {extra > 0 && (
-                          <div className="text-[8px] font-black text-center py-0.5 rounded bg-slate-700/20 text-slate-450 border border-slate-700/30">
+                          <div className="text-[8px] font-black text-center py-0.5 rounded bg-slate-700/20 text-slate-400 border border-slate-700/30">
                             +{extra} more
                           </div>
                         )}
@@ -1188,7 +1188,7 @@ export default function BillCalendar() {
             {/* RIGHT SIDEBAR (30%) */}
             <div className="space-y-6 print:hidden">
               {/* Quick Actions Panel */}
-              <div className="card bg-dark-800/80 border-slate-750/50 shadow-lg">
+              <div className="card bg-dark-800/80 border-slate-700/50 shadow-lg">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">
                   Quick Actions
                 </h3>
@@ -1212,13 +1212,13 @@ export default function BillCalendar() {
                   </button>
                   <button
                     onClick={handleExportData}
-                    className="flex items-center justify-start gap-2.5 p-2 px-3 border border-slate-700/40 hover:bg-slate-700/20 rounded-xl text-slate-350 text-xs font-semibold cursor-pointer w-full col-span-2"
+                    className="flex items-center justify-start gap-2.5 p-2 px-3 border border-slate-700/40 hover:bg-slate-700/20 rounded-xl text-slate-300 text-xs font-semibold cursor-pointer w-full col-span-2"
                   >
                     <Download size={14} /> Export Backup File
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center justify-start gap-2.5 p-2 px-3 border border-slate-700/40 hover:bg-slate-700/20 rounded-xl text-slate-350 text-xs font-semibold cursor-pointer w-full col-span-2"
+                    className="flex items-center justify-start gap-2.5 p-2 px-3 border border-slate-700/40 hover:bg-slate-700/20 rounded-xl text-slate-300 text-xs font-semibold cursor-pointer w-full col-span-2"
                   >
                     <Upload size={14} /> Import Backup File
                   </button>
@@ -1231,7 +1231,7 @@ export default function BillCalendar() {
                   />
                   <button
                     onClick={handlePrintCalendar}
-                    className="flex items-center justify-start gap-2.5 p-2 px-3 border border-slate-700/40 hover:bg-slate-700/20 rounded-xl text-slate-350 text-xs font-semibold cursor-pointer w-full col-span-2"
+                    className="flex items-center justify-start gap-2.5 p-2 px-3 border border-slate-700/40 hover:bg-slate-700/20 rounded-xl text-slate-300 text-xs font-semibold cursor-pointer w-full col-span-2"
                   >
                     <Printer size={14} /> Print Calendar
                   </button>
@@ -1240,10 +1240,10 @@ export default function BillCalendar() {
 
               {/* AI-Style Rule-based Insights */}
               {stats?.insights && stats.insights.length > 0 && (
-                <div className="card bg-dark-800/80 border-slate-750/50 shadow-lg p-5">
+                <div className="card bg-dark-800/80 border-slate-700/50 shadow-lg p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <Sparkles className="text-primary-400" size={16} />
-                    <h3 className="text-xs font-black text-slate-350 uppercase tracking-wider">AI-Style Insights</h3>
+                    <h3 className="text-xs font-black text-slate-300 uppercase tracking-wider">AI-Style Insights</h3>
                   </div>
                   <div className="space-y-3">
                     {stats.insights.map((insight, idx) => (
@@ -1251,12 +1251,12 @@ export default function BillCalendar() {
                         key={idx}
                         className={`p-3 border rounded-xl text-xs leading-relaxed ${
                           insight.type === 'warning'
-                            ? 'bg-rose-500/5 border-rose-500/20 text-rose-450'
+                            ? 'bg-rose-500/5 border-rose-500/20 text-rose-400'
                             : insight.type === 'highlight'
                             ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-400 font-semibold'
                             : insight.type === 'action'
                             ? 'bg-primary-600/5 border-primary-500/20 text-primary-400'
-                            : 'bg-slate-900/40 border-slate-800 text-slate-350'
+                            : 'bg-slate-900/40 border-slate-800 text-slate-300'
                         }`}
                       >
                         {insight.text}
@@ -1267,7 +1267,7 @@ export default function BillCalendar() {
               )}
 
               {/* Smart Timeline (Upcoming Calendar Timeline) */}
-              <div className="card bg-dark-800/80 border-slate-750/50 shadow-lg">
+              <div className="card bg-dark-800/80 border-slate-700/50 shadow-lg">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between">
                   Upcoming 7-Day Timeline
                   <span className="text-[9px] font-bold text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-full">
@@ -1306,7 +1306,7 @@ export default function BillCalendar() {
 
               {/* Charts Panel */}
               {stats?.categoryChart && stats.categoryChart.length > 0 && (
-                <div className="card bg-dark-800/80 border-slate-750/50 shadow-lg">
+                <div className="card bg-dark-800/80 border-slate-700/50 shadow-lg">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <PieChartIcon size={14} /> Bills by Category
                   </h3>
@@ -1343,7 +1343,7 @@ export default function BillCalendar() {
           <div className="card bg-dark-800/60 border-slate-700/50 shadow-xl overflow-hidden print:hidden">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
               <div className="relative w-full md:w-80">
-                <Search className="absolute left-3 top-3.5 text-slate-550" size={16} />
+                <Search className="absolute left-3 top-3.5 text-slate-500" size={16} />
                 <input
                   type="text"
                   placeholder="Search scheduled bills by title or notes..."
@@ -1364,7 +1364,7 @@ export default function BillCalendar() {
                     filterRecurring !== 'all' ||
                     filterPaymentMethod
                       ? 'bg-primary-600/10 text-primary-400 border border-primary-500/20'
-                      : 'bg-slate-700/30 text-slate-350 border border-slate-700/40 hover:bg-slate-700/50'
+                      : 'bg-slate-700/30 text-slate-300 border border-slate-700/40 hover:bg-slate-700/50'
                   }`}
                 >
                   <SlidersHorizontal size={14} /> Filter Tools
@@ -1401,7 +1401,7 @@ export default function BillCalendar() {
                   className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 border-t border-slate-700/30 pt-4 mt-2"
                 >
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-450 uppercase tracking-wide">Category</label>
+                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Category</label>
                     <select
                       value={filterCategory}
                       onChange={(e) => setFilterCategory(e.target.value)}
@@ -1424,7 +1424,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-450 uppercase tracking-wide">Status</label>
+                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Status</label>
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
@@ -1440,7 +1440,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-450 uppercase tracking-wide">Priority</label>
+                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Priority</label>
                     <select
                       value={filterPriority}
                       onChange={(e) => setFilterPriority(e.target.value)}
@@ -1454,7 +1454,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-450 uppercase tracking-wide">Recurring</label>
+                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Recurring</label>
                     <select
                       value={filterRecurring}
                       onChange={(e) => setFilterRecurring(e.target.value)}
@@ -1467,7 +1467,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-450 uppercase tracking-wide">Method</label>
+                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Method</label>
                     <select
                       value={filterPaymentMethod}
                       onChange={(e) => setFilterPaymentMethod(e.target.value)}
@@ -1483,7 +1483,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-450 uppercase tracking-wide">Min Amount (₹)</label>
+                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Min Amount (₹)</label>
                     <input
                       type="number"
                       placeholder="Min"
@@ -1494,7 +1494,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-450 uppercase tracking-wide">Max Amount (₹)</label>
+                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Max Amount (₹)</label>
                     <input
                       type="number"
                       placeholder="Max"
@@ -1510,7 +1510,7 @@ export default function BillCalendar() {
 
           {/* BILLS LIST VIEW */}
           <div className="card bg-dark-800/60 border-slate-700/50 shadow-xl overflow-hidden print:hidden">
-            <h3 className="text-sm font-black text-slate-350 uppercase tracking-wide mb-4">
+            <h3 className="text-sm font-black text-slate-300 uppercase tracking-wide mb-4">
               Detailed Obligations List
             </h3>
 
@@ -1520,7 +1520,7 @@ export default function BillCalendar() {
                   <CalendarDays size={32} />
                 </div>
                 <h4 className="text-slate-300 font-bold text-sm">No bills match your current filters</h4>
-                <p className="text-slate-550 text-xs mt-1 max-w-sm">
+                <p className="text-slate-500 text-xs mt-1 max-w-sm">
                   Try clearing filters or search queries to view schedules.
                 </p>
                 <button
@@ -1588,14 +1588,14 @@ export default function BillCalendar() {
                                 {bill.frequency}
                               </span>
                             ) : (
-                              <span className="text-slate-550">One-off</span>
+                              <span className="text-slate-500">One-off</span>
                             )}
                           </td>
                           <td className="py-3.5 px-4">
                             <span
                               className={`inline-block text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
                                 bill.priority === 'high'
-                                  ? 'bg-rose-500/10 text-rose-450 border-rose-500/20'
+                                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                   : bill.priority === 'medium'
                                   ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
                                   : 'bg-slate-700/30 text-slate-400 border-slate-700/50'
@@ -1696,7 +1696,7 @@ export default function BillCalendar() {
                     {selectedBill.icon || '💸'}
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-900/40 text-slate-350 border border-slate-800/40">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-900/40 text-slate-300 border border-slate-800/40">
                       {selectedBill.category}
                     </span>
                     <h2 className="text-xl font-black text-slate-100 mt-1">{selectedBill.title}</h2>
@@ -1753,7 +1753,7 @@ export default function BillCalendar() {
                 {selectedBill.notes && (
                   <div className="p-4 bg-slate-900/20 border border-slate-800 rounded-2xl space-y-1">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Notes & Details</span>
-                    <p className="text-xs text-slate-350 leading-relaxed">{selectedBill.notes}</p>
+                    <p className="text-xs text-slate-300 leading-relaxed">{selectedBill.notes}</p>
                   </div>
                 )}
 
@@ -2020,7 +2020,7 @@ export default function BillCalendar() {
                     type="button"
                     onClick={() => setFormIcon(ic)}
                     className={`w-8 h-8 rounded-xl flex items-center justify-center text-lg border transition-all hover:bg-slate-700/40 cursor-pointer ${
-                      formIcon === ic ? 'bg-primary-600/20 border-primary-500 text-primary-400' : 'bg-slate-800/40 border-slate-750'
+                      formIcon === ic ? 'bg-primary-600/20 border-primary-500 text-primary-400' : 'bg-slate-800/40 border-slate-700'
                     }`}
                   >
                     {ic}
@@ -2040,7 +2040,7 @@ export default function BillCalendar() {
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t border-slate-750">
+          <div className="flex gap-3 justify-end pt-4 border-t border-slate-700">
             <button
               type="button"
               onClick={() => setIsAddModalOpen(false)}
@@ -2068,7 +2068,7 @@ export default function BillCalendar() {
               <div
                 key={ob.id}
                 onClick={() => openDetailsDrawer(ob.original || ob)}
-                className="p-3 border border-slate-750 rounded-xl hover:border-slate-600 bg-dark-900/40 hover:bg-dark-900 transition-all flex items-center justify-between cursor-pointer"
+                className="p-3 border border-slate-700 rounded-xl hover:border-slate-600 bg-dark-900/40 hover:bg-dark-900 transition-all flex items-center justify-between cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{ob.icon}</span>

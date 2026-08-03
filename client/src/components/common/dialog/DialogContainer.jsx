@@ -13,21 +13,21 @@ import AlertDialog from './AlertDialog';
 const VARIANT_CONFIGS = {
   danger: {
     bg: 'bg-rose-500/10 border-rose-500/20',
-    iconColor: 'text-rose-455',
+    iconColor: 'text-rose-400',
     iconBg: 'bg-rose-500/10 border border-rose-500/20',
     btnBg: 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500',
     defaultIcon: Trash2,
   },
   warning: {
     bg: 'bg-amber-500/10 border-amber-500/20',
-    iconColor: 'text-amber-455',
+    iconColor: 'text-amber-400',
     iconBg: 'bg-amber-500/10 border border-amber-500/20',
     btnBg: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500',
     defaultIcon: AlertTriangle,
   },
   success: {
     bg: 'bg-emerald-500/10 border-emerald-500/20',
-    iconColor: 'text-emerald-450',
+    iconColor: 'text-emerald-400',
     iconBg: 'bg-emerald-500/10 border border-emerald-500/20',
     btnBg: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500',
     defaultIcon: CheckCircle,

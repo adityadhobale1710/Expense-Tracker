@@ -91,7 +91,7 @@ export default function FilterBar({ timeframe, setTimeframe, startDate, setStart
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-dark-800/85 border border-slate-700/60 rounded-3xl backdrop-blur-md transition-all shadow-xl">
       
       {/* Timeframe Presets Toggle Grid */}
-      <div className="flex items-center gap-1 bg-dark-900/65 p-1 rounded-2xl border border-slate-850">
+      <div className="flex items-center gap-1 bg-dark-900/65 p-1 rounded-2xl border border-slate-800">
         {presetRanges.map((preset) => (
           <button
             key={preset}
@@ -120,7 +120,7 @@ export default function FilterBar({ timeframe, setTimeframe, startDate, setStart
         {/* Step Backward */}
         <button
           onClick={() => handleStepDate('prev')}
-          className="p-2.5 bg-dark-900 border border-slate-850 text-slate-350 hover:text-white rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer shadow-sm active:scale-95"
+          className="p-2.5 bg-dark-900 border border-slate-800 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer shadow-sm active:scale-95"
           title="Previous Period"
         >
           <ChevronLeft size={15} />
@@ -129,7 +129,7 @@ export default function FilterBar({ timeframe, setTimeframe, startDate, setStart
         {/* Current Date Visualizer Trigger */}
         <button
           onClick={() => timeframe === 'Custom' && setShowDatePicker(!showDatePicker)}
-          className={`flex items-center gap-2 px-4 py-2.5 bg-dark-900 border border-slate-850 rounded-xl text-xs font-bold text-slate-200 min-w-[160px] justify-center transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 min-w-[160px] justify-center transition-all ${
             timeframe === 'Custom' ? 'hover:border-primary-500/50 hover:text-primary-300 cursor-pointer' : 'cursor-default'
           }`}
         >
@@ -140,7 +140,7 @@ export default function FilterBar({ timeframe, setTimeframe, startDate, setStart
         {/* Step Forward */}
         <button
           onClick={() => handleStepDate('next')}
-          className="p-2.5 bg-dark-900 border border-slate-850 text-slate-350 hover:text-white rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer shadow-sm active:scale-95"
+          className="p-2.5 bg-dark-900 border border-slate-800 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer shadow-sm active:scale-95"
           title="Next Period"
         >
           <ChevronRight size={15} />
@@ -149,7 +149,7 @@ export default function FilterBar({ timeframe, setTimeframe, startDate, setStart
         {/* Today/Reset button */}
         <button
           onClick={handleResetToToday}
-          className="px-4 py-2.5 text-xs font-bold border border-slate-850 bg-dark-900 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer shadow-sm"
+          className="px-4 py-2.5 text-xs font-bold border border-slate-800 bg-dark-900 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer shadow-sm"
         >
           Today
         </button>

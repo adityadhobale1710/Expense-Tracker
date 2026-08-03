@@ -18,6 +18,15 @@ import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 // ─── Constants ──────────────────────────────────────────
 const PERIOD_OPTIONS = ['weekly', 'monthly', 'yearly'];
@@ -214,7 +223,7 @@ const PremiumSummaryCard = memo(({ icon: Icon, label, value, sub, trend, trendUp
 ));
 
 export default function Budget() {
-  const { budgets, fetchBudgets, addBudget, updateBudget, deleteBudget, categories, fetchCategories, expenses, fetchExpenses } = useExpense();
+  const { budgets, fetchBudgets, addBudget, updateBudget, deleteBudget, categories, fetchCategories, expenses, fetchExpenses, loading } = useExpense();
   
   // Custom local state
   const [wallets, setWallets] = useState([]);
@@ -790,6 +799,24 @@ export default function Budget() {
 
   const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
+  if (loading && combinedBudgets.length === 0) {
+    return (
+      <div className="space-y-6 pb-24 animate-fade-in text-slate-100 font-sans relative">
+        {/* Header skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/40 pb-5">
+          <Skeleton className="h-10 w-48 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+        {/* Summary grid skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton.Card key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-24 animate-fade-in text-slate-100 font-sans relative">
 
@@ -980,23 +1007,13 @@ export default function Budget() {
 
           {/* BUDGET CARDS GRID / LIST */}
           {filteredBudgets.length === 0 ? (
-            <div className="card text-center py-20 border-slate-800 space-y-4 shadow-xl">
-              <div className="w-16 h-16 bg-slate-800/80 border border-slate-700/40 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
-                <Target size={24} className="text-slate-500" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-slate-200">No active budgets found</h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                  Establish target spending boundaries on categories to begin automated tracking and safety forecasts.
-                </p>
-              </div>
-              <button
-                onClick={openAdd}
-                className="btn-primary text-xs px-4 py-2 rounded-xl inline-flex font-bold"
-              >
-                Set First Budget
-              </button>
-            </div>
+            <EmptyState
+              title="No active budgets found"
+              description="Establish target spending boundaries on categories to begin automated tracking and safety forecasts."
+              icon={Target}
+              actionText="Set First Budget"
+              onAction={openAdd}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <AnimatePresence mode="popLayout">
@@ -1347,21 +1364,21 @@ export default function Budget() {
 
             <div className="space-y-2.5">
               {warningAlerts.length === 0 ? (
-                <div className="p-4 bg-slate-900/40 rounded-xl text-center text-xs text-slate-500 border border-slate-850">
+                <div className="p-4 bg-slate-900/40 rounded-xl text-center text-xs text-slate-500 border border-slate-800">
                   All systems green. No active warnings.
                 </div>
               ) : (
                 warningAlerts.map(alert => (
                   <div
                     key={alert.id}
-                    className="p-3 rounded-xl border border-slate-850 flex items-start gap-2.5 text-xs transition-colors hover:bg-slate-900/60"
+                    className="p-3 rounded-xl border border-slate-800 flex items-start gap-2.5 text-xs transition-colors hover:bg-slate-900/60"
                   >
                     <div className="flex-shrink-0 mt-0.5" style={{ color: alert.color }}>
                       <AlertTriangle size={13} />
                     </div>
                     <div className="space-y-0.5">
                       <span className="font-bold text-slate-200 block text-[11px]">{alert.title}</span>
-                      <span className="text-slate-450 text-[10px] block leading-relaxed font-medium">
+                      <span className="text-slate-400 text-[10px] block leading-relaxed font-medium">
                         {alert.message}
                       </span>
                     </div>
@@ -1422,7 +1439,7 @@ export default function Budget() {
               
               {/* Core metrics overview */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-2xl flex flex-col justify-between">
+                <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Utilization</span>
                   <span className="text-xl font-black text-slate-200 mt-2">
                     {Math.min(100, Math.round((selectedBudgetDetails.spent / selectedBudgetDetails.limit) * 100))}%
@@ -1438,7 +1455,7 @@ export default function Budget() {
                   </div>
                 </div>
 
-                <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-2xl flex flex-col justify-between">
+                <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Remaining Buffer</span>
                   <span className={`text-xl font-black mt-2 ${selectedBudgetDetails.limit - selectedBudgetDetails.spent < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {fmt(selectedBudgetDetails.limit - selectedBudgetDetails.spent)}
@@ -1448,7 +1465,7 @@ export default function Budget() {
               </div>
 
               {/* Forecast calculations */}
-              <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Zap size={11} className="text-indigo-400" /> Forecasting Engine
                 </h4>
@@ -1467,7 +1484,7 @@ export default function Budget() {
               </div>
 
               {/* Recharts Local Trend Chart */}
-              <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Local Spending Distribution
                 </h4>
@@ -1491,12 +1508,12 @@ export default function Budget() {
               </div>
 
               {/* Local notes notepad storage block */}
-              <div className="p-4 bg-slate-900/60 border border-slate-850 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <FileText size={11} className="text-slate-400" /> Budget Notes
                 </h4>
                 <textarea
-                  className="w-full h-20 bg-slate-950/80 border border-slate-850 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
+                  className="w-full h-20 bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
                   placeholder="Record boundaries advice, rules or limits context..."
                   value={selectedBudgetDetails.notes || ''}
                   onChange={(e) => {
@@ -1516,7 +1533,7 @@ export default function Budget() {
               <div className="space-y-3">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Recent category activity</span>
-                  <span className="text-[8px] bg-slate-800 text-slate-350 px-2 py-0.5 rounded-full">
+                  <span className="text-[8px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
                     {selectedBudgetTransactions.length} Total
                   </span>
                 </h4>
@@ -1528,10 +1545,10 @@ export default function Budget() {
                     {selectedBudgetTransactions.slice(0, 4).map((tx) => (
                       <div
                         key={tx._id}
-                        className="p-3 bg-slate-900/40 border border-slate-850 rounded-xl flex items-center justify-between gap-3 text-xs"
+                        className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex items-center justify-between gap-3 text-xs"
                       >
                         <div className="flex items-center gap-2.5 truncate">
-                          <span className="w-8 h-8 rounded-lg bg-slate-850 flex items-center justify-center text-sm shadow-inner">
+                          <span className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-sm shadow-inner">
                             {selectedBudgetDetails.icon}
                           </span>
                           <div className="truncate">
@@ -1692,7 +1709,7 @@ export default function Budget() {
                     onChange={(e) => setForm({ ...form, alertThreshold: e.target.value })}
                     className="flex-1 accent-indigo-500 h-1 rounded-full cursor-pointer bg-slate-800"
                   />
-                  <span className="text-xs font-bold text-slate-350 min-w-[32px] text-right">
+                  <span className="text-xs font-bold text-slate-300 min-w-[32px] text-right">
                     {form.alertThreshold}%
                   </span>
                 </div>

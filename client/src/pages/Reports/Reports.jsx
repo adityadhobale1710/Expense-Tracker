@@ -6,6 +6,15 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Calendar, Wallet, List, Award, Percent } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_NAMES = [
@@ -64,7 +73,7 @@ const CustomPieTooltip = ({ active, payload }) => {
           Transactions: <span className="text-slate-200 font-bold">{data.count}</span>
         </p>
         <p className="text-slate-400 font-medium">
-          Avg Expense: <span className="text-emerald-450 font-bold">₹{Number(avgExpense).toLocaleString('en-IN')}</span>
+          Avg Expense: <span className="text-emerald-400 font-bold">₹{Number(avgExpense).toLocaleString('en-IN')}</span>
         </p>
       </div>
     </div>
@@ -182,7 +191,7 @@ export default function Reports() {
                 disabled={!!customStartDate || !!customEndDate}
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="select py-2 text-xs bg-dark-900 border-slate-750 disabled:opacity-50"
+                className="select py-2 text-xs bg-dark-900 border-slate-700 disabled:opacity-50"
               >
                 {MONTH_NAMES.map((name, idx) => (
                   <option key={name} value={idx}>{name}</option>
@@ -196,7 +205,7 @@ export default function Reports() {
                 disabled={!!customStartDate || !!customEndDate}
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="select py-2 text-xs bg-dark-900 border-slate-750 disabled:opacity-50"
+                className="select py-2 text-xs bg-dark-900 border-slate-700 disabled:opacity-50"
               >
                 <option value={2024}>2024</option>
                 <option value={2025}>2025</option>
@@ -213,7 +222,7 @@ export default function Reports() {
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="input py-2 text-xs bg-dark-900 border-slate-750"
+                className="input py-2 text-xs bg-dark-900 border-slate-700"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -222,7 +231,7 @@ export default function Reports() {
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="input py-2 text-xs bg-dark-900 border-slate-750"
+                className="input py-2 text-xs bg-dark-900 border-slate-700"
               />
             </div>
             <div className="flex gap-2">
@@ -244,20 +253,28 @@ export default function Reports() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton.Chart />
+            <Skeleton.Chart />
+          </div>
         </div>
       ) : (
         <>
           {/* Summary Row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { label: 'Total Inflow', value: summary?.totalIncome, color: 'text-emerald-450', icon: '💰', trend: '+12% month-on-month', up: true },
-              { label: 'Total Outflow', value: summary?.totalExpense, color: 'text-rose-450', icon: '💸', trend: '-3% from projection', up: false },
+              { label: 'Total Inflow', value: summary?.totalIncome, color: 'text-emerald-400', icon: '💰', trend: '+12% month-on-month', up: true },
+              { label: 'Total Outflow', value: summary?.totalExpense, color: 'text-rose-400', icon: '💸', trend: '-3% from projection', up: false },
               { label: 'Net Balance', value: summary?.balance, color: 'text-primary-400', icon: '🏦', trend: 'Keep savings rates high', up: true },
               { label: 'Savings Rate', value: `${summary?.savingsRate || 0}%`, color: 'text-amber-450', icon: '📈', raw: true, trend: 'Target minimum 30%', up: true },
             ].map(({ label, value, color, icon, raw, trend, up }) => (
-              <div key={label} className="card hover:border-slate-650 transition-all duration-300 flex flex-col justify-between">
+              <div key={label} className="card hover:border-slate-600 transition-all duration-300 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{label}</span>
@@ -268,7 +285,7 @@ export default function Reports() {
                   </p>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-slate-700/20 flex items-center gap-1 text-[9px] text-slate-500 font-bold uppercase">
-                  {up ? <TrendingUp size={12} className="text-emerald-450" /> : <TrendingDown size={12} className="text-rose-450" />}
+                  {up ? <TrendingUp size={12} className="text-emerald-400" /> : <TrendingDown size={12} className="text-rose-400" />}
                   <span>{trend}</span>
                 </div>
               </div>
@@ -368,7 +385,7 @@ export default function Reports() {
                               className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                               style={{ backgroundColor: getCategoryColor(c.name, i) }}
                             />
-                            <span className="text-xs font-semibold text-slate-205">{c.name}</span>
+                            <span className="text-xs font-semibold text-slate-200">{c.name}</span>
                           </div>
                           <div className="text-right text-xs">
                             <p className="font-extrabold text-slate-100">₹{Number(c.total).toLocaleString('en-IN')}</p>
@@ -439,7 +456,7 @@ export default function Reports() {
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{c.icon || '🛍️'}</span>
                           <div>
-                            <span className="text-xs font-bold text-slate-205">{c.name}</span>
+                            <span className="text-xs font-bold text-slate-200">{c.name}</span>
                             <span className="text-[9px] text-slate-500 font-bold ml-2">({c.count} txns)</span>
                           </div>
                         </div>
