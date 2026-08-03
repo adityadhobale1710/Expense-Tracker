@@ -192,12 +192,12 @@ app.listen(PORT, () => {
 // process silently. Both handlers log via Winston so the error is captured in
 // logs, then exit(1) so the process manager (PM2 / Render / Railway) can restart.
 
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Promise Rejection at: %o, reason: %s', promise, reason);
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Promise Rejection:', reason);
   process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception: %s\n%s', err.message, err.stack);
+  logger.error('Uncaught Exception:', err);
   process.exit(1);
 });
