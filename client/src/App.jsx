@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -21,27 +22,27 @@ const queryClient = new QueryClient({
 });
 
 import Layout from './components/common/Layout';
-import Login from './pages/Auth/Login';
-import Register from './pages/Auth/Register';
-import Dashboard from './pages/Dashboard/Dashboard';
-import Income from './pages/Income/Income';
-import Expenses from './pages/Expenses/Expenses';
-import Budget from './pages/Budget/Budget';
-import Reports from './pages/Reports/Reports';
-import Profile from './pages/Profile/Profile';
-import BillCalendar from './pages/Calendar/BillCalendar';
-import AIInsights from './pages/AIInsights/AIInsights';
-import AIAssistant from './pages/AIAssistant/AIAssistant';
-import Achievements from './pages/Achievements/Achievements';
-import Loans from './pages/Loans/Loans';
-import Wallets from './pages/Wallets/Wallets';
-import Subscriptions from './pages/Subscriptions/Subscriptions';
-import SplitBills from './pages/Split/SplitBills';
-import FamilySharing from './pages/Family/FamilySharing';
-import AnalyticsPro from './pages/Analytics/AnalyticsPro';
-import AdminPortal from './pages/Admin/AdminPortal';
-import GoalsDashboard from './pages/Goals/GoalsDashboard';
-import GoalDetails from './pages/Goals/GoalDetails';
+const Login = lazy(() => import('./pages/Auth/Login'));
+const Register = lazy(() => import('./pages/Auth/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
+const Income = lazy(() => import('./pages/Income/Income'));
+const Expenses = lazy(() => import('./pages/Expenses/Expenses'));
+const Budget = lazy(() => import('./pages/Budget/Budget'));
+const Reports = lazy(() => import('./pages/Reports/Reports'));
+const Profile = lazy(() => import('./pages/Profile/Profile'));
+const BillCalendar = lazy(() => import('./pages/Calendar/BillCalendar'));
+const AIInsights = lazy(() => import('./pages/AIInsights/AIInsights'));
+const AIAssistant = lazy(() => import('./pages/AIAssistant/AIAssistant'));
+const Achievements = lazy(() => import('./pages/Achievements/Achievements'));
+const Loans = lazy(() => import('./pages/Loans/Loans'));
+const Wallets = lazy(() => import('./pages/Wallets/Wallets'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions/Subscriptions'));
+const SplitBills = lazy(() => import('./pages/Split/SplitBills'));
+const FamilySharing = lazy(() => import('./pages/Family/FamilySharing'));
+const AnalyticsPro = lazy(() => import('./pages/Analytics/AnalyticsPro'));
+const AdminPortal = lazy(() => import('./pages/Admin/AdminPortal'));
+const GoalsDashboard = lazy(() => import('./pages/Goals/GoalsDashboard'));
+const GoalDetails = lazy(() => import('./pages/Goals/GoalDetails'));
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -59,34 +60,42 @@ const PublicRoute = ({ children }) => {
   return !user ? children : <Navigate to="/dashboard" replace />;
 };
 
+const Loader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-dark-900">
+    <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 const AppRoutes = () => (
-  <Routes>
-    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-    <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-    <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-    <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-      <Route path="dashboard" element={<Dashboard />} />
-      <Route path="income" element={<Income />} />
-      <Route path="expenses" element={<Expenses />} />
-      <Route path="wallets" element={<Wallets />} />
-      <Route path="budget" element={<Budget />} />
-      <Route path="reports" element={<Reports />} />
-      <Route path="profile" element={<Profile />} />
-      <Route path="calendar" element={<BillCalendar />} />
-      <Route path="ai-insights" element={<AIInsights />} />
-      <Route path="ai-assistant" element={<AIAssistant />} />
-      <Route path="achievements" element={<Achievements />} />
-      <Route path="loans" element={<Loans />} />
-      <Route path="subscriptions" element={<Subscriptions />} />
-      <Route path="split-bills" element={<SplitBills />} />
-      <Route path="family" element={<FamilySharing />} />
-      <Route path="analytics-pro" element={<AnalyticsPro />} />
-      <Route path="admin-portal" element={<AdminPortal />} />
-      <Route path="goals" element={<GoalsDashboard />} />
-      <Route path="goals/:id" element={<GoalDetails />} />
-    </Route>
-    <Route path="*" element={<Navigate to="/dashboard" replace />} />
-  </Routes>
+  <Suspense fallback={<Loader />}>
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="income" element={<Income />} />
+        <Route path="expenses" element={<Expenses />} />
+        <Route path="wallets" element={<Wallets />} />
+        <Route path="budget" element={<Budget />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="calendar" element={<BillCalendar />} />
+        <Route path="ai-insights" element={<AIInsights />} />
+        <Route path="ai-assistant" element={<AIAssistant />} />
+        <Route path="achievements" element={<Achievements />} />
+        <Route path="loans" element={<Loans />} />
+        <Route path="subscriptions" element={<Subscriptions />} />
+        <Route path="split-bills" element={<SplitBills />} />
+        <Route path="family" element={<FamilySharing />} />
+        <Route path="analytics-pro" element={<AnalyticsPro />} />
+        <Route path="admin-portal" element={<AdminPortal />} />
+        <Route path="goals" element={<GoalsDashboard />} />
+        <Route path="goals/:id" element={<GoalDetails />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  </Suspense>
 );
 
 import { DialogProvider } from './context/DialogContext';

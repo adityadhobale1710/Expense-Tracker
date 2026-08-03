@@ -821,7 +821,7 @@ export default function Budget() {
       </div>
 
       {/* ── PREMIUM SUMMARY CARDS GRID ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <PremiumSummaryCard
           icon={Target}
           label="Total Budget"
@@ -847,14 +847,6 @@ export default function Budget() {
           sparkData={combinedBudgets.map(b => Math.max(0, b.limit - b.spent))}
         />
         <PremiumSummaryCard
-          icon={Flame}
-          label="Overspent Categories"
-          value={`${overspentCount}`}
-          color="#f97316"
-          sub="Requires immediate attention"
-          sparkData={[0, overspentCount, overspentCount * 1.5]}
-        />
-        <PremiumSummaryCard
           icon={Banknote}
           label="Savings Pace"
           value={savingsEstimate}
@@ -869,6 +861,14 @@ export default function Budget() {
           color="#8b5cf6"
           sub="Category specific bounds"
           sparkData={[1, Math.max(1, combinedBudgets.length)]}
+        />
+        <PremiumSummaryCard
+          icon={Flame}
+          label="Overspent Categories"
+          value={`${overspentCount}`}
+          color="#f97316"
+          sub="Requires immediate attention"
+          sparkData={[0, overspentCount, overspentCount * 1.5]}
         />
       </div>
 

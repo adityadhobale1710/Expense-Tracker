@@ -36,6 +36,17 @@ export const expenseSchema = Joi.object({
   paymentMethod: Joi.string().max(50).required(),
   description: Joi.string().max(500).allow('').optional(),
   tags: Joi.array().items(Joi.string().max(50)).optional(),
+  walletId: Joi.string().hex().length(24).allow(null, '').optional(),
+}).unknown(false);
+
+// --- Budget schemas ---
+export const budgetSchema = Joi.object({
+  category: Joi.string().hex().length(24).required(),
+  limit: Joi.number().min(0).required(),
+  period: Joi.string().valid('weekly', 'monthly', 'yearly').optional(),
+  startDate: Joi.date().iso().optional(),
+  endDate: Joi.date().iso().allow(null, '').optional(),
+  alertThreshold: Joi.number().min(0).max(100).optional(),
 }).unknown(false);
 
 // --- Income schemas ---
