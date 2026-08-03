@@ -32,7 +32,10 @@ const recalcBudgetSpent = async (userId, categoryId) => {
 // @desc  Get all expenses
 // @route GET /api/expenses
 export const getExpenses = asyncHandler(async (req, res) => {
-  const { startDate, endDate, category, paymentMethod, page = 1, limit = 20 } = req.query;
+  const { startDate, endDate, category, paymentMethod } = req.query;
+  // B1 fix: parseInt to prevent NaN when string values are used in arithmetic
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const filter = { user: req.user._id };
   if (startDate || endDate) {
     filter.date = {};
@@ -47,9 +50,9 @@ export const getExpenses = asyncHandler(async (req, res) => {
     .populate('category', 'name icon color')
     .sort({ date: -1 })
     .skip((page - 1) * limit)
-    .limit(Number(limit));
+    .limit(limit);
 
-  sendSuccess(res, 200, 'Expenses fetched', { expenses, total, page: Number(page) });
+  sendSuccess(res, 200, 'Expenses fetched', { expenses, total, page });
 });
 
 // @desc  Add expense
@@ -171,9 +174,14 @@ export const updateExpense = asyncHandler(async (req, res) => {
     }
   }
 
+  // B2 fix: whitelist allowed update fields — prevents clients injecting 'user', '__v', etc.
+  const allowedFields = ['title', 'amount', 'date', 'category', 'paymentMethod', 'description', 'tags', 'receipt', 'wallet'];
+  const updateData = {};
+  allowedFields.forEach((f) => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
+
   const updatedExpense = await Expense.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
-    req.body,
+    updateData,
     { new: true, runValidators: true }
   ).populate('category', 'name icon color');
 

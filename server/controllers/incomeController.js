@@ -6,7 +6,10 @@ import { sendSuccess } from '../utils/apiResponse.js';
 // @desc  Get all incomes
 // @route GET /api/income
 export const getIncomes = asyncHandler(async (req, res) => {
-  const { startDate, endDate, category, page = 1, limit = 20 } = req.query;
+  const { startDate, endDate, category } = req.query;
+  // B3 fix: parseInt to prevent NaN
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const filter = { user: req.user._id };
   if (startDate || endDate) {
     filter.date = {};
@@ -19,9 +22,9 @@ export const getIncomes = asyncHandler(async (req, res) => {
   const incomes = await Income.find(filter)
     .sort({ date: -1 })
     .skip((page - 1) * limit)
-    .limit(Number(limit));
+    .limit(limit);
 
-  sendSuccess(res, 200, 'Incomes fetched', { incomes, total, page: Number(page) });
+  sendSuccess(res, 200, 'Incomes fetched', { incomes, total, page });
 });
 
 // @desc  Add income
@@ -118,9 +121,14 @@ export const updateIncome = asyncHandler(async (req, res) => {
     }
   }
 
+  // B4 fix: whitelist allowed update fields
+  const allowedFields = ['title', 'amount', 'date', 'category', 'source', 'description', 'wallet'];
+  const updateData = {};
+  allowedFields.forEach((f) => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
+
   const income = await Income.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
-    req.body,
+    updateData,
     { new: true, runValidators: true }
   );
 
