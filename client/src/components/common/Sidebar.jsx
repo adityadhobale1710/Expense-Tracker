@@ -10,16 +10,7 @@ const NAV_ITEMS = [
   { to: '/goals',        icon: '🎯', label: 'Goals' },
   { to: '/loans',        icon: '🏛️', label: 'Loans & EMIs' },
   { to: '/subscriptions',icon: '🔁', label: 'Subscriptions' },
-  { to: '/split-bills',  icon: (
-    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.6"/>
-      <circle cx="16" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.6"/>
-      <path d="M3 17.5c0-2.5 2-4 5-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M21 17.5c0-2.5-2-4-5-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <line x1="12" y1="11" x2="12" y2="19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="1.5 1.5"/>
-      <circle cx="12" cy="15" r="2" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
-    </svg>
-  ), label: 'Split Bills' },
+  { to: '/split-bills',  icon: '/split-bill.png', label: 'Split Bills' },
   { to: '/family',       icon: '👪', label: 'Family Sharing' },
   { to: '/calendar',     icon: '📅', label: 'Bill Calendar' },
   { to: '/ai-insights',  icon: '💡', label: 'AI Insights', badge: 'Soon' },
