@@ -4,6 +4,11 @@ import Expense from '../models/Expense.js';
 import Income from '../models/Income.js';
 import Budget from '../models/Budget.js';
 import Wallet from '../models/Wallet.js';
+import Goal from '../models/Goal.js';
+import Loan from '../models/Loan.js';
+import Subscription from '../models/Subscription.js';
+import Category from '../models/Category.js'; // Ensure Category schema is loaded for population
+import { generateAIResponse } from '../services/ai/GeminiService.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 // @desc    Get AI Chat History
@@ -20,79 +25,173 @@ export const getChatHistory = asyncHandler(async (req, res) => {
 // @route   POST /api/ai/chat
 export const sendMessage = asyncHandler(async (req, res) => {
   const { message } = req.body;
-  // G2 fix: trim message and reject empty/whitespace-only input
+  
+  // Trim message and reject empty/whitespace-only input
   const trimmedMessage = typeof message === 'string' ? message.trim() : '';
   if (!trimmedMessage) {
     res.status(400);
     throw new Error('Message is required');
   }
 
-  // 1. Retrieve User Context for smart responses
   const userId = req.user._id;
-  const [expenses, incomes, budgets, wallets] = await Promise.all([
-    Expense.find({ user: userId }).sort({ date: -1 }).limit(10),
+
+  // 1. Retrieve User Context for smart, context-aware responses (limit range to last 30 days for totals)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const [
+    wallets,
+    budgets,
+    recentExpenses,
+    recentIncomes,
+    monthlyExpensesDocs,
+    monthlyIncomesDocs,
+    goals,
+    loans,
+    subscriptions
+  ] = await Promise.all([
+    Wallet.find({ user: userId, isArchived: false }),
+    Budget.find({ user: userId }).populate('category'),
+    Expense.find({ user: userId }).sort({ date: -1 }).limit(10).populate('category'),
     Income.find({ user: userId }).sort({ date: -1 }).limit(10),
-    Budget.find({ user: userId }),
-    Wallet.find({ user: userId }),
+    Expense.find({ user: userId, date: { $gte: thirtyDaysAgo } }).populate('category'),
+    Income.find({ user: userId, date: { $gte: thirtyDaysAgo } }),
+    Goal.find({ user: userId, isDeleted: false }),
+    Loan.find({ user: userId }),
+    Subscription.find({ user: userId })
   ]);
 
-  const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
+  // Calculate totals and metrics
   const currentBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
+  const monthlyExpenses = monthlyExpensesDocs.reduce((sum, e) => sum + e.amount, 0);
+  const monthlyIncome = monthlyIncomesDocs.reduce((sum, i) => sum + i.amount, 0);
+  const savings = Math.max(0, monthlyIncome - monthlyExpenses);
 
-  // 2. Draft Smart Mock Responses based on query text
-  // G2 fix: use trimmedMessage for processing
-  const msgLower = trimmedMessage.toLowerCase();
-  let reply = '';
+  // Wallet balances summary list
+  const walletSummary = wallets
+    .map(w => `- ${w.name} (${w.type}): ${w.balance.toLocaleString('en-IN')} ${w.currency}`)
+    .join('\n') || '- None';
 
-  // G1 fix: added explicit parentheses around the compound '&&' condition
-  // Without them: `includes('can i spend') || includes('spend') && includes('rupees')`
-  // evaluates as: `includes('can i spend') || (includes('spend') && includes('rupees'))`
-  // which is actually the intended behaviour but is unclear — parentheses make it explicit.
-  if (msgLower.includes('can i spend') || (msgLower.includes('spend') && (msgLower.includes('rupees') || msgLower.includes('₹')))) {
-    // Try to extract number
-    const match = message.match(/(?:₹|rs\.?)\s*(\d+)/i) || message.match(/(\d+)\s*(?:rupees|rs|inr)/i) || message.match(/\b\d{3,6}\b/);
-    const amountToSpend = match ? parseInt(match[1] || match[0], 10) : 5000;
-    const remaining = currentBalance - amountToSpend;
+  // Budget status summary list
+  const budgetSummary = budgets
+    .map(b => {
+      const categoryName = b.category ? b.category.name : 'Unknown';
+      const percent = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
+      return `- ${categoryName}: Spent ₹${b.spent.toLocaleString('en-IN')} of ₹${b.limit.toLocaleString('en-IN')} limit (${percent}%)`;
+    })
+    .join('\n') || '- None';
 
-    if (remaining < 20000) {
-      reply = `Spending ₹${amountToSpend.toLocaleString('en-IN')} right now is a bit tight. Your total wallet balance is ₹${currentBalance.toLocaleString('en-IN')}. If you spend this, your liquid cushion drops to ₹${remaining.toLocaleString('en-IN')}. I recommend postponing this or checking your Utilities budget.`;
-    } else {
-      reply = `Yes, you can absolutely spend ₹${amountToSpend.toLocaleString('en-IN')}! With your current liquid wallet assets at ₹${currentBalance.toLocaleString('en-IN')}, allocating ₹${amountToSpend.toLocaleString('en-IN')} still leaves you with a healthy buffer of ₹${remaining.toLocaleString('en-IN')}. Go ahead!`;
-    }
-  } else if (msgLower.includes('why') && (msgLower.includes('increase') || msgLower.includes('rising') || msgLower.includes('more'))) {
-    // Find largest expense categories
-    if (expenses.length > 0) {
-      const topExpense = expenses[0];
-      reply = `Your recent expenses are showing a slight upward trajectory primarily due to category spikes. Specifically, your purchase of "${topExpense.title}" for ₹${topExpense.amount.toLocaleString('en-IN')} was your largest transaction. Reducing discretionary items in Food & Dining will help curve this growth.`;
-    } else {
-      reply = `Your expense data is currently too limited to detect trends. Keep logging your daily activities so I can model your trajectories!`;
-    }
-  } else if (msgLower.includes('what should i save') || msgLower.includes('savings') || msgLower.includes('save')) {
-    const recommendedSavings = Math.round(totalIncome * 0.2) || 15000;
-    reply = `Based on your regular logs, you should aim to save at least 20% of your income. For your profile, this equates to roughly ₹${recommendedSavings.toLocaleString('en-IN')} per month. Setting up a dedicated savings goal for an "Emergency Fund" with auto-transfers will help you reach this target easily.`;
-  } else if (msgLower.includes('budget') || msgLower.includes('recommend')) {
-    reply = `I recommend a 50/30/20 budgeting layout. Allocate 50% (₹${Math.round(totalIncome * 0.5)} ) for Needs like Rent & Utilities, 30% (₹${Math.round(totalIncome * 0.3)}) for Wants like Restaurants, and 20% (₹${Math.round(totalIncome * 0.2)}) for Savings and investments. Currently, your budgets are utilized at ${budgets.length > 0 ? '72%' : '0%'} of their limits.`;
-  } else {
-    // Default fallback
-    reply = `Hello! I am your AI Financial Assistant. I've analyzed your data:
-- Liquid Wallets Balance: ₹${currentBalance.toLocaleString('en-IN')}
-- Active budgets set: ${budgets.length}
-- Recent monthly log volume is stable.
+  // Goal progress summary list
+  const goalSummary = goals
+    .map(g => `- ${g.title}: Saved ₹${g.savedAmount.toLocaleString('en-IN')} of ₹${g.targetAmount.toLocaleString('en-IN')} (${g.progressPct}%, status: ${g.status})`)
+    .join('\n') || '- None';
 
-How else can I assist your financial planning today? You can ask me to predict savings, explain charts, or audit recent transactions.`;
-  }
+  // Loan summary list
+  const loanSummary = loans
+    .map(l => `- ${l.name} (${l.type}): Principal ₹${l.amount.toLocaleString('en-IN')}, Remaining ₹${l.remainingBalance.toLocaleString('en-IN')}, EMI ₹${l.emiAmount.toLocaleString('en-IN')}/mo`)
+    .join('\n') || '- None';
 
-  // 3. Persist to DB Chat log
+  // Subscription summary list
+  const subscriptionSummary = subscriptions
+    .map(s => `- ${s.name}: ₹${s.cost.toLocaleString('en-IN')} / ${s.billingCycle}`)
+    .join('\n') || '- None';
+
+  // Top spending categories in the last 30 days
+  const categoryTotals = {};
+  monthlyExpensesDocs.forEach(e => {
+    const catName = e.category ? e.category.name : 'Uncategorized';
+    categoryTotals[catName] = (categoryTotals[catName] || 0) + e.amount;
+  });
+  const topCategories = Object.entries(categoryTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([cat, total]) => `- ${cat}: ₹${total.toLocaleString('en-IN')}`)
+    .join('\n') || '- None';
+
+  // Combined recent transactions list (5 expenses, 5 incomes)
+  const recentTx = [];
+  recentExpenses.slice(0, 5).forEach(e => {
+    recentTx.push({
+      type: 'Expense',
+      title: e.title,
+      amount: e.amount,
+      category: e.category ? e.category.name : 'Uncategorized',
+      date: e.date
+    });
+  });
+  recentIncomes.slice(0, 5).forEach(i => {
+    recentTx.push({
+      type: 'Income',
+      title: i.title,
+      amount: i.amount,
+      category: i.category || 'Other',
+      date: i.date
+    });
+  });
+  recentTx.sort((a, b) => b.date - a.date);
+  const transactionSummary = recentTx
+    .map(tx => `- [${tx.type}] ${tx.title} (${tx.category}): ₹${tx.amount.toLocaleString('en-IN')} on ${new Date(tx.date).toLocaleDateString('en-IN')}`)
+    .join('\n') || '- None';
+
+  // Trends & metadata summary
+  const trendsSummary = `- Last 30 Days logged: ${monthlyExpensesDocs.length} expenses, ${monthlyIncomesDocs.length} incomes
+- Monthly Savings Rate: ${monthlyIncome > 0 ? Math.round((savings / monthlyIncome) * 100) : 0}% of total income`;
+
+  // Compile full concise context text
+  const financialContextText = `Wallet Balance:
+- Total Liquid Assets: ₹${currentBalance.toLocaleString('en-IN')}
+${walletSummary}
+
+Monthly Summary (Last 30 Days):
+- Monthly Income: ₹${monthlyIncome.toLocaleString('en-IN')}
+- Monthly Expenses: ₹${monthlyExpenses.toLocaleString('en-IN')}
+- Savings: ₹${savings.toLocaleString('en-IN')}
+
+Budget Status:
+${budgetSummary}
+
+Top Spending Categories (Last 30 Days):
+${topCategories}
+
+Recent Transactions:
+${transactionSummary}
+
+Goal Progress:
+${goalSummary}
+
+Loans / Liabilities:
+${loanSummary}
+
+Active Subscriptions:
+${subscriptionSummary}
+
+Trends & Volume:
+${trendsSummary}`;
+
+  // 2. Load previous AIChat history from DB
   let chat = await AIChat.findOne({ user: userId });
   if (!chat) {
     chat = await AIChat.create({ user: userId, messages: [] });
   }
 
+  // Load only the most recent 15 messages for Gemini call context (Step 4 compliance)
+  const recentMessages = chat.messages.slice(-15);
+
+  // 3. Generate response using Gemini Service (Step 5 compliance)
+  let reply;
+  try {
+    reply = await generateAIResponse(recentMessages, trimmedMessage, financialContextText);
+  } catch (error) {
+    res.status(500);
+    throw new Error(error.message);
+  }
+
+  // 4. Save both the user prompt and AI response back to MongoDB chat logs
   chat.messages.push({ role: 'user', content: trimmedMessage });
   chat.messages.push({ role: 'assistant', content: reply });
   await chat.save();
 
+  // 5. Send success response back with the saved messages matching original API contract
   sendSuccess(res, 200, 'Reply sent', {
     userMessage: chat.messages[chat.messages.length - 2],
     aiMessage: chat.messages[chat.messages.length - 1],

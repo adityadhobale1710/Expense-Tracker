@@ -379,16 +379,8 @@ export default function SplitBills() {
 
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 flex-shrink-0">
-              <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 2h12a1 1 0 0 1 1 1v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21V3a1 1 0 0 1 1-1z" stroke="white" strokeWidth="1.6" strokeLinejoin="round" fill="white" fillOpacity="0.15"/>
-                <line x1="9" y1="8" x2="15" y2="8" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
-                <line x1="12" y1="6" x2="12" y2="10" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
-                <line x1="9" y1="13" x2="15" y2="13" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="2 1.5"/>
-                <circle cx="9.5" cy="16" r="0.8" fill="white"/>
-                <circle cx="12" cy="16" r="0.8" fill="white"/>
-                <circle cx="14.5" cy="16" r="0.8" fill="white"/>
-              </svg>
+            <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700/60 flex items-center justify-center p-2.5 shadow-lg flex-shrink-0">
+              <img src="/split-bill.png" alt="Split Bill Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-slate-100 tracking-tight">Split Bills Workspace</h1>
           </div>
