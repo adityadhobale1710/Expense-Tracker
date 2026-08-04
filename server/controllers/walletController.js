@@ -5,6 +5,7 @@ import Expense from '../models/Expense.js';
 import Income from '../models/Income.js';
 import Loan from '../models/Loan.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // B5/B6 fix: escape regex metacharacters from user input to prevent ReDoS
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -54,6 +55,7 @@ export const createWallet = asyncHandler(async (req, res) => {
     icon,
     isPrimary: isPrimary || false,
   });
+  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 201, 'Wallet created successfully', wallet);
 });
 
@@ -96,6 +98,7 @@ export const updateWallet = asyncHandler(async (req, res) => {
   wallet.isPrimary = isPrimary !== undefined ? isPrimary : wallet.isPrimary;
 
   await wallet.save();
+  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Wallet updated successfully', wallet);
 });
 
@@ -137,6 +140,7 @@ export const deleteWallet = asyncHandler(async (req, res) => {
   }
 
   await Wallet.findByIdAndDelete(wallet._id);
+  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Wallet deleted successfully');
 });
 
@@ -172,6 +176,7 @@ export const updateBalance = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Wallet not found');
   }
+  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Wallet balance updated successfully', wallet);
 });
 
@@ -268,6 +273,7 @@ export const transferFunds = asyncHandler(async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
     sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
   } catch (error) {
     await session.abortTransaction();
