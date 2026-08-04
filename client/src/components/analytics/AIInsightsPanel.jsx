@@ -189,7 +189,7 @@ export default function AIInsightsPanel({
         </div>
 
         {/* Tabs picker */}
-        <div className="flex items-center gap-1 bg-dark-900/60 p-1 rounded-xl border border-slate-850 self-end">
+        <div className="flex items-center gap-1 bg-dark-900/60 p-1 rounded-xl border border-slate-800 self-end">
           <button
             onClick={() => setActiveTab('summary')}
             className={`px-3 py-1.5 text-[10px] font-bold rounded-lg cursor-pointer transition-all ${
@@ -243,14 +243,14 @@ export default function AIInsightsPanel({
                 className={`flex items-start gap-4 p-4 rounded-2xl border ${cardBgColor} hover:shadow-md hover:border-slate-655 transition-all`}
               >
                 {/* Icon wrapper */}
-                <div className="p-2 bg-dark-900 border border-slate-850 rounded-xl flex-shrink-0 mt-0.5 shadow-sm">
+                <div className="p-2 bg-dark-900 border border-slate-800 rounded-xl flex-shrink-0 mt-0.5 shadow-sm">
                   {ins.icon}
                 </div>
                 <div>
                   <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-slate-200">
                     {ins.title}
                   </h4>
-                  <p className="text-xs leading-relaxed font-semibold text-slate-350 mt-1">
+                  <p className="text-xs leading-relaxed font-semibold text-slate-300 mt-1">
                     {ins.text}
                   </p>
                 </div>

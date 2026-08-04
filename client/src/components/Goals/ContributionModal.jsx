@@ -152,7 +152,7 @@ export default function ContributionModal({
           <div className="flex flex-col space-y-1">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Source Wallet</label>
             {isLoadingWallets ? (
-              <div className="h-9 bg-dark-900 border border-slate-750 rounded-xl animate-pulse" />
+              <div className="h-9 bg-dark-900 border border-slate-700 rounded-xl animate-pulse" />
             ) : (
               <select
                 value={walletId}
@@ -224,7 +224,7 @@ export default function ContributionModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-dark-900 border border-slate-700/40 text-xs font-bold text-slate-350 hover:text-slate-100 rounded-xl transition-all"
+              className="px-4 py-2 bg-dark-900 border border-slate-700/40 text-xs font-bold text-slate-300 hover:text-slate-100 rounded-xl transition-all"
             >
               Cancel
             </button>

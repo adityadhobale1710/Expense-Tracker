@@ -74,7 +74,7 @@ export default function CategoryBarChart({
             className={`px-2 py-1.5 text-[9px] font-extrabold uppercase border rounded-xl flex items-center gap-1 cursor-pointer transition-all ${
               sortBy === 'total'
                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
-                : 'bg-dark-900 border-slate-800 text-slate-450 hover:text-slate-200'
+                : 'bg-dark-900 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
             title="Sort by Volume"
           >
@@ -86,7 +86,7 @@ export default function CategoryBarChart({
             className={`px-2 py-1.5 text-[9px] font-extrabold uppercase border rounded-xl flex items-center gap-1 cursor-pointer transition-all ${
               sortBy === 'growth'
                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
-                : 'bg-dark-900 border-slate-800 text-slate-450 hover:text-slate-200'
+                : 'bg-dark-900 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
             title="Sort by Growth"
           >
@@ -128,8 +128,8 @@ export default function CategoryBarChart({
                     {cat.growth !== 0 ? (
                       <div className={`flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded-lg border ${
                         isNegativeGrowth
-                          ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-450'
-                          : 'bg-rose-500/10 border-rose-500/15 text-rose-455'
+                          ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400'
+                          : 'bg-rose-500/10 border-rose-500/15 text-rose-400'
                       }`}>
                         {isNegativeGrowth ? <ArrowDownRight size={10} /> : <ArrowUpRight size={10} />}
                         <span>{Math.abs(cat.growth)}%</span>
@@ -141,7 +141,7 @@ export default function CategoryBarChart({
                 </div>
 
                 {/* Bar tracks */}
-                <div className="relative w-full h-2 bg-dark-900 border border-slate-850 rounded-full overflow-hidden">
+                <div className="relative w-full h-2 bg-dark-900 border border-slate-800 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${percentageOfMax}%` }}
@@ -156,9 +156,9 @@ export default function CategoryBarChart({
         </AnimatePresence>
 
         {sortedCategories.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-850 rounded-2xl text-center space-y-2">
+          <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-800 rounded-2xl text-center space-y-2">
             <Tag size={22} className="text-slate-500" />
-            <p className="text-[11px] font-bold text-slate-450">No Categories Found</p>
+            <p className="text-[11px] font-bold text-slate-400">No Categories Found</p>
           </div>
         )}
       </div>

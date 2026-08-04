@@ -273,21 +273,21 @@ export default function TransactionTable({
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => handleExport('pdf')}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-dark-900 border border-slate-850 text-rose-400 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-dark-900 border border-slate-800 text-rose-400 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm"
           >
             <FileText size={14} />
             <span className="hidden sm:inline">PDF Statement</span>
           </button>
           <button
             onClick={() => handleExport('excel')}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-dark-900 border border-slate-850 text-emerald-400 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-dark-900 border border-slate-800 text-emerald-400 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm"
           >
             <FileSpreadsheet size={14} />
             <span className="hidden sm:inline">Excel Spread</span>
           </button>
           <button
             onClick={() => handleExport('csv')}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-dark-900 border border-slate-850 text-sky-400 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-dark-900 border border-slate-800 text-sky-400 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm"
           >
             <Download size={14} />
             <span className="hidden sm:inline">CSV Sheet</span>
@@ -296,10 +296,10 @@ export default function TransactionTable({
       </div>
 
       {/* Spacing & Visibility filters toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-dark-800/40 border border-slate-750/30 p-2.5 rounded-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-dark-800/40 border border-slate-700/30 p-2.5 rounded-2xl">
         <div className="flex flex-wrap items-center gap-2">
           {/* Density Picker */}
-          <div className="flex items-center gap-1 bg-dark-900 border border-slate-850 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-dark-900 border border-slate-800 p-1 rounded-xl">
             <button
               onClick={() => setDensity('compact')}
               className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all cursor-pointer ${
@@ -330,7 +330,7 @@ export default function TransactionTable({
           <div className="relative">
             <button
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-900 border border-slate-850 hover:border-slate-750 text-slate-350 hover:text-white text-[10px] font-bold rounded-xl cursor-pointer transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-[10px] font-bold rounded-xl cursor-pointer transition-all"
             >
               <Columns size={12} />
               <span>Columns</span>
@@ -405,7 +405,7 @@ export default function TransactionTable({
             onSelectCategory(e.target.value === 'all' ? null : e.target.value);
             setCurrentPage(1);
           }}
-          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-350 focus:outline-none focus:border-primary-500 cursor-pointer font-semibold shadow-sm"
+          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-300 focus:outline-none focus:border-primary-500 cursor-pointer font-semibold shadow-sm"
         >
           <option value="all">All Categories</option>
           {categories?.map((cat) => (
@@ -419,7 +419,7 @@ export default function TransactionTable({
         <select
           value={filterPayment}
           onChange={(e) => { setFilterPayment(e.target.value); setCurrentPage(1); }}
-          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-350 focus:outline-none focus:border-primary-500 cursor-pointer font-semibold shadow-sm"
+          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-300 focus:outline-none focus:border-primary-500 cursor-pointer font-semibold shadow-sm"
         >
           <option value="all">All Payment Methods</option>
           <option value="cash">💵 Cash</option>
@@ -433,7 +433,7 @@ export default function TransactionTable({
         <select
           value={filterAmount}
           onChange={(e) => { setFilterAmount(e.target.value); setCurrentPage(1); }}
-          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-350 focus:outline-none focus:border-primary-500 cursor-pointer font-semibold shadow-sm"
+          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-300 focus:outline-none focus:border-primary-500 cursor-pointer font-semibold shadow-sm"
         >
           <option value="all">All Amounts</option>
           <option value="under1000">Under {currencySymbol}1,000</option>
@@ -443,10 +443,10 @@ export default function TransactionTable({
       </div>
 
       {/* Responsive Sticky Header HTML Table */}
-      <div className="overflow-x-auto border border-slate-850 rounded-2xl relative max-h-[500px]">
+      <div className="overflow-x-auto border border-slate-800 rounded-2xl relative max-h-[500px]">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-dark-900/80 border-b border-slate-800 text-[10px] font-extrabold text-slate-450 uppercase tracking-wider select-none sticky top-0 backdrop-blur-md z-30">
+            <tr className="bg-dark-900/80 border-b border-slate-800 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider select-none sticky top-0 backdrop-blur-md z-30">
               {/* Select All Checkbox */}
               <th className="px-5 py-4 w-12 text-center">
                 <input
@@ -488,7 +488,7 @@ export default function TransactionTable({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-850 text-xs font-semibold text-slate-250">
+          <tbody className="divide-y divide-slate-800 text-xs font-semibold text-slate-300">
             {paginatedTransactions.map((txn) => {
               const isExpanded = expandedRow === txn.id;
               const isSelected = selectedIds.includes(txn.id);
@@ -513,7 +513,7 @@ export default function TransactionTable({
                     </td>
                     
                     {visibleColumns.date && (
-                      <td className={`${getPaddingClass()} font-mono text-[10.5px] text-slate-450`}>
+                      <td className={`${getPaddingClass()} font-mono text-[10.5px] text-slate-400`}>
                         {txn.date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </td>
                     )}
@@ -523,7 +523,7 @@ export default function TransactionTable({
                         <span className={`px-2 py-0.5 text-[8.5px] font-extrabold rounded-lg uppercase border ${
                           txn.type === 'income'
                             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                            : 'bg-rose-500/10 border-rose-500/20 text-rose-450'
+                            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
                         }`}>
                           {txn.type}
                         </span>
@@ -532,7 +532,7 @@ export default function TransactionTable({
 
                     {visibleColumns.category && (
                       <td className={getPaddingClass()}>
-                        <span className="bg-dark-900/60 border border-slate-800 px-2 py-0.5 rounded-lg text-slate-350 font-bold text-[10.5px]">
+                        <span className="bg-dark-900/60 border border-slate-800 px-2 py-0.5 rounded-lg text-slate-300 font-bold text-[10.5px]">
                           {txn.category}
                         </span>
                       </td>
@@ -559,7 +559,7 @@ export default function TransactionTable({
 
                     {visibleColumns.amount && (
                       <td className={`${getPaddingClass()} text-right font-black font-mono text-[12.5px] ${
-                        txn.type === 'income' ? 'text-emerald-400' : 'text-rose-455'
+                        txn.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
                       }`}>
                         {txn.type === 'income' ? '+' : '-'}{currencySymbol}{txn.amount.toLocaleString('en-IN')}
                       </td>
@@ -569,17 +569,17 @@ export default function TransactionTable({
                   {/* Expandable Drawer Row */}
                   <AnimatePresence>
                     {isExpanded && (
-                      <tr className="bg-dark-900/30 border-b border-slate-850">
+                      <tr className="bg-dark-900/30 border-b border-slate-800">
                         <td colSpan={8} className="px-6 py-4">
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold text-slate-350"
+                            className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold text-slate-300"
                           >
                             {/* Metadata */}
-                            <div className="space-y-1.5 p-3 bg-dark-900/40 border border-slate-850 rounded-2xl">
-                              <h5 className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider flex items-center gap-1">
+                            <div className="space-y-1.5 p-3 bg-dark-900/40 border border-slate-800 rounded-2xl">
+                              <h5 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                                 <Calendar size={10} className="text-primary-400" />
                                 <span>Ledger Metadata</span>
                               </h5>
@@ -592,12 +592,12 @@ export default function TransactionTable({
                             </div>
 
                             {/* Details description */}
-                            <div className="space-y-1.5 p-3 bg-dark-900/40 border border-slate-850 rounded-2xl md:col-span-2">
-                              <h5 className="text-[9px] font-extrabold text-slate-450 uppercase tracking-wider flex items-center gap-1">
+                            <div className="space-y-1.5 p-3 bg-dark-900/40 border border-slate-800 rounded-2xl md:col-span-2">
+                              <h5 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                                 <Tag size={10} className="text-primary-400" />
                                 <span>Remarks & Notes</span>
                               </h5>
-                              <p className="text-[10.5px] leading-relaxed text-slate-250 italic">
+                              <p className="text-[10.5px] leading-relaxed text-slate-300 italic">
                                 "{txn.description || 'No descriptive comments recorded for this entry.'}"
                               </p>
                               
@@ -644,14 +644,14 @@ export default function TransactionTable({
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 border border-slate-850 bg-dark-900 text-slate-400 hover:text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              className="p-1.5 border border-slate-800 bg-dark-900 text-slate-400 hover:text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 border border-slate-850 bg-dark-900 text-slate-400 hover:text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              className="p-1.5 border border-slate-800 bg-dark-900 text-slate-400 hover:text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
             >
               <ChevronRight size={14} />
             </button>

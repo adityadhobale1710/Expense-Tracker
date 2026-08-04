@@ -175,7 +175,7 @@ export default function SankeyDiagram({
               <text
                 x={node.col === 3 ? node.x - 8 : node.x + node.w + 8}
                 y={node.y + node.h / 2 + 3}
-                fill="var(--slate-250)"
+                fill="var(--slate-300)"
                 fontSize={9}
                 fontWeight="bold"
                 textAnchor={node.col === 3 ? 'end' : 'start'}

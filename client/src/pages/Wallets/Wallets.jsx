@@ -5,6 +5,15 @@ import api from '../../services/api';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 // ─── Constants ──────────────────────────────────────────
 const WALLET_TYPES = [
@@ -40,25 +49,7 @@ const EMPTY_FORM = {
   color: '#6366f1', icon: '💳', isPrimary: false,
 };
 
-// ─── Sub-components ──────────────────────────────────────
-
-function WalletEmptyState({ onCreateClick }) {
-  return (
-    <div className="card text-center py-16 space-y-4 flex flex-col items-center border border-slate-800">
-      <div className="w-20 h-20 rounded-3xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center p-3 shadow-xl mb-2">
-        <img src="/wallet.png" alt="Wallet Logo" className="w-full h-full object-contain" />
-      </div>
-      <h3 className="text-xl font-bold text-slate-100 mt-2">No Wallets Yet</h3>
-      <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
-        Create your first wallet to manage balances, track spending, and pay EMIs.
-      </p>
-      <button onClick={onCreateClick} className="btn-primary text-sm mx-auto flex items-center gap-2">
-        <Plus size={16} />
-        <span>Create Wallet</span>
-      </button>
-    </div>
-  );
-}
+// Reusable EmptyState component from components/ui/EmptyState is now used.
 
 function WalletSummaryCards({ wallets }) {
   const totalBalance = wallets.reduce((s, w) => s + w.balance, 0);
@@ -441,7 +432,12 @@ export default function Wallets() {
           {[1, 2, 3, 4].map(i => <div key={i} className="card h-28 animate-pulse bg-slate-800/40" />)}
         </div>
       ) : wallets.length === 0 ? (
-        <WalletEmptyState onCreateClick={openCreate} />
+        <EmptyState
+          title="No Wallets Yet"
+          description="Create your first wallet to manage balances, track spending, and pay EMIs."
+          actionText="Create Wallet"
+          onAction={openCreate}
+        />
       ) : (
         <>
           {/* Summary Cards */}

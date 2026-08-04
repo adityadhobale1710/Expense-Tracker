@@ -9,6 +9,15 @@ import {
 } from 'recharts';
 import { useExpense } from '../../context/ExpenseContext';
 import api from '../../services/api';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 // Import newly integrated chart components
 import CashFlowChart from '../../components/charts/CashFlowChart';
@@ -319,9 +328,20 @@ export default function AnalyticsPro() {
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-405 text-xs font-semibold">Loading your financial visualizations...</p>
+      <div className="space-y-6 pb-20 animate-fade-in">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center pb-5 border-b border-slate-800/40">
+          <Skeleton className="h-10 w-48 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+        
+        {/* Charts grid skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton.Chart />
+          <Skeleton.Chart />
+          <Skeleton.Chart />
+          <Skeleton.Chart />
+        </div>
       </div>
     );
   }
@@ -352,7 +372,7 @@ export default function AnalyticsPro() {
           📊
         </div>
         <div>
-          <h3 className="text-base font-bold text-slate-205">No transactions recorded yet</h3>
+          <h3 className="text-base font-bold text-slate-200">No transactions recorded yet</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm">
             Once you log your income and expenses in the dashboard, we will compile your visual charts here!
           </p>

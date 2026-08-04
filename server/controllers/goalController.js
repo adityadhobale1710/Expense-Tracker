@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import Expense from '../models/Expense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import logger from '../utils/logger.js';
 
 // Predefined Goal Templates
 const GOAL_TEMPLATES = [
@@ -101,7 +102,8 @@ export const updateSavingsAchievements = async (userId) => {
 
     await user.save();
   } catch (err) {
-    console.error('Error updating achievements:', err);
+    // C4 fix: use Winston logger instead of console.error
+    logger.error('Error updating savings achievements: %s', err.message);
   }
 };
 
@@ -235,9 +237,11 @@ export const getGoalContributions = asyncHandler(async (req, res) => {
 export const createGoal = asyncHandler(async (req, res) => {
   const { title, description, category, targetAmount, targetDate, priority, color, icon, notes } = req.body;
 
-  if (targetAmount <= 0) {
+  // C2 fix: coerce to Number first, then validate — prevents string comparisons like "0" <= 0 being false
+  const numericTarget = Number(targetAmount);
+  if (isNaN(numericTarget) || numericTarget <= 0) {
     res.status(400);
-    throw new Error('Target amount must be greater than zero');
+    throw new Error('Target amount must be a valid number greater than zero');
   }
 
   if (new Date(targetDate) <= new Date()) {
@@ -248,7 +252,7 @@ export const createGoal = asyncHandler(async (req, res) => {
   const historyObj = {
     action: 'Goal Created',
     user: req.user._id,
-    note: `Goal initiated with target of ₹${targetAmount.toLocaleString('en-IN')}`,
+    note: `Goal initiated with target of ₹${numericTarget.toLocaleString('en-IN')}`,
     createdAt: new Date()
   };
 
@@ -257,7 +261,7 @@ export const createGoal = asyncHandler(async (req, res) => {
     title,
     description,
     category,
-    targetAmount,
+    targetAmount: numericTarget,
     targetDate,
     priority: priority || 'Medium',
     color: color || '#6366f1',
@@ -294,7 +298,19 @@ export const updateGoal = asyncHandler(async (req, res) => {
   ];
 
   fieldsToUpdate.forEach(f => {
-    if (req.body[f] !== undefined) goal[f] = req.body[f];
+    if (req.body[f] !== undefined) {
+      // C3 fix: coerce and validate targetAmount in update path
+      if (f === 'targetAmount') {
+        const numVal = Number(req.body[f]);
+        if (isNaN(numVal) || numVal <= 0) {
+          res.status(400);
+          throw new Error('Target amount must be a valid number greater than zero');
+        }
+        goal[f] = numVal;
+      } else {
+        goal[f] = req.body[f];
+      }
+    }
   });
 
   goal.goalHistory.push({
@@ -409,7 +425,7 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
 
   // Wallet Deduction & Savings transfer creation
   wallet.balance -= actualContribution;
-  await wallet.balance;
+  // C1 fix: removed dead `await wallet.balance` — awaiting a primitive is a no-op
   await wallet.save();
 
   const oldSaved = goal.savedAmount;

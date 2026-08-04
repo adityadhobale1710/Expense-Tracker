@@ -290,7 +290,7 @@ export default function GoalModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-dark-900 border border-slate-700/40 text-xs font-bold text-slate-350 hover:text-slate-100 rounded-xl transition-all"
+              className="px-4 py-2 bg-dark-900 border border-slate-700/40 text-xs font-bold text-slate-300 hover:text-slate-100 rounded-xl transition-all"
             >
               Cancel
             </button>

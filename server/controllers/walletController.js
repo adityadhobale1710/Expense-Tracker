@@ -1,9 +1,13 @@
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import Wallet from '../models/Wallet.js';
 import Expense from '../models/Expense.js';
 import Income from '../models/Income.js';
 import Loan from '../models/Loan.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+
+// B5/B6 fix: escape regex metacharacters from user input to prevent ReDoS
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // @desc    Get all wallets for user
 // @route   GET /api/wallets
@@ -28,8 +32,8 @@ export const getWalletById = asyncHandler(async (req, res) => {
 export const createWallet = asyncHandler(async (req, res) => {
   const { name, type, balance, currency, color, icon, isPrimary } = req.body;
 
-  // Check duplicate name for this user
-  const existing = await Wallet.findOne({ user: req.user._id, name: { $regex: new RegExp(`^${name}$`, 'i') } });
+  // B5 fix: escape user-supplied name before building regex
+  const existing = await Wallet.findOne({ user: req.user._id, name: { $regex: new RegExp(`^${escapeRegex(name)}$`, 'i') } });
   if (existing) {
     res.status(400);
     throw new Error('A wallet with this name already exists');
@@ -66,9 +70,10 @@ export const updateWallet = asyncHandler(async (req, res) => {
 
   // Check duplicate name (exclude current wallet)
   if (name && name !== wallet.name) {
+  // B6 fix: escape user-supplied name before building regex
     const existing = await Wallet.findOne({
       user: req.user._id,
-      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      name: { $regex: new RegExp(`^${escapeRegex(name)}$`, 'i') },
       _id: { $ne: wallet._id },
     });
     if (existing) {
@@ -139,18 +144,28 @@ export const deleteWallet = asyncHandler(async (req, res) => {
 // @route   PATCH /api/wallets/:id/balance
 export const updateBalance = asyncHandler(async (req, res) => {
   const { balance } = req.body;
-  if (balance === undefined || balance === null) {
+  // B8 fix: coerce and validate balance before persisting
+  const numericBalance = Number(balance);
+  if (balance === undefined || balance === null || balance === '') {
     res.status(400);
     throw new Error('Balance is required');
   }
-  if (balance < 0) {
+  if (isNaN(numericBalance)) {
+    res.status(400);
+    throw new Error('Balance must be a valid number');
+  }
+  if (numericBalance < 0) {
     res.status(400);
     throw new Error('Balance cannot be negative');
+  }
+  if (numericBalance > 100_000_000) {
+    res.status(400);
+    throw new Error('Balance exceeds maximum allowed value');
   }
 
   const wallet = await Wallet.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
-    { balance },
+    { balance: numericBalance },
     { new: true, runValidators: true }
   );
   if (!wallet) {
@@ -192,52 +207,73 @@ export const transferFunds = asyncHandler(async (req, res) => {
     throw new Error('Cannot transfer to the same wallet');
   }
 
-  const [fromWallet, toWallet] = await Promise.all([
-    Wallet.findOne({ _id: fromWalletId, user: req.user._id }),
-    Wallet.findOne({ _id: toWalletId, user: req.user._id }),
-  ]);
-
-  if (!fromWallet || !toWallet) {
-    res.status(404);
-    throw new Error('One or both wallets not found');
-  }
-
-  if (fromWallet.balance < amount) {
+  if (!fromWalletId || !toWalletId) {
     res.status(400);
-    throw new Error('Insufficient wallet balance');
+    throw new Error('Both source and destination wallet IDs are required');
   }
 
-  // Perform transfer
-  fromWallet.balance -= amount;
-  toWallet.balance += amount;
+  // B7 fix: wrap the entire transfer in a MongoDB session/transaction
+  // so partial failures (e.g. toWallet.save() fails) cannot leave balances inconsistent.
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const [fromWallet, toWallet] = await Promise.all([
+      Wallet.findOne({ _id: fromWalletId, user: req.user._id }).session(session),
+      Wallet.findOne({ _id: toWalletId, user: req.user._id }).session(session),
+    ]);
 
-  await Promise.all([fromWallet.save(), toWallet.save()]);
+    if (!fromWallet || !toWallet) {
+      res.status(404);
+      throw new Error('One or both wallets not found');
+    }
 
-  // Create transaction records
-  const now = new Date();
-  await Promise.all([
-    Expense.create({
-      user: req.user._id,
-      title: `Transfer to ${toWallet.name}`,
-      amount,
-      date: now,
-      wallet: fromWallet._id,
-      paymentMethod: fromWallet.type === 'credit_card' ? 'card' : fromWallet.type === 'upi' ? 'upi' : 'other',
-      description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
-    }),
-    Income.create({
-      user: req.user._id,
-      title: `Transfer from ${fromWallet.name}`,
-      amount,
-      date: now,
-      wallet: toWallet._id,
-      category: 'Other Income',
-      source: toWallet.name,
-      description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
-    }),
-  ]);
+    if (fromWallet.balance < amount) {
+      res.status(400);
+      throw new Error('Insufficient wallet balance');
+    }
 
-  sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
+    // Perform transfer atomically within the session
+    fromWallet.balance -= amount;
+    toWallet.balance += amount;
+
+    await Promise.all([
+      fromWallet.save({ session }),
+      toWallet.save({ session }),
+    ]);
+
+    // Create transaction records within the same session
+    const now = new Date();
+    await Promise.all([
+      Expense.create([{
+        user: req.user._id,
+        title: `Transfer to ${toWallet.name}`,
+        amount,
+        date: now,
+        wallet: fromWallet._id,
+        paymentMethod: fromWallet.type === 'credit_card' ? 'card' : fromWallet.type === 'upi' ? 'upi' : 'other',
+        description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+      }], { session }),
+      Income.create([{
+        user: req.user._id,
+        title: `Transfer from ${fromWallet.name}`,
+        amount,
+        date: now,
+        wallet: toWallet._id,
+        category: 'Other Income',
+        source: toWallet.name,
+        description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+      }], { session }),
+    ]);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 });
 
 // @desc    Get wallet transaction history

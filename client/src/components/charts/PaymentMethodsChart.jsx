@@ -112,7 +112,7 @@ export default function PaymentMethodsChart({ rawExpenses = [], currencySymbol =
         {/* Legend list */}
         <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
           {paymentData.map((item, idx) => (
-            <div key={idx} className="flex justify-between items-center text-xs font-semibold py-1.5 px-2 rounded-xl border border-transparent text-slate-350 hover:bg-slate-800/40 hover:text-white transition-all">
+            <div key={idx} className="flex justify-between items-center text-xs font-semibold py-1.5 px-2 rounded-xl border border-transparent text-slate-300 hover:bg-slate-800/40 hover:text-white transition-all">
               <div className="flex items-center gap-2 truncate">
                 <span className="w-2.5 h-2.5 rounded-lg inline-block flex-shrink-0" style={{ backgroundColor: item.color }} />
                 <span>{item.icon}</span>

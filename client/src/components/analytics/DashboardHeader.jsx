@@ -79,7 +79,7 @@ export default function DashboardHeader({
           {/* Refresh Button */}
           <button
             onClick={onRefresh}
-            className="p-2.5 bg-dark-800 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-350 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+            className="p-2.5 bg-dark-800 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
             title="Refresh All Metrics"
           >
             <RefreshCw size={15} />
@@ -226,7 +226,7 @@ export default function DashboardHeader({
             placeholder="Search dashboard, accounts, tags or categories..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-primary-500 font-medium placeholder-slate-550 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 text-xs bg-dark-900 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-primary-500 font-medium placeholder-slate-500 transition-all"
           />
         </div>
 
@@ -237,7 +237,7 @@ export default function DashboardHeader({
           <div className="relative">
             <button
               onClick={() => setShowAccountMenu(!showAccountMenu)}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-dark-900 border border-slate-850 hover:border-slate-750 text-slate-300 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-dark-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-sm"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
               <span>{getSelectedWalletName()}</span>
@@ -283,7 +283,7 @@ export default function DashboardHeader({
           <div className="relative">
             <button
               onClick={() => setShowCurrencyMenu(!showCurrencyMenu)}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-dark-900 border border-slate-850 hover:border-slate-750 text-slate-300 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-dark-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all shadow-sm"
             >
               <Globe size={13} className="text-slate-500" />
               <span>{activeCurrency.symbol} &bull; {activeCurrency.code}</span>

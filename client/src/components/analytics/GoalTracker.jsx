@@ -49,7 +49,7 @@ export default function GoalTracker({
             return (
               <div
                 key={g._id}
-                className="flex items-center gap-4 p-3 bg-dark-900/40 border border-slate-850 hover:border-slate-800 rounded-2xl transition-colors text-xs"
+                className="flex items-center gap-4 p-3 bg-dark-900/40 border border-slate-800 hover:border-slate-800 rounded-2xl transition-colors text-xs"
               >
                 {/* SVG Progress Circle Ring */}
                 <div className="relative w-12 h-12 flex-shrink-0">
@@ -85,12 +85,12 @@ export default function GoalTracker({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <h4 className="font-bold text-slate-200 truncate">{g.name}</h4>
-                    {isCompleted && <CheckCircle2 size={12} className="text-emerald-450 flex-shrink-0" />}
+                    {isCompleted && <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />}
                   </div>
 
                   <div className="flex items-center gap-3 text-[10px] text-slate-500 font-semibold mt-0.5">
                     <span className="flex items-center gap-1">
-                      <Calendar size={10} className="text-slate-550" />
+                      <Calendar size={10} className="text-slate-500" />
                       <span>{daysLabel}</span>
                     </span>
                     <span>&bull;</span>
@@ -112,10 +112,10 @@ export default function GoalTracker({
             );
           })
         ) : (
-          <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-850 rounded-2xl text-center space-y-2 mt-4">
+          <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-800 rounded-2xl text-center space-y-2 mt-4">
             <Award size={22} className="text-slate-655" />
-            <p className="text-[11px] font-bold text-slate-450">No Solvency Targets Configured</p>
-            <p className="text-[9px] text-slate-550">Create financial milestones (e.g. Vacation, Emergency Fund) to track goals.</p>
+            <p className="text-[11px] font-bold text-slate-400">No Solvency Targets Configured</p>
+            <p className="text-[9px] text-slate-500">Create financial milestones (e.g. Vacation, Emergency Fund) to track goals.</p>
           </div>
         )}
       </div>

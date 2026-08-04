@@ -36,7 +36,13 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     incomeAgg,
     expenseAgg
   ] = await Promise.all([
-    User.findById(userId).select('-password'),
+    // F1 fix: use an explicit allowlist instead of '-password' alone.
+    // Previously refreshToken, resetPasswordToken, registrationOtp, twoFactorSecret etc. were exposed.
+    User.findById(userId).select(
+      '_id name email phone avatar currency role company xp coins level streak longestStreak ' +
+      'lifetimeXP rank achievements pinnedBadges season rewardChests unlockedTitles ' +
+      'unlockedAvatars unlockedThemes simulatedActions twoFactorEnabled isEmailVerified'
+    ),
     Wallet.find({ user: userId }),
     Category.find({ user: userId }).sort({ name: 1 }),
     Budget.find({ user: userId }),

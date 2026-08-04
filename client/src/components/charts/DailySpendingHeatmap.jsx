@@ -107,7 +107,7 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-850/80 rounded-xl text-slate-350 focus:outline-none focus:border-primary-500 cursor-pointer font-bold shadow-sm"
+          className="px-3.5 py-2.5 text-xs bg-dark-900 border border-slate-800/80 rounded-xl text-slate-300 focus:outline-none focus:border-primary-500 cursor-pointer font-bold shadow-sm"
         >
           {availableYears.map(yr => (
             <option key={yr} value={yr}>Year {yr}</option>
@@ -188,10 +188,10 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
       </div>
 
       {/* Sub-panels displaying annual stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-800/60 pt-4 text-xs font-semibold text-slate-350">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-800/60 pt-4 text-xs font-semibold text-slate-300">
         
         {/* Total annual outlay */}
-        <div className="p-3 bg-dark-900/40 border border-slate-850 rounded-2xl flex items-center gap-3">
+        <div className="p-3 bg-dark-900/40 border border-slate-800 rounded-2xl flex items-center gap-3">
           <div className="p-2 bg-dark-900 rounded-xl border border-slate-800">
             <CalendarDays size={14} className="text-primary-400" />
           </div>
@@ -204,12 +204,12 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
         </div>
 
         {/* Average daily spent */}
-        <div className="p-3 bg-dark-900/40 border border-slate-850 rounded-2xl flex items-center gap-3">
+        <div className="p-3 bg-dark-900/40 border border-slate-800 rounded-2xl flex items-center gap-3">
           <div className="p-2 bg-dark-900 rounded-xl border border-slate-800">
             <Clock size={14} className="text-indigo-400" />
           </div>
           <div>
-            <p className="text-[9px] text-slate-550 font-bold uppercase">Daily Avg</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase">Daily Avg</p>
             <p className="font-mono font-black text-slate-200 mt-0.5">
               {currencySymbol}{Math.round(annualStats.avgDailySpent).toLocaleString('en-IN')}
             </p>
@@ -217,12 +217,12 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
         </div>
 
         {/* Active spent days */}
-        <div className="p-3 bg-dark-900/40 border border-slate-850 rounded-2xl flex items-center gap-3">
+        <div className="p-3 bg-dark-900/40 border border-slate-800 rounded-2xl flex items-center gap-3">
           <div className="p-2 bg-dark-900 rounded-xl border border-slate-800">
             <Flame size={14} className="text-orange-400" />
           </div>
           <div>
-            <p className="text-[9px] text-slate-550 font-bold uppercase">Active Days</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase">Active Days</p>
             <p className="font-mono font-black text-slate-200 mt-0.5">
               {annualStats.activeDays} Days
             </p>
@@ -230,12 +230,12 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
         </div>
 
         {/* Peak spending day */}
-        <div className="p-3 bg-dark-900/40 border border-slate-850 rounded-2xl flex items-center gap-3">
+        <div className="p-3 bg-dark-900/40 border border-slate-800 rounded-2xl flex items-center gap-3">
           <div className="p-2 bg-dark-900 rounded-xl border border-slate-800">
             <Award size={14} className="text-yellow-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-[9px] text-slate-550 font-bold uppercase">Peak Day</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase">Peak Day</p>
             <p className="font-mono font-black text-slate-200 truncate mt-0.5">
               {annualStats.peakDay
                 ? `${currencySymbol}${Math.round(annualStats.peakDay.amount).toLocaleString()} (${annualStats.peakDay.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})`

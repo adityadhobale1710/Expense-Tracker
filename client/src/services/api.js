@@ -44,6 +44,14 @@ api.interceptors.request.use(
 let refreshingPromise = null;
 let isRedirecting = false;
 
+// K1 fix: exported so AuthContext can reset the flag after a successful login
+// (without this, a session expiry followed by re-login in the same SPA tab
+// leaves isRedirecting = true permanently, preventing future 401 redirects)
+export const resetAuthState = () => {
+  isRedirecting = false;
+  refreshingPromise = null;
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -101,7 +109,8 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Clear authentication storage and force redirect to login
+        // K2 fix: null refreshingPromise BEFORE clearing storage so any concurrent
+        // requests that are waiting on the old promise do not enter an inconsistent state.
         refreshingPromise = null;
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');

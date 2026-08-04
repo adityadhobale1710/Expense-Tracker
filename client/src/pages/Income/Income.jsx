@@ -15,6 +15,15 @@ import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CHART_COLORS = ['#10b981', '#6366f1', '#f59e0b', '#3b82f6', '#a855f7', '#06b6d4', '#ec4899', '#f43f5e'];
@@ -145,21 +154,7 @@ const AreaTooltip = ({ active, payload, label }) => {
   );
 };
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-const EmptyState = memo(({ onAdd }) => (
-  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-    className="flex flex-col items-center justify-center py-20 px-4 text-center">
-    <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5">
-      <TrendingUp size={32} className="text-emerald-400" />
-    </div>
-    <h3 className="text-lg font-bold text-slate-200 mb-2">No income recorded yet</h3>
-    <p className="text-slate-500 text-sm mb-6 max-w-xs">Start tracking your earnings by adding your first income entry.</p>
-    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-      onClick={onAdd} className="btn-primary gap-2">
-      <Plus size={16} /> Add Your First Income
-    </motion.button>
-  </motion.div>
-));
+// Reusable EmptyState component from components/ui/EmptyState is now used.
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Income() {
@@ -537,7 +532,13 @@ export default function Income() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState onAdd={openAdd} />
+          <EmptyState
+            title="No income recorded yet"
+            description="Start tracking your earnings by adding your first income entry."
+            icon={TrendingUp}
+            actionText="Add Your First Income"
+            onAction={openAdd}
+          />
         ) : (
           <>
             {/* Desktop table */}

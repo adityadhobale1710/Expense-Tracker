@@ -32,7 +32,10 @@ const recalcBudgetSpent = async (userId, categoryId) => {
 // @desc  Get all expenses
 // @route GET /api/expenses
 export const getExpenses = asyncHandler(async (req, res) => {
-  const { startDate, endDate, category, paymentMethod, page = 1, limit = 20 } = req.query;
+  const { startDate, endDate, category, paymentMethod } = req.query;
+  // B1 fix: parseInt to prevent NaN when string values are used in arithmetic
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const filter = { user: req.user._id };
   if (startDate || endDate) {
     filter.date = {};
@@ -47,9 +50,9 @@ export const getExpenses = asyncHandler(async (req, res) => {
     .populate('category', 'name icon color')
     .sort({ date: -1 })
     .skip((page - 1) * limit)
-    .limit(Number(limit));
+    .limit(limit);
 
-  sendSuccess(res, 200, 'Expenses fetched', { expenses, total, page: Number(page) });
+  sendSuccess(res, 200, 'Expenses fetched', { expenses, total, page });
 });
 
 // @desc  Add expense
@@ -60,18 +63,21 @@ export const addExpense = asyncHandler(async (req, res) => {
 
   // Link to wallet and deduct balance
   if (walletId) {
-    const wallet = await Wallet.findOne({ _id: walletId, user: req.user._id });
+    const wallet = await Wallet.findOneAndUpdate(
+      { _id: walletId, user: req.user._id, balance: { $gte: Number(rest.amount) } },
+      { $inc: { balance: -Number(rest.amount) } },
+      { new: true }
+    );
     if (!wallet) {
-      res.status(404);
-      throw new Error('Wallet not found');
-    }
-    if (wallet.balance < Number(rest.amount)) {
+      const existing = await Wallet.findOne({ _id: walletId, user: req.user._id });
+      if (!existing) {
+        res.status(404);
+        throw new Error('Wallet not found');
+      }
       res.status(400);
       throw new Error('Insufficient wallet balance');
     }
     payload.wallet = wallet._id;
-    wallet.balance -= Number(rest.amount);
-    await wallet.save();
   }
 
   const expense = await Expense.create(payload);
@@ -116,64 +122,66 @@ export const updateExpense = asyncHandler(async (req, res) => {
   req.body.wallet = newWalletId;
   delete req.body.walletId;
 
-  // Atomic read-check-write sequence for wallet balances
+  // Atomic sequence for wallet balances
   if (newWalletId && String(oldWalletId) === String(newWalletId)) {
     // Case 1: Same wallet, amount changed
     if (newAmount !== oldAmount) {
-      const wallet = await Wallet.findOne({ _id: newWalletId, user: req.user._id });
-      if (!wallet) {
-        res.status(404);
-        throw new Error('Wallet not found');
-      }
       if (newAmount > oldAmount) {
         const diff = newAmount - oldAmount;
-        if (wallet.balance < diff) {
-          res.status(400);
-          throw new Error('Insufficient wallet balance');
+        const wallet = await Wallet.findOneAndUpdate(
+          { _id: newWalletId, user: req.user._id, balance: { $gte: diff } },
+          { $inc: { balance: -diff } }
+        );
+        if (!wallet) {
+          const existing = await Wallet.findOne({ _id: newWalletId, user: req.user._id });
+          if (!existing) { res.status(404); throw new Error('Wallet not found'); }
+          res.status(400); throw new Error('Insufficient wallet balance');
         }
-        wallet.balance -= diff;
       } else {
         const diff = oldAmount - newAmount;
-        wallet.balance += diff;
+        await Wallet.findOneAndUpdate(
+          { _id: newWalletId, user: req.user._id },
+          { $inc: { balance: diff } }
+        );
       }
-      await wallet.save();
     }
   } else {
     // Case 2, 3, 4: Wallet changed, removed, or added
-    let oldWallet = null;
-    let newWallet = null;
-
-    if (oldWalletId) {
-      oldWallet = await Wallet.findOne({ _id: oldWalletId, user: req.user._id });
-    }
     if (newWalletId) {
-      newWallet = await Wallet.findOne({ _id: newWalletId, user: req.user._id });
-      if (!newWallet) {
-        res.status(404);
-        throw new Error('Wallet not found');
+      const existing = await Wallet.findOne({ _id: newWalletId, user: req.user._id });
+      if (!existing) {
+        res.status(404); throw new Error('Wallet not found');
+      }
+      if (existing.balance < newAmount) {
+        res.status(400); throw new Error('Insufficient wallet balance');
+      }
+      // Deduct from new
+      const deducted = await Wallet.findOneAndUpdate(
+        { _id: newWalletId, user: req.user._id, balance: { $gte: newAmount } },
+        { $inc: { balance: -newAmount } }
+      );
+      if (!deducted) {
+        res.status(400); throw new Error('Insufficient wallet balance');
       }
     }
 
-    // Validate balance on new wallet BEFORE modifying anything
-    if (newWallet && newWallet.balance < newAmount) {
-      res.status(400);
-      throw new Error('Insufficient wallet balance');
-    }
-
-    // Adjustments are safe to write
-    if (oldWallet) {
-      oldWallet.balance += oldAmount;
-      await oldWallet.save();
-    }
-    if (newWallet) {
-      newWallet.balance -= newAmount;
-      await newWallet.save();
+    if (oldWalletId) {
+      // Refund old
+      await Wallet.findOneAndUpdate(
+        { _id: oldWalletId, user: req.user._id },
+        { $inc: { balance: oldAmount } }
+      );
     }
   }
 
+  // B2 fix: whitelist allowed update fields — prevents clients injecting 'user', '__v', etc.
+  const allowedFields = ['title', 'amount', 'date', 'category', 'paymentMethod', 'description', 'tags', 'receipt', 'wallet'];
+  const updateData = {};
+  allowedFields.forEach((f) => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
+
   const updatedExpense = await Expense.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
-    req.body,
+    updateData,
     { new: true, runValidators: true }
   ).populate('category', 'name icon color');
 
@@ -200,11 +208,10 @@ export const deleteExpense = asyncHandler(async (req, res) => {
 
   // Refund the expense amount to the associated wallet
   if (expense.wallet) {
-    const wallet = await Wallet.findOne({ _id: expense.wallet, user: req.user._id });
-    if (wallet) {
-      wallet.balance += Number(expense.amount || 0);
-      await wallet.save();
-    }
+    await Wallet.findOneAndUpdate(
+      { _id: expense.wallet, user: req.user._id },
+      { $inc: { balance: Number(expense.amount || 0) } }
+    );
   }
 
   // Recalculate budget spent for the deleted expense's category

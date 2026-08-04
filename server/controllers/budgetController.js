@@ -8,7 +8,24 @@ export const getBudgets = asyncHandler(async (req, res) => {
 });
 
 export const createBudget = asyncHandler(async (req, res) => {
-  const budget = await Budget.create({ ...req.body, user: req.user._id });
+  const { category, limit, period, startDate, endDate, alertThreshold } = req.body;
+
+  // B9 fix: prevent duplicate budgets for the same category
+  const existing = await Budget.findOne({ user: req.user._id, category });
+  if (existing) {
+    res.status(400);
+    throw new Error('A budget for this category already exists. Please update the existing budget instead.');
+  }
+
+  const budget = await Budget.create({
+    user: req.user._id,
+    category,
+    limit,
+    period,
+    startDate,
+    endDate,
+    alertThreshold,
+  });
   await budget.populate('category', 'name icon color');
   sendSuccess(res, 201, 'Budget created', budget);
 });
@@ -20,10 +37,15 @@ export const getBudget = asyncHandler(async (req, res) => {
 });
 
 export const updateBudget = asyncHandler(async (req, res) => {
+  // B10 fix: whitelist allowed update fields to prevent field injection
+  const allowedFields = ['limit', 'period', 'startDate', 'endDate', 'alertThreshold'];
+  const updateData = {};
+  allowedFields.forEach((f) => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
+
   const budget = await Budget.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
-    req.body,
-    { new: true }
+    updateData,
+    { new: true, runValidators: true }
   ).populate('category', 'name icon color');
   if (!budget) { res.status(404); throw new Error('Budget not found'); }
   sendSuccess(res, 200, 'Budget updated', budget);

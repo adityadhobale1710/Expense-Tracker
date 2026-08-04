@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import logger from './logger.js';
 
 // Configuration variables with fallback defaults
 const LOGO_URL = process.env.LOGO_URL || 'https://raw.githubusercontent.com/adityadhobale1710/Expense-Tracker/main/client/public/logo.jpg';
@@ -103,15 +104,15 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     process.env.SMTP_PASS &&
     !process.env.SMTP_PASS.includes('your_smtp_password');
 
-  console.log(`\n📧 Dispatching email to: ${to} (Subject: "${subject}")`);
+  logger.info(`\n📧 Dispatching email to: ${to} (Subject: "${subject}")`);
 
   if (!isSmtpConfigured) {
-    console.log('⚠️  [SMTP Log Fallback] SMTP credentials are not configured or still have default placeholders. Dumping email context below:');
-    console.log('──────────────────────────────────────────────────────────────────────');
-    console.log(`TO:      ${to}`);
-    console.log(`SUBJECT: ${subject}`);
-    console.log(`TEXT:    ${text}`);
-    console.log('──────────────────────────────────────────────────────────────────────\n');
+    logger.info('⚠️  [SMTP Log Fallback] SMTP credentials are not configured or still have default placeholders. Dumping email context below:');
+    logger.info('──────────────────────────────────────────────────────────────────────');
+    logger.info(`TO:      ${to}`);
+    logger.info(`SUBJECT: ${subject}`);
+    logger.info(`TEXT:    ${text}`);
+    logger.info('──────────────────────────────────────────────────────────────────────\n');
     return { success: true, mocked: true };
   }
 
@@ -134,16 +135,16 @@ export const sendEmail = async ({ to, subject, html, text }) => {
       html,
     });
 
-    console.log(`🚀 [SMTP Success] Email dispatched successfully: ${info.messageId}`);
+    logger.info(`🚀 [SMTP Success] Email dispatched successfully: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ [SMTP Error] Failed to deliver email via SMTP:', error.message);
-    console.log('──────────────────────────────────────────────────────────────────────');
-    console.log('⚠️ Falling back to terminal dumping because SMTP transport failed:');
-    console.log(`TO:      ${to}`);
-    console.log(`SUBJECT: ${subject}`);
-    console.log(`TEXT:    ${text}`);
-    console.log('──────────────────────────────────────────────────────────────────────\n');
+    logger.error('❌ [SMTP Error] Failed to deliver email via SMTP: ' + error.message);
+    logger.info('──────────────────────────────────────────────────────────────────────');
+    logger.info('⚠️ Falling back to terminal dumping because SMTP transport failed:');
+    logger.info(`TO:      ${to}`);
+    logger.info(`SUBJECT: ${subject}`);
+    logger.info(`TEXT:    ${text}`);
+    logger.info('──────────────────────────────────────────────────────────────────────\n');
     return { success: false, error: error.message };
   }
 };
