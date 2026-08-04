@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Income from '../models/Income.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // @desc  Get all incomes
 // @route GET /api/income
@@ -47,6 +48,7 @@ export const addIncome = asyncHandler(async (req, res) => {
 
   const income = await Income.create(payload);
 
+  invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 201, 'Income added', income);
 });
 
@@ -151,5 +153,6 @@ export const deleteIncome = asyncHandler(async (req, res) => {
     }
   }
 
+  invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 200, 'Income deleted');
 });

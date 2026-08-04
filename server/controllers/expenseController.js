@@ -3,6 +3,7 @@ import Expense from '../models/Expense.js';
 import Budget from '../models/Budget.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // ---------------------------------------------------------------------------
 // Helper: Recalculate Budget.spent by summing all Expense amounts for a given
@@ -88,6 +89,8 @@ export const addExpense = asyncHandler(async (req, res) => {
   }
 
   await expense.populate('category', 'name icon color');
+  // Invalidate AI context caches affected by new expense
+  invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
   sendSuccess(res, 201, 'Expense added', expense);
 });
 
@@ -219,6 +222,8 @@ export const deleteExpense = asyncHandler(async (req, res) => {
     await recalcBudgetSpent(req.user._id, expense.category);
   }
 
+  // Invalidate AI context caches affected by deleted expense
+  invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
   sendSuccess(res, 200, 'Expense deleted');
 });
 

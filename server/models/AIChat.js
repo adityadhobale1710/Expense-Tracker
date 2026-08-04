@@ -10,11 +10,16 @@ const aiChatSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     messages: [chatMessageSchema],
+    // Legacy single-blob context cache (kept for backward compatibility)
     financialContext: { type: String, default: '' },
-    contextUpdatedAt: { type: Date, default: null }
+    contextUpdatedAt: { type: Date, default: null },
+    // Per-module cache — each entry holds { data: String, cachedAt: Date }
+    // Keyed by module name: wallets | budgets | expenses | incomes | goals | loans | subscriptions
+    moduleCache: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );
+
 
 aiChatSchema.pre('save', function (next) {
   if (this.messages && this.messages.length > 50) {
