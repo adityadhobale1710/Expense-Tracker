@@ -2,22 +2,22 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
-  { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
-  { to: '/income',       icon: '💰', label: 'Income' },
-  { to: '/expenses',     icon: '💸', label: 'Expenses' },
-  { to: '/wallets',      icon: '/wallet.png', label: 'Wallets' },
-  { to: '/budget',       icon: '🧱', label: 'Budget' },
-  { to: '/goals',        icon: '🎯', label: 'Goals' },
-  { to: '/loans',        icon: '🏛️', label: 'Loans & EMIs' },
-  { to: '/subscriptions',icon: '🔁', label: 'Subscriptions' },
-  { to: '/split-bills',  icon: '/split-bill.png', label: 'Split Bills' },
-  { to: '/family',       icon: '👪', label: 'Family Sharing' },
-  { to: '/calendar',     icon: '📅', label: 'Bill Calendar' },
-  { to: '/ai-insights',  icon: '💡', label: 'AI Insights', badge: 'Soon' },
+  { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+  { to: '/income', icon: '💰', label: 'Income' },
+  { to: '/expenses', icon: '💸', label: 'Expenses' },
+  { to: '/wallets', icon: '/wallet.png', label: 'Wallets' },
+  { to: '/budget', icon: '🧱', label: 'Budget' },
+  { to: '/goals', icon: '🎯', label: 'Goals' },
+  { to: '/loans', icon: '🏛️', label: 'Loans & EMIs' },
+  { to: '/subscriptions', icon: '🔁', label: 'Subscriptions' },
+  { to: '/split-bills', icon: '/split-bill.png', label: 'Split Bills' },
+  { to: '/family', icon: '👪', label: 'Family Sharing' },
+  { to: '/calendar', icon: '📅', label: 'Bill Calendar' },
+  { to: '/ai-insights', icon: '💡', label: 'AI Insights', badge: 'Soon' },
   { to: '/ai-assistant', icon: '🤖', label: 'AI Assistant' },
-  { to: '/analytics-pro',icon: '📊', label: 'Analytics Pro' },
+  { to: '/analytics-pro', icon: '📊', label: 'Analytics Pro' },
   { to: '/achievements', icon: '🏆', label: 'Achievements' },
-  { to: '/profile',      icon: '👤', label: 'Profile' },
+  { to: '/profile', icon: '👤', label: 'Profile' },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

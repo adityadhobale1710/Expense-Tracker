@@ -208,7 +208,7 @@ ${trendsSummary}`;
   try {
     reply = await generateAIResponse(recentMessages, trimmedMessage, financialContextText);
   } catch (error) {
-    res.status(500);
+    res.status(error.status || 502);
     throw new Error(error.message);
   }
 

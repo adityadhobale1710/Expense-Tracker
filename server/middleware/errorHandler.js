@@ -5,8 +5,9 @@ const errorHandler = (err, req, res, next) => {
   let message = err.message || 'An unexpected server error occurred';
   let errors = null;
 
-  // Log error with stack trace via Winston
-  logger.error(err);
+  // Log error with stack trace via Winston (bare Error objects are silently dropped by
+  // Object.assign inside Winston, so we must pass explicit enumerable fields instead)
+  logger.error(message, { status: statusCode, stack: err.stack, name: err.name });
 
   // 1. Handle Joi Validation Errors (parentheses enforce correct operator precedence)
   if (err.isJoi || (err.name === 'ValidationError' && err.details)) {
