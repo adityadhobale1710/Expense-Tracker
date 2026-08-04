@@ -380,7 +380,7 @@ export default function KPICardsGrid({
                   <span>+{card.trend.toFixed(1)}%</span>
                 </div>
               ) : (
-                <div className="flex items-center text-[10px] font-extrabold text-rose-450 bg-rose-500/10 border border-rose-500/15 px-2 py-0.5 rounded-lg">
+                <div className="flex items-center text-[10px] font-extrabold text-rose-400 bg-rose-500/10 border border-rose-500/15 px-2 py-0.5 rounded-lg">
                   <ArrowDownRight size={12} className="mr-0.5" />
                   <span>{card.trend.toFixed(1)}%</span>
                 </div>

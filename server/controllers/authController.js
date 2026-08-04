@@ -8,6 +8,7 @@ import Category from '../models/Category.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
+import logger from '../utils/logger.js';
 
 const DEFAULT_CATEGORIES = [
   { name: 'Food & Dining', icon: '🍔', color: '#f97316', type: 'expense' },
@@ -28,46 +29,67 @@ const DEFAULT_CATEGORIES = [
   { name: 'Other Income', icon: '💰', color: '#6366f1', type: 'income' },
 ];
 
+// OTP resend cooldown in milliseconds (30 seconds)
+const OTP_RESEND_COOLDOWN_MS = 30 * 1000;
+
 // @desc  Register user
 // @route POST /api/auth/register
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password, phone } = req.body;
 
   const existingUser = await User.findOne({ email });
-  
+
   if (existingUser) {
     if (existingUser.isEmailVerified === true) {
       res.status(400);
       throw new Error('User already exists with this email');
     }
-    
-    // User exists but is not verified -> Re-registration path
-    existingUser.name = name;
-    existingUser.phone = phone || '';
-    existingUser.password = password;
-    
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    existingUser.registrationOtp = otp;
-    existingUser.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-    
-    await existingUser.save();
 
-    const emailHtml = getHtmlTemplate({
-      title: 'Email Verification',
-      greeting: `Welcome, ${existingUser.name}`,
-      body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
-      code: otp,
-      footerText: 'If you did not initiate this registration, you can safely ignore this email.',
-    });
+    // User exists but is not verified → Re-registration path
+    // A2 fix: also wrap this path in a session so DB stays clean if email fails
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      existingUser.name = name;
+      existingUser.phone = phone || '';
+      existingUser.password = password;
 
-    await sendEmail({
-      to: existingUser.email,
-      subject: 'Your verification code',
-      html: emailHtml,
-      text: `Hello ${existingUser.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
-    });
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      existingUser.registrationOtp = otp;
+      existingUser.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: existingUser.email });
+      await existingUser.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      const emailHtml = getHtmlTemplate({
+        title: 'Email Verification',
+        greeting: `Welcome, ${existingUser.name}`,
+        body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
+        code: otp,
+        footerText: 'If you did not initiate this registration, you can safely ignore this email.',
+      });
+
+      // A1 fix: propagate SMTP failures so user gets a meaningful error
+      const emailResult = await sendEmail({
+        to: existingUser.email,
+        subject: 'Your verification code',
+        html: emailHtml,
+        text: `Hello ${existingUser.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
+      });
+
+      if (!emailResult.success && !emailResult.mocked) {
+        logger.error(`[register] SMTP delivery failed for ${existingUser.email}: ${emailResult.error}`);
+        res.status(502);
+        throw new Error('Failed to send verification email. Please try again later.');
+      }
+
+      return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: existingUser.email });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   }
 
   // Brand new user registration path
@@ -108,12 +130,19 @@ export const register = asyncHandler(async (req, res) => {
       footerText: 'If you did not initiate this registration, you can safely ignore this email.',
     });
 
-    await sendEmail({
+    // A1 fix: propagate SMTP failures
+    const emailResult = await sendEmail({
       to: user.email,
       subject: 'Your verification code',
       html: emailHtml,
       text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
     });
+
+    if (!emailResult.success && !emailResult.mocked) {
+      logger.error(`[register] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
+      res.status(502);
+      throw new Error('Failed to send verification email. Please try again later.');
+    }
 
     return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email });
   } catch (error) {
@@ -213,7 +242,16 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new Error('No refresh token provided');
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  // A3 fix: wrap jwt.verify in try/catch so expired/invalid tokens are handled gracefully
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  } catch (err) {
+    res.status(401);
+    // Re-throw the original JWT error so errorHandler classifies TokenExpiredError correctly
+    throw err;
+  }
+
   const user = await User.findById(decoded.id);
 
   if (!user || user.refreshToken !== token) {
@@ -264,12 +302,23 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     footerText: 'If you did not request a password reset, you can safely ignore this email or contact support if you have security concerns.',
   });
 
-  await sendEmail({
+  // A4 fix: propagate SMTP failures — clear token so user must retry
+  const emailResult = await sendEmail({
     to: user.email,
     subject: 'Your verification code',
     html: emailHtml,
     text: `Hello ${user.name},\n\nWe received a request to reset your password. Your 6-digit verification code is:\n\n${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this reset, please ignore this email.`,
   });
+
+  if (!emailResult.success && !emailResult.mocked) {
+    // Roll back the token so a stale OTP is not persisted without delivery
+    user.resetPasswordToken = null;
+    user.resetPasswordExpire = null;
+    await user.save();
+    logger.error(`[forgotPassword] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
+    res.status(502);
+    throw new Error('Failed to send reset email. Please try again later.');
+  }
 
   sendSuccess(res, 200, 'Verification code sent to email');
 });
@@ -310,6 +359,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
     footerText: 'If you did not make this change, please contact support immediately to lock and secure your account.',
   });
 
+  // Best-effort confirmation email — do not fail the reset if delivery fails
   await sendEmail({
     to: user.email,
     subject: 'Password successfully updated',
@@ -324,6 +374,12 @@ export const resetPassword = asyncHandler(async (req, res) => {
 // @route POST /api/auth/verify-registration-otp
 export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
+
+  // A6 fix: validate inputs before querying DB
+  if (!email || !otp) {
+    res.status(400);
+    throw new Error('Email and OTP are required');
+  }
 
   const user = await User.findOne({
     email,
@@ -386,6 +442,17 @@ export const resendRegistrationOtp = asyncHandler(async (req, res) => {
     throw new Error('Email already verified, please log in');
   }
 
+  // A5 fix: enforce 30-second cooldown between OTP resends
+  if (user.registrationOtpExpire) {
+    const otpAge = user.registrationOtpExpire.getTime() - (10 * 60 * 1000); // when it was generated
+    const timeSinceGenerated = Date.now() - otpAge;
+    if (timeSinceGenerated < OTP_RESEND_COOLDOWN_MS) {
+      const waitSeconds = Math.ceil((OTP_RESEND_COOLDOWN_MS - timeSinceGenerated) / 1000);
+      res.status(429);
+      throw new Error(`Please wait ${waitSeconds} second(s) before requesting a new code`);
+    }
+  }
+
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   user.registrationOtp = otp;
   user.registrationOtpExpire = Date.now() + 10 * 60 * 1000;
@@ -399,12 +466,19 @@ export const resendRegistrationOtp = asyncHandler(async (req, res) => {
     footerText: 'If you did not initiate this registration, you can safely ignore this email.',
   });
 
-  await sendEmail({
+  // A1 fix: propagate SMTP failures
+  const emailResult = await sendEmail({
     to: user.email,
     subject: 'Your verification code',
     html: emailHtml,
     text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
   });
+
+  if (!emailResult.success && !emailResult.mocked) {
+    logger.error(`[resendRegistrationOtp] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
+    res.status(502);
+    throw new Error('Failed to send verification email. Please try again later.');
+  }
 
   sendSuccess(res, 200, 'A new verification code has been sent');
 });

@@ -142,7 +142,7 @@ export default function BudgetProgress({
         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <span>Active Category Budgets</span>
           {budgetAlerts.length > 0 && (
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-500/15 border border-rose-500/20 text-rose-450 text-[8px] font-extrabold rounded-md uppercase">
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-500/15 border border-rose-500/20 text-rose-400 text-[8px] font-extrabold rounded-md uppercase">
               <AlertCircle size={8} /> {budgetAlerts.length} Overlimit
             </span>
           )}
@@ -166,8 +166,8 @@ export default function BudgetProgress({
               return (
                 <div key={b._id} className="space-y-1 text-xs">
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="font-bold text-slate-350">{catName}</span>
-                    <span className="font-bold text-slate-450">
+                    <span className="font-bold text-slate-300">{catName}</span>
+                    <span className="font-bold text-slate-400">
                       {currencySymbol}{spent.toLocaleString()} / {currencySymbol}{limit.toLocaleString()} ({pct}%)
                     </span>
                   </div>
@@ -184,10 +184,10 @@ export default function BudgetProgress({
             })}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center p-6 bg-dark-900/40 border border-slate-850 rounded-2xl text-center space-y-2">
+          <div className="flex flex-col items-center justify-center p-6 bg-dark-900/40 border border-slate-800 rounded-2xl text-center space-y-2">
             <CheckCircle size={22} className="text-slate-500" />
-            <p className="text-[11px] font-bold text-slate-450">No Active Limits Configured</p>
-            <p className="text-[9px] text-slate-550">Budgets prevent impulsive outlays. Configure one to track compliance.</p>
+            <p className="text-[11px] font-bold text-slate-400">No Active Limits Configured</p>
+            <p className="text-[9px] text-slate-500">Budgets prevent impulsive outlays. Configure one to track compliance.</p>
           </div>
         )}
       </div>

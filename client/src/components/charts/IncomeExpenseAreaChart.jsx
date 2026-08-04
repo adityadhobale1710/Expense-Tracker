@@ -42,7 +42,7 @@ export default function IncomeExpenseAreaChart({ trendData = [], prevTrendData =
   }
 
   const comparisonSelector = (
-    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-450 hover:text-slate-200 cursor-pointer select-none">
+    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-200 cursor-pointer select-none">
       <input
         type="checkbox"
         checked={comparisonMode}

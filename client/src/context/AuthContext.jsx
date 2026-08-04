@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { resetAuthState } from '../services/api';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -18,6 +18,17 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // L2 fix: only remove known app-owned keys, not every key in localStorage.
+  // localStorage.clear() would delete third-party/iframe data sharing the same origin.
+  const clearAppStorage = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('gam_cache')) localStorage.removeItem(key);
+    });
+  };
+
   const register = async (name, email, password, phone) => {
     const { data } = await api.post('/auth/register', { name, email, password, phone });
     // Registration now sends an OTP email and does not immediately log in the user.
@@ -27,15 +38,13 @@ export const AuthProvider = ({ children }) => {
   const verifyRegistrationOtp = async (email, otp) => {
     const { data } = await api.post('/auth/verify-registration-otp', { email, otp });
     const { accessToken, refreshToken, ...userData } = data.data;
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('gam_cache')) {
-        localStorage.removeItem(key);
-      }
-    });
+    clearAppStorage();
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    // K1 fix: reset the api.js isRedirecting flag so future 401s redirect correctly
+    resetAuthState();
     toast.success(`Welcome, ${userData.name}! 🎉`);
     return userData;
   };
@@ -47,23 +56,29 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
+    // L1 fix: guard against error-shape responses (e.g. unverified email returns
+    // { unverified: true } with data.data = undefined, causing a TypeError on destructure)
+    if (!data.data) {
+      throw new Error(data.message || 'Login failed');
+    }
     const { accessToken, refreshToken, ...userData } = data.data;
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('gam_cache')) {
-        localStorage.removeItem(key);
-      }
-    });
+    clearAppStorage();
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    // K1 fix: reset the api.js isRedirecting flag so future 401s redirect correctly
+    resetAuthState();
     toast.success(`Welcome back, ${userData.name}!`);
     return userData;
   };
 
   const logout = async () => {
     try { await api.post('/auth/logout'); } catch {}
-    localStorage.clear();
+    // L2 fix: only clear known app-owned keys
+    clearAppStorage();
+    // K1 fix: reset api.js auth state so the next login in the same tab works correctly
+    resetAuthState();
     setUser(null);
     toast.success('Logged out successfully');
   };

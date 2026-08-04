@@ -526,7 +526,7 @@ html[data-theme="light"] .badge-blue-light-override {
   color: #1d4ed8 !important;
 }
 
-html[data-theme="light"] .dashboard-page .text-emerald-450 {
+html[data-theme="light"] .dashboard-page .text-emerald-400 {
   color: #047857 !important;
 }
 
@@ -538,23 +538,23 @@ html[data-theme="light"] .dashboard-page .text-indigo-400 {
   color: #4f46e5 !important;
 }
 
-html[data-theme="light"] .dashboard-page .text-slate-205 {
+html[data-theme="light"] .dashboard-page .text-slate-200 {
   color: #1e293b !important;
 }
 
-html[data-theme="light"] .dashboard-page .text-slate-350 {
+html[data-theme="light"] .dashboard-page .text-slate-300 {
   color: #334155 !important;
 }
 
-html[data-theme="light"] .dashboard-page .text-slate-450 {
+html[data-theme="light"] .dashboard-page .text-slate-400 {
   color: #475569 !important;
 }
 
-html[data-theme="light"] .dashboard-page .text-slate-550 {
+html[data-theme="light"] .dashboard-page .text-slate-500 {
   color: #64748b !important;
 }
 
-html[data-theme="light"] .dashboard-page .text-slate-555 {
+html[data-theme="light"] .dashboard-page .text-slate-500 {
   color: #64748b !important;
 }
 

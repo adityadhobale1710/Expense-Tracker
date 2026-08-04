@@ -15,6 +15,16 @@ import { useExpense } from '../../context/ExpenseContext';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Badge } from '../../components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { DataTable } from '../../components/ui/DataTable';
+import api from '../../services/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAYMENT_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
@@ -40,7 +50,7 @@ const getLocalTimeString = () => {
 };
 const EMPTY_FORM = {
   title: '', amount: '', category: '', date: getLocalTodayString(),
-  time: getLocalTimeString(), paymentMethod: 'upi', description: '', tags: '',
+  time: getLocalTimeString(), paymentMethod: 'upi', description: '', tags: '', walletId: '',
 };
 
 // ─── Mini Sparkline ───────────────────────────────────────────────────────────
@@ -154,22 +164,7 @@ const AreaTooltip = ({ active, payload, label }) => {
   );
 };
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-const EmptyState = memo(({ onAdd }) => (
-  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-    className="flex flex-col items-center justify-center py-20 px-4 text-center">
-    <div className="w-20 h-20 rounded-3xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-5">
-      <TrendingDown size={32} className="text-rose-400" />
-    </div>
-    <h3 className="text-lg font-bold text-slate-200 mb-2">No expenses yet</h3>
-    <p className="text-slate-500 text-sm mb-6 max-w-xs">Track your spending by adding your first expense. Every rupee counts!</p>
-    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-      onClick={onAdd}
-      className="btn-primary gap-2">
-      <Plus size={16} /> Add Your First Expense
-    </motion.button>
-  </motion.div>
-));
+// Reusable EmptyState component from components/ui/EmptyState is now used.
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Expenses() {
@@ -178,6 +173,7 @@ export default function Expenses() {
   // Modal state
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_FORM);
+  const [wallets, setWallets] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Delete confirm
@@ -203,6 +199,7 @@ export default function Expenses() {
   useEffect(() => {
     fetchExpenses();
     fetchCategories('expense');
+    api.get('/wallets').then(res => setWallets(res.data.data || [])).catch(() => {});
   }, []);
 
   // ── Computed data ────────────────────────────────────────────────────────────
@@ -312,6 +309,7 @@ export default function Expenses() {
     setForm({
       ...item,
       category: item.category?._id || item.category || '',
+      walletId: item.wallet?._id || item.wallet || '',
       date: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
       time: `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`,
       tags: (item.tags || []).join(', '),
@@ -581,7 +579,13 @@ export default function Expenses() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState onAdd={openAdd} />
+          <EmptyState
+            title="No expenses yet"
+            description="Track your spending by adding your first expense. Every rupee counts!"
+            icon={TrendingDown}
+            actionText="Add Your First Expense"
+            onAction={openAdd}
+          />
         ) : (
           <>
             {/* Desktop table */}
@@ -768,7 +772,7 @@ export default function Expenses() {
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <span className="w-4 h-0.5 bg-rose-500 rounded" /> Financial Details
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="form-group">
                 <label className="label">Date *</label>
                 <input type="date" className="input" value={form.date}
@@ -784,6 +788,14 @@ export default function Expenses() {
                 <select className="select" value={form.paymentMethod}
                   onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}>
                   {PAYMENT_METHODS.map(m => <option key={m} value={m}>{PM_LABELS[m]}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="label">Wallet</label>
+                <select className="select" value={form.walletId || ''}
+                  onChange={e => setForm(f => ({ ...f, walletId: e.target.value }))}>
+                  <option value="">Select Wallet (Optional)</option>
+                  {wallets.map(w => <option key={w._id} value={w._id}>{w.icon} {w.name} ({fmt(w.balance)})</option>)}
                 </select>
               </div>
             </div>

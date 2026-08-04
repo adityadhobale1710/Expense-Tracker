@@ -86,12 +86,12 @@ export default function WaterfallChart({
           <p className="uppercase text-[9px] text-slate-400 mb-1">{label}</p>
           <p className="font-mono text-xs">
             Amount:{' '}
-            <span className={item.type === 'inflow' || item.type === 'balance' ? 'text-emerald-400' : 'text-rose-455'}>
+            <span className={item.type === 'inflow' || item.type === 'balance' ? 'text-emerald-400' : 'text-rose-400'}>
               {item.amount < 0 ? '-' : ''}{currencySymbol}{displayAmt.toLocaleString('en-IN')}
             </span>
           </p>
           {item.type === 'expense' && (
-            <p className="text-[10px] text-slate-550 mt-0.5">
+            <p className="text-[10px] text-slate-500 mt-0.5">
               Draws down balance to {currencySymbol}{Math.round(item.range[0]).toLocaleString('en-IN')}
             </p>
           )}

@@ -186,3 +186,18 @@ const PORT = parseInt(process.env.PORT || '5000', 10);
 app.listen(PORT, () => {
   logger.info(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on http://localhost:${PORT}`);
 });
+
+// ─── Process-Level Error Guards ────────────────────────────────────────────────
+// J2 fix: without these, unhandled rejections outside Express handlers kill the
+// process silently. Both handlers log via Winston so the error is captured in
+// logs, then exit(1) so the process manager (PM2 / Render / Railway) can restart.
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Promise Rejection:', reason);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception:', err);
+  process.exit(1);
+});

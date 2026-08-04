@@ -17,7 +17,9 @@ export const protect = asyncHandler(async (req, res, next) => {
       return next();
     } catch (error) {
       res.status(401);
-      throw new Error('Not authorized, token failed');
+      // Re-throw the original error so errorHandler can classify
+      // JsonWebTokenError / TokenExpiredError specifically.
+      throw error;
     }
   } else if (req.query.token) {
     // Issue #7 fix: use .startsWith() NOT .includes() to prevent bypass via
@@ -39,7 +41,8 @@ export const protect = asyncHandler(async (req, res, next) => {
       return next();
     } catch (error) {
       res.status(401);
-      throw new Error('Not authorized, token failed');
+      // Re-throw the original error so errorHandler can classify it correctly.
+      throw error;
     }
   }
 
@@ -48,6 +51,7 @@ export const protect = asyncHandler(async (req, res, next) => {
     throw new Error('Not authorized, no token');
   }
 });
+
 
 export const authorize = (...roles) => {
   return (req, res, next) => {
