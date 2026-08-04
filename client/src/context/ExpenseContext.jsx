@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import GamificationContext from './GamificationContext';
+import GamificationContext from './GamificationContextStore';
 
 const ExpenseContext = createContext();
 
