@@ -549,3 +549,247 @@ export const calculateFinancialHealthMetrics = ({
 
   return { score, grade, signals };
 };
+
+// ─── TEMPORAL PARSING & COMPUTATIONS ──────────────────────────────────────────
+
+/**
+ * Parses user input for temporal expressions and returns the matching date range bounds.
+ *
+ * @param {string} text - User chat message
+ * @returns {{ start: Date, end: Date, label: string }}
+ */
+export const parseDateRange = (text = '') => {
+  const norm = text.toLowerCase();
+  const now = new Date();
+
+  let start = new Date();
+  let end = new Date();
+  let label = 'Last 30 Days';
+
+  const setStartOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
+  const setEndOfDay = (d) => { d.setHours(23, 59, 59, 999); return d; };
+
+  if (norm.includes('today')) {
+    start = setStartOfDay(new Date());
+    end = setEndOfDay(new Date());
+    label = 'Today';
+  } else if (norm.includes('yesterday')) {
+    start = new Date();
+    start.setDate(start.getDate() - 1);
+    setStartOfDay(start);
+    end = new Date(start);
+    setEndOfDay(end);
+    label = 'Yesterday';
+  } else if (norm.includes('last 7 days') || norm.includes('past 7 days')) {
+    start = new Date();
+    start.setDate(start.getDate() - 7);
+    setStartOfDay(start);
+    end = new Date();
+    setEndOfDay(end);
+    label = 'Last 7 Days';
+  } else if (norm.includes('last week') || norm.includes('previous week')) {
+    const day = now.getDay();
+    start = new Date();
+    start.setDate(now.getDate() - day - 7);
+    setStartOfDay(start);
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    setEndOfDay(end);
+    label = 'Last Week';
+  } else if (norm.includes('this week')) {
+    const day = now.getDay();
+    start = new Date();
+    start.setDate(now.getDate() - day);
+    setStartOfDay(start);
+    end = new Date();
+    setEndOfDay(end);
+    label = 'This Week';
+  } else if (norm.includes('last month') || norm.includes('previous month')) {
+    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    setStartOfDay(start);
+    end = new Date(now.getFullYear(), now.getMonth(), 0);
+    setEndOfDay(end);
+    label = 'Last Month';
+  } else if (norm.includes('this month')) {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    setStartOfDay(start);
+    end = new Date();
+    setEndOfDay(end);
+    label = 'This Month';
+  } else if (norm.includes('last year') || norm.includes('previous year')) {
+    start = new Date(now.getFullYear() - 1, 0, 1);
+    setStartOfDay(start);
+    end = new Date(now.getFullYear() - 1, 11, 31);
+    setEndOfDay(end);
+    label = 'Last Year';
+  } else if (norm.includes('this year')) {
+    start = new Date(now.getFullYear(), 0, 1);
+    setStartOfDay(start);
+    end = new Date();
+    setEndOfDay(end);
+    label = 'This Year';
+  } else if (norm.includes('previous quarter') || norm.includes('last quarter')) {
+    const currentQuarter = Math.floor(now.getMonth() / 3);
+    const targetQuarter = currentQuarter === 0 ? 3 : currentQuarter - 1;
+    const targetYear = currentQuarter === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    start = new Date(targetYear, targetQuarter * 3, 1);
+    setStartOfDay(start);
+    end = new Date(targetYear, (targetQuarter + 1) * 3, 0);
+    setEndOfDay(end);
+    label = `Q${targetQuarter + 1} ${targetYear}`;
+  } else if (norm.includes('this quarter') || norm.includes('current quarter')) {
+    const currentQuarter = Math.floor(now.getMonth() / 3);
+    start = new Date(now.getFullYear(), currentQuarter * 3, 1);
+    setStartOfDay(start);
+    end = new Date();
+    setEndOfDay(end);
+    label = `Q${currentQuarter + 1} ${now.getFullYear()}`;
+  } else {
+    // Default to last 30 days
+    start = new Date();
+    start.setDate(start.getDate() - 30);
+    setStartOfDay(start);
+    end = new Date();
+    setEndOfDay(end);
+    label = 'Last 30 Days';
+  }
+
+  return { start, end, label };
+};
+
+/**
+ * Calculates sum of expenses inside the last 7 days.
+ */
+export const calculateWeeklyTotals = (expenses = []) => {
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const weeklyExpenses = expenses.filter(e => new Date(e.date) >= oneWeekAgo);
+  const total = weeklyExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  return { total: r2(total), count: weeklyExpenses.length };
+};
+
+/**
+ * Formulates prediction parameters based on historical spending lists.
+ */
+export const calculatePredictionInputs = (expenses = []) => {
+  const total = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const dailyAverage = total / 90; // rolling 90 days average
+  const monthlyProjection = dailyAverage * 30;
+  return {
+    dailyAverage: r2(dailyAverage),
+    monthlyProjection: r2(monthlyProjection),
+    totalCount: expenses.length
+  };
+};
+
+/**
+ * Deterministically simulates purchasing or saving modifications.
+ */
+export const runFinancialSimulation = (type = '', params = {}, currentFinancials = {}) => {
+  const {
+    walletBalance = 0,
+    monthlyIncome = 0,
+    monthlyExpense = 0,
+    monthlyEMI = 0,
+    monthlySubscriptions = 0
+  } = currentFinancials;
+
+  const totalOutflows = monthlyExpense + monthlyEMI + monthlySubscriptions;
+  const netSavings = Math.max(0, monthlyIncome - totalOutflows);
+
+  switch (type) {
+    case 'purchase': {
+      const cost = Number(params.amount) || 0;
+      const canAffordImmediately = walletBalance >= cost;
+      const surplusCover = netSavings > 0 ? cost / netSavings : 999;
+      const recoveryMonths = canAffordImmediately ? r2(surplusCover) : 0;
+      const remainingBalanceAfter = canAffordImmediately ? r2(walletBalance - cost) : walletBalance;
+      const shortfall = canAffordImmediately ? 0 : r2(cost - walletBalance);
+
+      return {
+        canAfford: canAffordImmediately,
+        shortfall,
+        recoveryMonths,
+        remainingBalanceAfter,
+        impact: cost > walletBalance ? 'Unaffordable' : cost > walletBalance * 0.5 ? 'Significant Impact' : 'Low Impact',
+        reasons: [
+          `Wallet Balance: ₹${walletBalance.toLocaleString('en-IN')}`,
+          `Purchase Cost: ₹${cost.toLocaleString('en-IN')}`,
+          `Monthly Savings: ₹${netSavings.toLocaleString('en-IN')}`
+        ]
+      };
+    }
+
+    case 'savings_plan': {
+      const addedSavings = Number(params.monthlySavings) || 0;
+      const projected12Months = (netSavings + addedSavings) * 12;
+      return {
+        projectedMonthlySavings: r2(netSavings + addedSavings),
+        projectedYearlySavings: r2(projected12Months),
+        impact: 'Wealth Growth Acceleration',
+        reasons: [
+          `Current Savings/mo: ₹${netSavings.toLocaleString('en-IN')}`,
+          `Additional Savings/mo: ₹${addedSavings.toLocaleString('en-IN')}`
+        ]
+      };
+    }
+
+    case 'income_increase': {
+      const pct = Number(params.percent) || 0;
+      const addedIncome = monthlyIncome * (pct / 100);
+      const projectedSavings = netSavings + addedIncome;
+      return {
+        newMonthlyIncome: r2(monthlyIncome + addedIncome),
+        newMonthlySavings: r2(projectedSavings),
+        newSavingsRate: r2(safeDivide(projectedSavings, monthlyIncome + addedIncome) * 100),
+        impact: 'Increased Liquidity Margin',
+        reasons: [
+          `Current Income: ₹${monthlyIncome.toLocaleString('en-IN')}`,
+          `Percent Increase: ${pct}% (+₹${addedIncome.toLocaleString('en-IN')}/mo)`
+        ]
+      };
+    }
+
+    case 'cancel_subscription': {
+      const savedAmount = Number(params.monthlyCost) || 0;
+      return {
+        monthlySavingsDelta: r2(savedAmount),
+        yearlySavingsDelta: r2(savedAmount * 12),
+        impact: 'Fixed Cost Trimmed',
+        reasons: [
+          `Monthly Saved: ₹${savedAmount.toLocaleString('en-IN')}`,
+          `Yearly Cumulative Saved: ₹${(savedAmount * 12).toLocaleString('en-IN')}`
+        ]
+      };
+    }
+
+    case 'early_repayment': {
+      const extraPayment = Number(params.extraPayment) || 5000;
+      const loanRemaining = Number(params.loanRemaining) || 100000;
+      const loanEMI = Number(params.loanEMI) || 10000;
+      const currentTenure = loanEMI > 0 ? loanRemaining / loanEMI : 0;
+      const proposedTenure = (loanEMI + extraPayment) > 0 ? loanRemaining / (loanEMI + extraPayment) : 0;
+      const monthsSaved = Math.max(0, currentTenure - proposedTenure);
+
+      return {
+        extraMonthlyPayment: r2(extraPayment),
+        monthsSaved: r2(monthsSaved),
+        remainingTenureMonths: r2(proposedTenure),
+        impact: 'Debt Freedom Accelerated',
+        reasons: [
+          `Loan Outstanding: ₹${loanRemaining.toLocaleString('en-IN')}`,
+          `Current EMI: ₹${loanEMI.toLocaleString('en-IN')}/mo`,
+          `Proposed EMI: ₹${(loanEMI + extraPayment).toLocaleString('en-IN')}/mo`
+        ]
+      };
+    }
+
+    default:
+      return {
+        canAfford: false,
+        reasons: ['Unknown simulation parameter type or scope.']
+      };
+  }
+};
+
+

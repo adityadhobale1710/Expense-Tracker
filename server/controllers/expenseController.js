@@ -199,8 +199,10 @@ export const updateExpense = asyncHandler(async (req, res) => {
     await recalcBudgetSpent(req.user._id, newCatId);
   }
 
+  invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
   sendSuccess(res, 200, 'Expense updated', updatedExpense);
 });
+
 
 // @desc  Delete expense
 // @route DELETE /api/expenses/:id

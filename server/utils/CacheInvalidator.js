@@ -19,6 +19,8 @@
 
 import AIChat from '../models/AIChat.js';
 import { invalidateModules } from '../services/ai/ContextBuilder.js';
+import { invalidateInsightsCache } from '../services/ai/InsightEngine.js';
+import { checkAndGenerateNotifications } from '../services/ai/ProactiveNotificationEngine.js';
 import logger from './logger.js';
 
 /**
@@ -33,6 +35,14 @@ export const invalidateAICache = async (userId, modules) => {
   if (!userId || !modules || modules.length === 0) return;
 
   try {
+    // Invalidate the short-lived in-memory insights cache
+    invalidateInsightsCache(userId);
+
+    // Asynchronously scan for proactive alerts and generate notifications
+    checkAndGenerateNotifications(userId).catch(err => {
+      logger.warn(`[CacheInvalidator] Notification generation failed: ${err.message}`);
+    });
+
     const chat = await AIChat.findOne({ user: userId });
     if (!chat) return; // No chat document yet — nothing to invalidate
 
@@ -46,19 +56,24 @@ export const invalidateAICache = async (userId, modules) => {
   }
 };
 
+
+
 // ─── MODULE → INVALIDATION MAP ────────────────────────────────────────────────
-// Convenience constants for use in resource controllers.
+// User requested: "Cache only the FinancialSnapshot. Never cache partial modules independently. 
+// On any mutation... invalidate FinancialSnapshot. Next request rebuilds it."
+
+const ALL_MODULES = ['wallets', 'budgets', 'expenses', 'incomes', 'goals', 'loans', 'subscriptions'];
 
 export const CACHE_MODULES = {
-  WALLETS:       ['wallets'],
-  BUDGETS:       ['budgets'],
-  EXPENSES:      ['expenses'],
-  INCOMES:       ['incomes'],
-  GOALS:         ['goals'],
-  LOANS:         ['loans'],
-  SUBSCRIPTIONS: ['subscriptions'],
-  // Compound invalidations for operations that affect multiple modules
-  EXPENSE_ADD:   ['expenses', 'budgets'],   // Adding expense affects budget usage
-  INCOME_ADD:    ['incomes'],
-  WALLET_UPDATE: ['wallets'],
+  WALLETS:       ALL_MODULES,
+  BUDGETS:       ALL_MODULES,
+  EXPENSES:      ALL_MODULES,
+  INCOMES:       ALL_MODULES,
+  GOALS:         ALL_MODULES,
+  LOANS:         ALL_MODULES,
+  SUBSCRIPTIONS: ALL_MODULES,
+  EXPENSE_ADD:   ALL_MODULES,
+  INCOME_ADD:    ALL_MODULES,
+  WALLET_UPDATE: ALL_MODULES,
 };
+

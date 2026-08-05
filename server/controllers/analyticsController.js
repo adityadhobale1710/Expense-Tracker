@@ -1,11 +1,8 @@
 import asyncHandler from 'express-async-handler';
-import Expense from '../models/Expense.js';
-import Income from '../models/Income.js';
-import Category from '../models/Category.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
-
+import FinancialDataService from '../services/financial/FinancialDataService.js';
 
 /**
  * Issue #5 fix: sanitize cell values to prevent CSV/Excel formula injection.
@@ -57,70 +54,25 @@ export const getAnalyticsSummary = asyncHandler(async (req, res) => {
   const { start, end } = getQueryDateRange(req);
   const duration = end - start;
 
-  // Previous period dates for trend comparisons
   const prevStart = new Date(start.getTime() - duration - 1);
   const prevEnd = new Date(start.getTime() - 1);
 
-  // Aggregate current period data
-  const [currentIncome, currentExpense, prevIncome, prevExpense, transactionStats, highestDayAgg, lowestDayAgg] = await Promise.all([
-    // Current Income
-    Income.aggregate([
-      { $match: { user: userId, date: { $gte: start, $lte: end } } },
-      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
-    ]),
-    // Current Expense
-    Expense.aggregate([
-      { $match: { user: userId, date: { $gte: start, $lte: end } } },
-      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
-    ]),
-    // Previous Income
-    Income.aggregate([
-      { $match: { user: userId, date: { $gte: prevStart, $lte: prevEnd } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]),
-    // Previous Expense
-    Expense.aggregate([
-      { $match: { user: userId, date: { $gte: prevStart, $lte: prevEnd } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]),
-    // Current transaction counts combined
-    Promise.all([
-      Income.countDocuments({ user: userId, date: { $gte: start, $lte: end } }),
-      Expense.countDocuments({ user: userId, date: { $gte: start, $lte: end } })
-    ]).then(([incCount, expCount]) => incCount + expCount),
-    // Highest Expense Day
-    Expense.aggregate([
-      { $match: { user: userId, date: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
-          total: { $sum: '$amount' }
-        }
-      },
-      { $sort: { total: -1 } },
-      { $limit: 1 }
-    ]),
-    // Lowest Expense Day
-    Expense.aggregate([
-      { $match: { user: userId, date: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
-          total: { $sum: '$amount' }
-        }
-      },
-      { $sort: { total: 1 } },
-      { $limit: 1 }
-    ])
+  // Fetch from single source of truth
+  const [currentSnapshot, prevSnapshot] = await Promise.all([
+    FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end }),
+    FinancialDataService.getFinancialSnapshot(userId, { startDate: prevStart, endDate: prevEnd })
   ]);
 
-  const totalIncome = currentIncome[0]?.total || 0;
-  const totalExpense = currentExpense[0]?.total || 0;
+  const { incomes: currentIncome, expenses: currentExpense } = currentSnapshot;
+  const { incomes: prevIncome, expenses: prevExpense } = prevSnapshot;
+
+  const totalIncome = currentIncome.reduce((sum, i) => sum + i.amount, 0);
+  const totalExpense = currentExpense.reduce((sum, e) => sum + e.amount, 0);
   const savings = Math.max(0, totalIncome - totalExpense);
   const balance = totalIncome - totalExpense;
 
-  const prevTotalIncome = prevIncome[0]?.total || 0;
-  const prevTotalExpense = prevExpense[0]?.total || 0;
+  const prevTotalIncome = prevIncome.reduce((sum, i) => sum + i.amount, 0);
+  const prevTotalExpense = prevExpense.reduce((sum, e) => sum + e.amount, 0);
   const prevSavings = Math.max(0, prevTotalIncome - prevTotalExpense);
   const prevBalance = prevTotalIncome - prevTotalExpense;
 
@@ -130,14 +82,21 @@ export const getAnalyticsSummary = asyncHandler(async (req, res) => {
   const savingsTrend = prevSavings > 0 ? ((savings - prevSavings) / prevSavings) * 100 : 0;
   const balanceTrend = prevBalance !== 0 ? ((balance - prevBalance) / Math.abs(prevBalance)) * 100 : 0;
 
-  // Averages
+  // Averages & High/Low Days
   const daysInPeriod = getDaysDuration(start, end) + 1;
   const avgDailyExpense = totalExpense / daysInPeriod;
 
-  const highestExpenseDay = highestDayAgg[0] ? { date: highestDayAgg[0]._id, amount: highestDayAgg[0].total } : null;
-  const lowestExpenseDay = lowestDayAgg[0] ? { date: lowestDayAgg[0]._id, amount: lowestDayAgg[0].total } : null;
+  const dailyExpenseMap = {};
+  currentExpense.forEach(e => {
+    const dStr = new Date(e.date).toISOString().split('T')[0];
+    dailyExpenseMap[dStr] = (dailyExpenseMap[dStr] || 0) + e.amount;
+  });
 
-  // Mini sparklines data points (e.g. 10 intervals in current range)
+  const dailyKeys = Object.keys(dailyExpenseMap).sort((a, b) => dailyExpenseMap[b] - dailyExpenseMap[a]);
+  const highestExpenseDay = dailyKeys.length > 0 ? { date: dailyKeys[0], amount: dailyExpenseMap[dailyKeys[0]] } : null;
+  const lowestExpenseDay = dailyKeys.length > 0 ? { date: dailyKeys[dailyKeys.length - 1], amount: dailyExpenseMap[dailyKeys[dailyKeys.length - 1]] } : null;
+
+  // Mini sparklines
   const sparklineSteps = 10;
   const stepMs = Math.max(1, duration / sparklineSteps);
   const sparklines = [];
@@ -147,17 +106,10 @@ export const getAnalyticsSummary = asyncHandler(async (req, res) => {
     sparklines.push({ index: i, start: stepStart, end: stepEnd, amount: 0 });
   }
 
-  const expensesForSparkline = await Expense.find({
-    user: userId,
-    date: { $gte: start, $lte: end }
-  }).select('amount date');
-
-  expensesForSparkline.forEach((exp) => {
-    const itemTime = exp.date.getTime();
+  currentExpense.forEach((exp) => {
+    const itemTime = new Date(exp.date).getTime();
     const bucket = sparklines.find((s) => itemTime >= s.start.getTime() && itemTime <= s.end.getTime());
-    if (bucket) {
-      bucket.amount += exp.amount;
-    }
+    if (bucket) bucket.amount += exp.amount;
   });
 
   sendSuccess(res, 200, 'Analytics summary fetched successfully', {
@@ -168,13 +120,8 @@ export const getAnalyticsSummary = asyncHandler(async (req, res) => {
     avgDailyExpense,
     highestExpenseDay,
     lowestExpenseDay,
-    totalTransactions: transactionStats,
-    trends: {
-      incomeTrend,
-      expenseTrend,
-      savingsTrend,
-      balanceTrend
-    },
+    totalTransactions: currentIncome.length + currentExpense.length,
+    trends: { incomeTrend, expenseTrend, savingsTrend, balanceTrend },
     sparkline: sparklines.map((s) => s.amount)
   });
 });
@@ -190,45 +137,23 @@ export const getAnalyticsMonthly = asyncHandler(async (req, res) => {
   twelveMonthsAgo.setDate(1);
   twelveMonthsAgo.setHours(0, 0, 0, 0);
 
-  const [incomes, expenses] = await Promise.all([
-    Income.aggregate([
-      { $match: { user: userId, date: { $gte: twelveMonthsAgo } } },
-      {
-        $group: {
-          _id: { year: { $year: '$date' }, month: { $month: '$date' } },
-          total: { $sum: '$amount' }
-        }
-      }
-    ]),
-    Expense.aggregate([
-      { $match: { user: userId, date: { $gte: twelveMonthsAgo } } },
-      {
-        $group: {
-          _id: { year: { $year: '$date' }, month: { $month: '$date' } },
-          total: { $sum: '$amount' }
-        }
-      }
-    ])
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: twelveMonthsAgo });
+  const { incomes, expenses } = snapshot;
 
-  // Merge the monthly aggregates into a chronological 12-month array
   const monthsData = [];
   const currentDate = new Date(twelveMonthsAgo);
   const monthsNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   for (let i = 0; i < 12; i++) {
     const yr = currentDate.getFullYear();
-    const mo = currentDate.getMonth() + 1; // 1-based in Mongo
+    const mo = currentDate.getMonth();
 
-    const incMatch = incomes.find((inc) => inc._id.year === yr && inc._id.month === mo);
-    const expMatch = expenses.find((exp) => exp._id.year === yr && exp._id.month === mo);
-
-    const incTotal = incMatch?.total || 0;
-    const expTotal = expMatch?.total || 0;
+    const incTotal = incomes.filter(inc => new Date(inc.date).getFullYear() === yr && new Date(inc.date).getMonth() === mo).reduce((sum, inc) => sum + inc.amount, 0);
+    const expTotal = expenses.filter(exp => new Date(exp.date).getFullYear() === yr && new Date(exp.date).getMonth() === mo).reduce((sum, exp) => sum + exp.amount, 0);
     const savings = Math.max(0, incTotal - expTotal);
 
     monthsData.push({
-      name: `${monthsNames[mo - 1]} ${yr}`,
+      name: `${monthsNames[mo]} ${yr}`,
       income: incTotal,
       expense: expTotal,
       savings
@@ -248,40 +173,41 @@ export const getAnalyticsCategory = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { start, end } = getQueryDateRange(req);
 
-  const breakdown = await Expense.aggregate([
-    { $match: { user: userId, date: { $gte: start, $lte: end } } },
-    {
-      $lookup: {
-        from: 'categories',
-        localField: 'category',
-        foreignField: '_id',
-        as: 'catDetails'
-      }
-    },
-    { $unwind: { path: '$catDetails', preserveNullAndEmptyArrays: true } },
-    {
-      $group: {
-        _id: '$category',
-        name: { $first: { $ifNull: ['$catDetails.name', 'Uncategorized'] } },
-        icon: { $first: { $ifNull: ['$catDetails.icon', '📁'] } },
-        color: { $first: { $ifNull: ['$catDetails.color', '#6b7280'] } },
-        total: { $sum: '$amount' },
-        count: { $sum: 1 },
-        lastTransactionDate: { $max: '$date' }
-      }
-    },
-    { $sort: { total: -1 } }
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
+  const { expenses } = snapshot;
 
-  const totalExpense = breakdown.reduce((sum, item) => sum + item.total, 0);
+  const breakdownMap = {};
+  let totalExpense = 0;
 
-  const enrichedBreakdown = breakdown.map((item) => ({
+  expenses.forEach(exp => {
+    const catId = exp.category?._id?.toString() || 'uncategorized';
+    if (!breakdownMap[catId]) {
+      breakdownMap[catId] = {
+        _id: catId === 'uncategorized' ? null : exp.category._id,
+        name: exp.category?.name || 'Uncategorized',
+        icon: exp.category?.icon || '📁',
+        color: exp.category?.color || '#6b7280',
+        total: 0,
+        count: 0,
+        lastTransactionDate: exp.date
+      };
+    }
+    breakdownMap[catId].total += exp.amount;
+    breakdownMap[catId].count += 1;
+    if (new Date(exp.date) > new Date(breakdownMap[catId].lastTransactionDate)) {
+      breakdownMap[catId].lastTransactionDate = exp.date;
+    }
+    totalExpense += exp.amount;
+  });
+
+  let breakdown = Object.values(breakdownMap).sort((a, b) => b.total - a.total);
+  breakdown = breakdown.map((item) => ({
     ...item,
     percentage: totalExpense > 0 ? parseFloat(((item.total / totalExpense) * 100).toFixed(2)) : 0
   }));
 
   sendSuccess(res, 200, 'Category breakdown data fetched', {
-    breakdown: enrichedBreakdown,
+    breakdown,
     totalExpense
   });
 });
@@ -297,15 +223,13 @@ export const getAnalyticsTrend = asyncHandler(async (req, res) => {
   // We fetch up to 30 days prior to the start of range to accurately calculate trailing averages
   const extendedStart = new Date(start.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const expenses = await Expense.find({
-    user: userId,
-    date: { $gte: extendedStart, $lte: end }
-  }).sort({ date: 1 }).select('amount date');
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: extendedStart, endDate: end });
+  const expenses = snapshot.expenses.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // Compute daily totals
   const dailyTotals = {};
   expenses.forEach((e) => {
-    const dayKey = e.date.toISOString().split('T')[0];
+    const dayKey = new Date(e.date).toISOString().split('T')[0];
     dailyTotals[dayKey] = (dailyTotals[dayKey] || 0) + e.amount;
   });
 
@@ -379,21 +303,20 @@ export const getAnalyticsCashflow = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { start, end } = getQueryDateRange(req);
 
-  const [incomes, expenses] = await Promise.all([
-    Income.find({ user: userId, date: { $gte: start, $lte: end } }).sort({ date: 1 }).select('amount date'),
-    Expense.find({ user: userId, date: { $gte: start, $lte: end } }).sort({ date: 1 }).select('amount date')
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
+  const incomes = snapshot.incomes.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const expenses = snapshot.expenses.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // Combine and sort chronologically
   const timeline = {};
   incomes.forEach((i) => {
-    const dStr = i.date.toISOString().split('T')[0];
+    const dStr = new Date(i.date).toISOString().split('T')[0];
     if (!timeline[dStr]) timeline[dStr] = { income: 0, expense: 0 };
     timeline[dStr].income += i.amount;
   });
 
   expenses.forEach((e) => {
-    const dStr = e.date.toISOString().split('T')[0];
+    const dStr = new Date(e.date).toISOString().split('T')[0];
     if (!timeline[dStr]) timeline[dStr] = { income: 0, expense: 0 };
     timeline[dStr].expense += e.amount;
   });
@@ -422,17 +345,19 @@ export const getAnalyticsHeatmap = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { start, end } = getQueryDateRange(req);
 
-  const dailyTotals = await Expense.aggregate([
-    { $match: { user: userId, date: { $gte: start, $lte: end } } },
-    {
-      $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
-        amount: { $sum: '$amount' },
-        count: { $sum: 1 }
-      }
-    },
-    { $sort: { _id: 1 } }
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
+  
+  const heatmapMap = {};
+  snapshot.expenses.forEach(exp => {
+    const dStr = new Date(exp.date).toISOString().split('T')[0];
+    if (!heatmapMap[dStr]) {
+      heatmapMap[dStr] = { _id: dStr, amount: 0, count: 0 };
+    }
+    heatmapMap[dStr].amount += exp.amount;
+    heatmapMap[dStr].count += 1;
+  });
+
+  const dailyTotals = Object.values(heatmapMap).sort((a, b) => a._id.localeCompare(b._id));
 
   sendSuccess(res, 200, 'Calendar heatmap data aggregated', dailyTotals);
 });
@@ -445,23 +370,24 @@ export const getAnalyticsIncome = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { start, end } = getQueryDateRange(req);
 
-  const sources = await Income.aggregate([
-    { $match: { user: userId, date: { $gte: start, $lte: end } } },
-    {
-      $group: {
-        _id: '$category',
-        amount: { $sum: '$amount' },
-        count: { $sum: 1 }
-      }
-    },
-    { $sort: { amount: -1 } }
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
+  
+  const sourcesMap = {};
+  let totalIncome = 0;
 
-  const totalIncome = sources.reduce((sum, s) => sum + s.amount, 0);
-  const data = sources.map((s) => ({
-    source: s._id || 'Uncategorized',
-    amount: s.amount,
-    count: s.count,
+  snapshot.incomes.forEach(inc => {
+    const sourceName = inc.category || 'Uncategorized';
+    if (!sourcesMap[sourceName]) {
+      sourcesMap[sourceName] = { source: sourceName, amount: 0, count: 0 };
+    }
+    sourcesMap[sourceName].amount += inc.amount;
+    sourcesMap[sourceName].count += 1;
+    totalIncome += inc.amount;
+  });
+
+  let data = Object.values(sourcesMap).sort((a, b) => b.amount - a.amount);
+  data = data.map((s) => ({
+    ...s,
     percentage: totalIncome > 0 ? parseFloat(((s.amount / totalIncome) * 100).toFixed(2)) : 0
   }));
 
@@ -476,20 +402,19 @@ export const exportCSV = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { start, end } = getQueryDateRange(req);
 
-  const [incomes, expenses] = await Promise.all([
-    Income.find({ user: userId, date: { $gte: start, $lte: end } }).sort({ date: -1 }),
-    Expense.find({ user: userId, date: { $gte: start, $lte: end } }).populate('category').sort({ date: -1 })
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
+  const incomes = snapshot.incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const expenses = snapshot.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   let csvContent = 'Date,Type,Category,Title,Amount,Payment Method,Description\n';
 
   incomes.forEach((inc) => {
-    const dateStr = inc.date.toISOString().split('T')[0];
+    const dateStr = new Date(inc.date).toISOString().split('T')[0];
     csvContent += `"${dateStr}","Income","${inc.category || 'Other'}","${inc.title.replace(/"/g, '""')}",${inc.amount},"bank","${inc.description ? inc.description.replace(/"/g, '""') : ''}"\n`;
   });
 
   expenses.forEach((exp) => {
-    const dateStr = exp.date.toISOString().split('T')[0];
+    const dateStr = new Date(exp.date).toISOString().split('T')[0];
     csvContent += `"${dateStr}","Expense","${exp.category?.name || 'Uncategorized'}","${exp.title.replace(/"/g, '""')}",${exp.amount},"${exp.paymentMethod}","${exp.description ? exp.description.replace(/"/g, '""') : ''}"\n`;
   });
 
@@ -506,17 +431,16 @@ export const exportExcel = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { start, end } = getQueryDateRange(req);
 
-  const [incomes, expenses] = await Promise.all([
-    Income.find({ user: userId, date: { $gte: start, $lte: end } }).sort({ date: -1 }),
-    Expense.find({ user: userId, date: { $gte: start, $lte: end } }).populate('category').sort({ date: -1 })
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
+  const incomes = snapshot.incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const expenses = snapshot.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const workbook = new ExcelJS.Workbook();
   const wsExpenses = workbook.addWorksheet('Expenses');
   const wsIncome = workbook.addWorksheet('Income');
 
   const expenseRows = expenses.map((exp) => ({
-    Date: exp.date.toISOString().split('T')[0],
+    Date: new Date(exp.date).toISOString().split('T')[0],
     Category: sanitizeCell(exp.category?.name || 'Uncategorized'),
     Title: sanitizeCell(exp.title),
     Amount: exp.amount,
@@ -525,7 +449,7 @@ export const exportExcel = asyncHandler(async (req, res) => {
   }));
 
   const incomeRows = incomes.map((inc) => ({
-    Date: inc.date.toISOString().split('T')[0],
+    Date: new Date(inc.date).toISOString().split('T')[0],
     Source: sanitizeCell(inc.category || 'Other'),
     Title: sanitizeCell(inc.title),
     Amount: inc.amount,
@@ -567,10 +491,8 @@ export const exportPDF = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { start, end } = getQueryDateRange(req);
 
-  const [incomes, expenses] = await Promise.all([
-    Income.find({ user: userId, date: { $gte: start, $lte: end } }),
-    Expense.find({ user: userId, date: { $gte: start, $lte: end } }).populate('category')
-  ]);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
+  const { incomes, expenses } = snapshot;
 
   const totalInc = incomes.reduce((sum, i) => sum + i.amount, 0);
   const totalExp = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -649,8 +571,8 @@ export const exportPDF = asyncHandler(async (req, res) => {
 
   let rowY = 495;
   const sortedTxns = [
-    ...expenses.map((e) => ({ date: e.date, type: 'Expense', cat: e.category?.name || 'Other', title: e.title, amount: e.amount, isExp: true })),
-    ...incomes.map((i) => ({ date: i.date, type: 'Income', cat: i.category || 'Other', title: i.title, amount: i.amount, isExp: false }))
+    ...expenses.map((e) => ({ date: new Date(e.date), type: 'Expense', cat: e.category?.name || 'Other', title: e.title, amount: e.amount, isExp: true })),
+    ...incomes.map((i) => ({ date: new Date(i.date), type: 'Income', cat: i.category || 'Other', title: i.title, amount: i.amount, isExp: false }))
   ].sort((a, b) => b.date - a.date).slice(0, 8);
 
   sortedTxns.forEach((txn) => {

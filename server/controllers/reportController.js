@@ -1,7 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
-import Income from '../models/Income.js';
-import Expense from '../models/Expense.js';
+import FinancialDataService from '../services/financial/FinancialDataService.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 // @desc  Overall summary: total income, expense, balance
@@ -13,15 +12,11 @@ export const getSummary = asyncHandler(async (req, res) => {
   if (startDate || endDate) {
     if (startDate && startDate !== 'undefined' && startDate !== 'null') {
       const parsedStart = new Date(startDate);
-      if (!isNaN(parsedStart.getTime())) {
-        start = parsedStart;
-      }
+      if (!isNaN(parsedStart.getTime())) start = parsedStart;
     }
     if (endDate && endDate !== 'undefined' && endDate !== 'null') {
       const parsedEnd = new Date(endDate);
-      if (!isNaN(parsedEnd.getTime())) {
-        end = parsedEnd;
-      }
+      if (!isNaN(parsedEnd.getTime())) end = parsedEnd;
     }
   }
 
@@ -34,19 +29,10 @@ export const getSummary = asyncHandler(async (req, res) => {
     if (!end) end = new Date(y, m + 1, 0, 23, 59, 59);
   }
 
-  const [incomeAgg, expenseAgg] = await Promise.all([
-    Income.aggregate([
-      { $match: { user: req.user._id, date: { $gte: start, $lte: end } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]),
-    Expense.aggregate([
-      { $match: { user: req.user._id, date: { $gte: start, $lte: end } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]),
-  ]);
+  const { incomes, expenses } = await FinancialDataService.getFinancialSnapshot(req.user._id, { startDate: start, endDate: end });
 
-  const totalIncome = incomeAgg[0]?.total || 0;
-  const totalExpense = expenseAgg[0]?.total || 0;
+  const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0);
+  const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const balance = totalIncome - totalExpense;
   const savingsRate = totalIncome > 0 ? Math.round((balance / totalIncome) * 100) : 0;
 
@@ -59,100 +45,78 @@ export const getMonthlyReport = asyncHandler(async (req, res) => {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const [incomes, expenses] = await Promise.all([
-    Income.aggregate([
-      { $match: { user: req.user._id, date: { $gte: start } } },
-      { $group: { _id: { year: { $year: '$date' }, month: { $month: '$date' } }, total: { $sum: '$amount' } } },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-    ]),
-    Expense.aggregate([
-      { $match: { user: req.user._id, date: { $gte: start } } },
-      { $group: { _id: { year: { $year: '$date' }, month: { $month: '$date' } }, total: { $sum: '$amount' } } },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-    ]),
-  ]);
+  const { incomes, expenses } = await FinancialDataService.getFinancialSnapshot(req.user._id, { startDate: start, endDate: now });
 
-  sendSuccess(res, 200, 'Monthly report fetched', { incomes, expenses });
+  // Compute monthly totals
+  const monthlyIncomes = {};
+  const monthlyExpenses = {};
+
+  incomes.forEach(inc => {
+    const d = new Date(inc.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthlyIncomes[key] = (monthlyIncomes[key] || 0) + inc.amount;
+  });
+
+  expenses.forEach(exp => {
+    const d = new Date(exp.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthlyExpenses[key] = (monthlyExpenses[key] || 0) + exp.amount;
+  });
+
+  // Format back into arrays for the frontend
+  const formatMonthly = (obj) => {
+    return Object.keys(obj).sort().map(key => {
+      const [year, month] = key.split('-');
+      return { _id: { year: parseInt(year), month: parseInt(month) }, total: obj[key] };
+    });
+  };
+
+  sendSuccess(res, 200, 'Monthly report fetched', {
+    incomes: formatMonthly(monthlyIncomes),
+    expenses: formatMonthly(monthlyExpenses)
+  });
 });
 
 // @desc  Category breakdown
 // @route GET /api/reports/by-category
 export const getCategoryReport = asyncHandler(async (req, res) => {
-  if (!req.user || !req.user._id) {
-    res.status(401);
-    throw new Error('Not authorized, user missing');
-  }
-
-  // Validate ObjectId before passing to aggregation — prevents CastError 500
-  if (!mongoose.Types.ObjectId.isValid(req.user._id)) {
-    res.status(401);
-    throw new Error('Not authorized, invalid user id');
-  }
-
   const { startDate, endDate } = req.query;
-  const match = { user: new mongoose.Types.ObjectId(req.user._id) };
-
-  // Build date filter — only add keys that parse to valid dates
-  if (startDate || endDate) {
-    const dateFilter = {};
-    if (startDate && startDate !== 'undefined' && startDate !== 'null') {
-      const parsedStart = new Date(startDate);
-      if (!isNaN(parsedStart.getTime())) {
-        dateFilter.$gte = parsedStart;
-      }
-    }
-    if (endDate && endDate !== 'undefined' && endDate !== 'null') {
-      const parsedEnd = new Date(endDate);
-      if (!isNaN(parsedEnd.getTime())) {
-        dateFilter.$lte = parsedEnd;
-      }
-    }
-    if (Object.keys(dateFilter).length > 0) {
-      match.date = dateFilter;
-    }
+  
+  let start, end;
+  if (startDate && startDate !== 'undefined' && startDate !== 'null') {
+    start = new Date(startDate);
+  }
+  if (endDate && endDate !== 'undefined' && endDate !== 'null') {
+    end = new Date(endDate);
   }
 
-  const breakdown = await Expense.aggregate([
-    { $match: match },
-    {
-      $lookup: {
-        from: 'categories',
-        localField: 'category',
-        foreignField: '_id',
-        as: 'cat',
-      },
-    },
-    // ✅ FIX: was `preserveNullAndEmpty` (silent no-op) — must be `preserveNullAndEmptyArrays`
-    // Without this, expenses with category:null are DROPPED from the pipeline entirely,
-    // producing incorrect totals and potential 500s on downstream stages.
-    { $unwind: { path: '$cat', preserveNullAndEmptyArrays: true } },
-    {
-      $group: {
-        _id: { $ifNull: ['$cat._id', null] },
-        name: { $first: { $ifNull: ['$cat.name', 'Uncategorized'] } },
-        icon: { $first: { $ifNull: ['$cat.icon', '📁'] } },
-        color: { $first: { $ifNull: ['$cat.color', '#6b7280'] } },
-        total: { $sum: { $ifNull: ['$amount', 0] } },
-        count: { $sum: 1 },
-      },
-    },
-    { $sort: { total: -1 } },
-  ]);
+  const { expenses } = await FinancialDataService.getFinancialSnapshot(req.user._id, { startDate: start, endDate: end });
 
-  // Compute grand total for percentage calculation
-  const grandTotal = breakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+  const categoryMap = {};
+  let grandTotal = 0;
 
-  // Defensive sanitization — guarantee every field is a valid, serializable value
-  const sanitized = (breakdown || []).map((item) => ({
-    _id: item._id ?? null,
-    name: typeof item.name === 'string' && item.name.trim() !== '' ? item.name : 'Uncategorized',
-    icon: typeof item.icon === 'string' && item.icon.trim() !== '' ? item.icon : '📁',
-    color: typeof item.color === 'string' && item.color.trim() !== '' ? item.color : '#6b7280',
-    total: typeof item.total === 'number' && !isNaN(item.total) ? item.total : 0,
-    count: typeof item.count === 'number' && !isNaN(item.count) ? item.count : 0,
-    percentage: grandTotal > 0 && typeof item.total === 'number' && !isNaN(item.total)
-      ? parseFloat(((item.total / grandTotal) * 100).toFixed(2))
-      : 0,
+  expenses.forEach(exp => {
+    const catId = exp.category?._id?.toString() || 'uncategorized';
+    if (!categoryMap[catId]) {
+      categoryMap[catId] = {
+        _id: exp.category?._id || null,
+        name: exp.category?.name || 'Uncategorized',
+        icon: exp.category?.icon || '📁',
+        color: exp.category?.color || '#6b7280',
+        total: 0,
+        count: 0
+      };
+    }
+    categoryMap[catId].total += exp.amount;
+    categoryMap[catId].count += 1;
+    grandTotal += exp.amount;
+  });
+
+  const breakdown = Object.values(categoryMap).sort((a, b) => b.total - a.total);
+
+  const sanitized = breakdown.map(item => ({
+    ...item,
+    percentage: grandTotal > 0 ? parseFloat(((item.total / grandTotal) * 100).toFixed(2)) : 0
   }));
 
   sendSuccess(res, 200, 'Category report fetched', sanitized);
