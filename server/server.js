@@ -58,24 +58,27 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    // Standardize client URL (remove trailing slash)
-    const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+    // Support multiple comma-separated CLIENT_URLs
+    const clientUrls = (process.env.CLIENT_URL || '')
+      .split(',')
+      .map(url => url.trim().replace(/\/$/, ''));
 
-    const isAllowed = (origin === clientUrl) ||
+    // Fallback URLs to ensure the deployed frontend is always allowed
+    const fallbackUrls = ['https://expense-tracker-five-virid-19.vercel.app'];
+    const allowedUrls = [...clientUrls, ...fallbackUrls];
+
+    const isAllowed = allowedUrls.includes(origin) ||
       (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
 
     if (isAllowed) {
       return callback(null, true);
     }
 
-    // Issue #7 fix: strict Vercel preview domain check.
-    // The old coarse prefix match (startsWith projectPrefix) allowed any origin whose
-    // hostname started with the same prefix — e.g. "my-app-evil.vercel.app" would pass
-    // for a project named "my-app". The fix uses a stricter regex that requires the
-    // hostname to be exactly <projectSlug>-<hash>.vercel.app (Vercel's actual format).
-    if (clientUrl && clientUrl.includes('vercel.app')) {
+    // Strict Vercel preview domain check.
+    if (clientUrls.some(url => url.includes('vercel.app'))) {
       try {
-        const prodHost = new URL(clientUrl).hostname;
+        const prodClientUrl = clientUrls.find(url => url.includes('vercel.app')) || fallbackUrls[0];
+        const prodHost = new URL(prodClientUrl).hostname;
         // Extract the canonical project slug (everything before the first dash-separated hash segment)
         const projectSlug = prodHost.replace(/\.vercel\.app$/, '').split('-').slice(0, -1).join('-') ||
           prodHost.replace(/\.vercel\.app$/, '');
