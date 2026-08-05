@@ -32,7 +32,7 @@ import {
   calculateCashFlow,
   calculateComparison,
 } from './ToolRegistry.js';
-import { calculateFinancialHealth } from './FinancialHealthService.js';
+import { calculateFinancialHealth } from './InsightEngine.js';
 
 // ─── MODULE TTLs (ms) ─────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import { getChatHistory, sendMessage, getAIInsights, getMonthlyReport, downloadMonthlyReport } from '../controllers/aiController.js';
+import { getChatHistory, sendMessage } from '../controllers/aiController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -28,8 +28,5 @@ const chatRateLimiter = rateLimit({
 
 router.get('/history', getChatHistory);
 router.post('/chat', chatRateLimiter, sendMessage);
-router.get('/insights', getAIInsights);
-router.get('/report', getMonthlyReport);
-router.get('/report/download', downloadMonthlyReport);
 
 export default router;
