@@ -12,7 +12,6 @@ const PAGE_TITLES = {
   '/budget':        { title: 'Budget',    subtitle: 'Set spending limits' },
   '/reports':       { title: 'Reports',   subtitle: 'Analyze your finances' },
   '/calendar':      { title: 'Bill Calendar', subtitle: 'Track upcoming obligations' },
-  '/ai-insights':   { title: 'AI Insights', subtitle: 'Smart savings recommendations' },
   '/achievements':  { title: 'Achievements', subtitle: 'Earn XP, level up, and unlock rewards' },
   '/profile':       { title: 'Profile',   subtitle: 'Manage your account' },
   '/loans':         { title: 'Loans & EMIs', subtitle: 'Audit credit and debt balance' },
