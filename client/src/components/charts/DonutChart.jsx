@@ -253,7 +253,7 @@ export default function DonutChart({
                 <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider truncate max-w-[80px]">
                   {String(hoveredData?.name || '')}
                 </span>
-                <span className="text-sm font-black text-slate-105 font-mono">
+                <span className="text-sm font-black text-slate-100 font-mono">
                   {currencySymbol}{Math.round(Number(hoveredData?.total ?? 0)).toLocaleString()}
                 </span>
                 <span className="text-[9px] text-primary-400 font-bold">

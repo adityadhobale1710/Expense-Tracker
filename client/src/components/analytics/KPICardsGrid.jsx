@@ -345,7 +345,7 @@ export default function KPICardsGrid({
         transition={{ duration: 0.35, delay: (idx % 6) * 0.05 }}
         onMouseEnter={() => setHoveredCard(card.id)}
         onMouseLeave={() => setHoveredCard(null)}
-        className="relative group flex flex-col justify-between p-5 bg-gradient-to-br bg-dark-800/80 border border-slate-700/50 rounded-3xl backdrop-blur-md transition-all shadow-lg hover:shadow-xl hover:border-slate-655"
+        className="relative group flex flex-col justify-between p-5 bg-gradient-to-br bg-dark-800/80 border border-slate-700/50 rounded-3xl backdrop-blur-md transition-all shadow-lg hover:shadow-xl hover:border-slate-600"
         style={{
           boxShadow: isHovered ? '0 12px 30px -10px rgba(99, 102, 241, 0.15)' : 'none'
         }}
@@ -423,7 +423,7 @@ export default function KPICardsGrid({
       <div className="flex justify-center">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-dark-850 hover:bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white text-xs font-bold rounded-2xl cursor-pointer transition-all shadow-md"
+          className="flex items-center gap-1.5 px-4 py-2 bg-dark-800 hover:bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white text-xs font-bold rounded-2xl cursor-pointer transition-all shadow-md"
         >
           <span>{expanded ? 'Collapse Summary Metrics' : 'Expand Advanced Metrics (12+)'}</span>
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

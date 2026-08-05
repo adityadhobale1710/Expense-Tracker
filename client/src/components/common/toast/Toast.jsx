@@ -10,7 +10,7 @@ import {
 
 const TOAST_CONFIGS = {
   success: {
-    iconColor: 'text-emerald-405',
+    iconColor: 'text-emerald-400',
     iconBg: 'bg-emerald-500/10 border-emerald-500/25',
     progressBg: 'bg-emerald-500',
     Icon: CheckCircle,

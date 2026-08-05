@@ -1198,14 +1198,14 @@ export default function BillCalendar() {
                       resetFormFields();
                       setIsAddModalOpen(true);
                     }}
-                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-primary-600/10 border border-primary-500/20 text-primary-400 hover:bg-primary-655/20 transition-all font-semibold text-xs gap-2 group cursor-pointer"
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-primary-600/10 border border-primary-500/20 text-primary-400 hover:bg-primary-600/20 transition-all font-semibold text-xs gap-2 group cursor-pointer"
                   >
                     <Plus size={18} className="group-hover:scale-110 transition-transform" />
                     Add Bill
                   </button>
                   <button
                     onClick={handleMarkAllPaidToday}
-                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-655/20 transition-all font-semibold text-xs gap-2 group cursor-pointer"
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600/20 transition-all font-semibold text-xs gap-2 group cursor-pointer"
                   >
                     <CheckCircle2 size={18} className="group-hover:scale-110 transition-transform" />
                     Pay Today
@@ -1537,7 +1537,7 @@ export default function BillCalendar() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-700/40 text-[10px] font-black text-slate-455 uppercase tracking-wider">
+                    <tr className="border-b border-slate-700/40 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                       <th className="py-3 px-4">Title</th>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4">Due Date</th>
@@ -1763,7 +1763,7 @@ export default function BillCalendar() {
                     Payment History Logs
                   </h4>
                   {selectedBill.paymentHistory && selectedBill.paymentHistory.length === 0 ? (
-                    <p className="text-xs text-slate-655 italic">No previous settlements registered</p>
+                    <p className="text-xs text-slate-600 italic">No previous settlements registered</p>
                   ) : (
                     <div className="space-y-2">
                       {selectedBill.paymentHistory?.map((hist, i) => (
@@ -1801,7 +1801,7 @@ export default function BillCalendar() {
                 {selectedBill.recurring && (
                   <button
                     onClick={() => handleSkipBill(selectedBill._id)}
-                    className="btn bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-650/30 text-xs w-full"
+                    className="btn bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-600/30 text-xs w-full"
                   >
                     <SkipForward size={14} /> Skip Cycle
                   </button>

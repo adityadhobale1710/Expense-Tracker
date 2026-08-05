@@ -69,7 +69,7 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
     if (amount === 0) return 'bg-dark-900/40 border border-slate-800/60';
     if (amount <= 1000) return 'bg-indigo-950/40 border border-indigo-900/40';
     if (amount <= 5000) return 'bg-indigo-800/40 border border-indigo-700/40';
-    if (amount <= 15000) return 'bg-indigo-600/50 border border-indigo-550';
+    if (amount <= 15000) return 'bg-indigo-600/50 border border-indigo-500';
     return 'bg-primary-500 border border-primary-400 shadow-[0_0_8px_rgba(99,102,241,0.25)]';
   };
 

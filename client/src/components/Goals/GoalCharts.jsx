@@ -16,7 +16,7 @@ import {
 export function SavingsGrowthChart({ data = [] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-72 bg-dark-850 border border-slate-700/35 rounded-2xl">
+      <div className="flex items-center justify-center h-72 bg-dark-800 border border-slate-700/35 rounded-2xl">
         <p className="text-xs font-semibold text-slate-500">Log contributions to map historical savings velocity</p>
       </div>
     );
@@ -78,7 +78,7 @@ export function SavingsGrowthChart({ data = [] }) {
 export function CategoryComparisonChart({ data = [] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-72 bg-dark-850 border border-slate-700/35 rounded-2xl">
+      <div className="flex items-center justify-center h-72 bg-dark-800 border border-slate-700/35 rounded-2xl">
         <p className="text-xs font-semibold text-slate-500">Create goals in multiple categories to map breakdowns</p>
       </div>
     );
@@ -128,7 +128,7 @@ export function CategoryComparisonChart({ data = [] }) {
 export function SavingsForecastChart({ data = [] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-72 bg-dark-850 border border-slate-700/35 rounded-2xl">
+      <div className="flex items-center justify-center h-72 bg-dark-800 border border-slate-700/35 rounded-2xl">
         <p className="text-xs font-semibold text-slate-500">Compile savings rate data to map projections</p>
       </div>
     );
