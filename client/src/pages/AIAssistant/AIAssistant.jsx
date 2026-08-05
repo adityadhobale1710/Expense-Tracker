@@ -346,15 +346,15 @@ export default function AIAssistant() {
   };
 
   const mdComponents = {
-    h1: ({ children }) => <h1 className="text-base font-bold text-slate-800 dark:text-slate-100 mt-4 mb-2">{children}</h1>,
-    h2: ({ children }) => <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-3 mb-1.5">{children}</h2>,
-    h3: ({ children }) => <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-2 mb-1">{children}</h3>,
-    p: ({ children }) => <p className="text-[15px] text-slate-700 dark:text-slate-300 leading-7 mb-2.5 last:mb-0 whitespace-pre-wrap break-words">{children}</p>,
-    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1.5 my-2 text-slate-700 dark:text-slate-300 text-[15px] leading-7">{children}</ul>,
-    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5 my-2 text-slate-700 dark:text-slate-300 text-[15px] leading-7">{children}</ol>,
-    li: ({ children }) => <li className="text-slate-700 dark:text-slate-300 text-[15px] leading-7">{children}</li>,
+    h1: ({ children }) => <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100 mt-6 mb-4">{children}</h1>,
+    h2: ({ children }) => <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-100 mt-5 mb-3">{children}</h2>,
+    h3: ({ children }) => <h3 className="text-base font-bold tracking-tight text-slate-200 mt-4 mb-2">{children}</h3>,
+    p: ({ children }) => <p className="text-[15px] text-slate-200 leading-8 font-normal mb-4 last:mb-0 whitespace-pre-wrap break-words">{children}</p>,
+    ul: ({ children }) => <ul className="list-disc pl-5 space-y-2 my-4 text-slate-200 text-[15px] leading-8">{children}</ul>,
+    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-2 my-4 text-slate-200 text-[15px] leading-8">{children}</ol>,
+    li: ({ children }) => <li className="text-slate-200 text-[15px] leading-8">{children}</li>,
     blockquote: ({ children }) => (
-      <blockquote className="border-l-4 border-primary-500 bg-slate-50 dark:bg-slate-800/40 pl-4 py-2 my-2 rounded-r-lg italic text-slate-500 dark:text-slate-400">
+      <blockquote className="border-l-[3px] border-slate-500 bg-dark-900/50 pl-4 py-3 my-4 rounded-r-lg italic text-slate-400">
         {children}
       </blockquote>
     ),
@@ -362,29 +362,29 @@ export default function AIAssistant() {
       const content = String(children).replace(/\n$/, '');
       const isInline = !className && !content.includes('\n');
       return isInline ? (
-        <code className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1.5 py-0.5 text-[11px] text-primary-600 dark:text-primary-400 font-mono" {...props}>
+        <code className="bg-dark-900 px-1.5 py-0.5 rounded-full text-[13px] text-slate-100 font-mono" {...props}>
           {content}
         </code>
       ) : (
-        <div className="my-2.5 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 max-w-full">
-          <code className={`block text-xs text-primary-600 dark:text-primary-400 font-mono leading-relaxed whitespace-pre ${className || ''}`} {...props}>
+        <div className="my-4 overflow-x-auto rounded-[16px] border border-slate-700/60 bg-dark-900 p-4 max-w-full">
+          <code className={`block text-sm text-slate-200 font-mono leading-relaxed whitespace-pre ${className || ''}`} {...props}>
             {content}
           </code>
         </div>
       );
     },
     table: ({ children }) => (
-      <div className="overflow-x-auto my-3 border border-slate-200 dark:border-slate-700 rounded-xl">
-        <table className="w-full text-left border-collapse text-xs text-slate-600 dark:text-slate-300">{children}</table>
+      <div className="overflow-x-auto my-4 border border-slate-700/60 rounded-[12px] bg-dark-800 shadow-sm">
+        <table className="w-full text-left border-collapse text-sm text-slate-200">{children}</table>
       </div>
     ),
-    thead: ({ children }) => <thead className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold uppercase">{children}</thead>,
-    tbody: ({ children }) => <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">{children}</tbody>,
-    tr: ({ children }) => <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">{children}</tr>,
-    th: ({ children }) => <th className="px-3 py-2 font-semibold">{children}</th>,
-    td: ({ children }) => <td className="px-3 py-2">{children}</td>,
+    thead: ({ children }) => <thead className="bg-dark-900/70 border-b border-slate-700/60 text-slate-300 font-semibold">{children}</thead>,
+    tbody: ({ children }) => <tbody className="divide-y divide-slate-700/40">{children}</tbody>,
+    tr: ({ children }) => <tr className="hover:bg-slate-700/10 transition-colors">{children}</tr>,
+    th: ({ children }) => <th className="px-4 py-3 font-semibold">{children}</th>,
+    td: ({ children }) => <td className="px-4 py-3">{children}</td>,
     a: ({ href, children }) => (
-      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:text-primary-500 underline font-medium transition-colors">
+      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline font-medium transition-colors">
         {children}
       </a>
     ),
@@ -489,7 +489,7 @@ export default function AIAssistant() {
         </div>
 
         {/* Chat Area Container */}
-        <div className="flex-1 flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-dark-800 relative shadow-sm rounded-2xl">
+        <div className="flex-1 flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700/60 bg-[#F7F7F8] dark:bg-dark-900 relative shadow-sm rounded-2xl">
           {/* Loading History Skeleton */}
           {fetchLoading ? (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4">
@@ -532,7 +532,7 @@ export default function AIAssistant() {
                           >
                             {/* Bot icon avatar */}
                             {!isUser && (
-                              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs shadow-sm flex-shrink-0 text-slate-700 dark:text-slate-300">
+                              <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs shadow-sm flex-shrink-0 text-slate-700 dark:text-slate-300">
                                 🤖
                               </div>
                             )}
@@ -547,28 +547,31 @@ export default function AIAssistant() {
                               </div>
                             ) : (
                               /* Assistant Bubble (Left) - ChatGPT Card Style */
-                              <div className="flex flex-col items-start max-w-[95%] md:max-w-[85%] group">
-                                <div className="rounded-2xl px-5 py-4 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 shadow-sm relative flex flex-col w-full">
-                                  <div className="text-[15px] select-text whitespace-pre-wrap break-words leading-relaxed text-slate-800 dark:text-slate-100">
+                              <div className="flex flex-col items-start max-w-4xl w-full group relative">
+                                <div className="rounded-3xl px-6 py-5 bg-dark-800 border border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-700 transition-all duration-200 relative flex flex-col w-full">
+                                  
+                                  {/* Copy Button (Top Right absolute) */}
+                                  <button
+                                    onClick={() => handleCopyText(msg._id || index, msg.content)}
+                                    className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-dark-900 cursor-pointer focus:opacity-100 focus:outline-none"
+                                    aria-label="Copy AI response"
+                                    title="Copy Response"
+                                  >
+                                    {copiedId === (msg._id || index) ? (
+                                      <Check className="w-4 h-4 text-primary-500" />
+                                    ) : (
+                                      <Copy className="w-4 h-4" />
+                                    )}
+                                  </button>
+
+                                  <div className="text-[15px] select-text whitespace-pre-wrap break-words leading-8 text-slate-100">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
                                       {msg.content}
                                     </ReactMarkdown>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3 mt-1.5 ml-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                                  <span>{timeStr}</span>
-                                  <button
-                                    onClick={() => handleCopyText(msg._id || index, msg.content)}
-                                    className="opacity-0 group-hover:opacity-100 transition-all duration-150 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700/50 cursor-pointer focus:opacity-100 focus:outline-none"
-                                    aria-label="Copy AI response"
-                                    title="Copy Response"
-                                  >
-                                    {copiedId === (msg._id || index) ? (
-                                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                    ) : (
-                                      <Copy className="w-3.5 h-3.5" />
-                                    )}
-                                  </button>
+                                <div className="mt-2 ml-2 text-[11px] text-slate-400">
+                                  {timeStr}
                                 </div>
                               </div>
                             )}
