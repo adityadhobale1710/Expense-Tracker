@@ -77,8 +77,11 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // If offline and navigating to route pages, fallback to main SPA document
           if (request.mode === 'navigate') {
-            return caches.match('/index.html');
+            return caches.match('/index.html').then(response => {
+              return response || Response.error();
+            });
           }
+          return Response.error();
         });
     })
   );
