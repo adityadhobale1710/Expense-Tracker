@@ -150,6 +150,14 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to the Expense Tracker API! 🚀',
+    status: 'Running smoothly'
+  });
+});
+
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
