@@ -64,7 +64,7 @@ export default function FinancialHealthGauge({
 
   // Health assessment
   let status = 'Poor';
-  let badgeColor = 'text-rose-400 bg-rose-500/10 border-rose-550/20';
+  let badgeColor = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
   let gaugeColor = '#f43f5e'; // rose-500
   let icon = <ShieldAlert className="text-rose-400" size={18} />;
 
@@ -75,12 +75,12 @@ export default function FinancialHealthGauge({
     icon = <ShieldCheck className="text-emerald-400" size={18} />;
   } else if (score >= 70) {
     status = 'Good';
-    badgeColor = 'text-blue-450 bg-blue-500/10 border-blue-500/20';
+    badgeColor = 'text-blue-400 bg-blue-500/10 border-blue-500/20';
     gaugeColor = '#3b82f6'; // blue-500
-    icon = <ShieldCheck className="text-blue-450" size={18} />;
+    icon = <ShieldCheck className="text-blue-400" size={18} />;
   } else if (score >= 50) {
     status = 'Average';
-    badgeColor = 'text-amber-450 bg-amber-500/10 border-amber-500/20';
+    badgeColor = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
     gaugeColor = '#f59e0b'; // amber-500
     icon = <Shield className="text-amber-500" size={18} />;
   }

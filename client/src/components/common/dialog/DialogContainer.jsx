@@ -43,7 +43,7 @@ const VARIANT_CONFIGS = {
     bg: 'bg-slate-800/10 border-slate-700/20',
     iconColor: 'text-indigo-400',
     iconBg: 'bg-indigo-500/10 border border-indigo-500/20',
-    btnBg: 'bg-indigo-600 hover:bg-indigo-550',
+    btnBg: 'bg-indigo-600 hover:bg-indigo-500',
     defaultIcon: Info,
   },
 };

@@ -473,10 +473,10 @@ export default function Dashboard() {
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300 group">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-450">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
                       <BarChart2 size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Weekly Spending</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Weekly Spending</h3>
                   </div>
                 </div>
                 <div className="pt-3 pb-1">
@@ -501,7 +501,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                       <TrendingUp size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Monthly Spending</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Monthly Spending</h3>
                   </div>
                 </div>
                 <div className="pt-3 pb-1">
@@ -543,7 +543,7 @@ export default function Dashboard() {
                   <div className="mt-2.5">
                     <div className="w-full bg-slate-700/30 h-2 rounded-full overflow-hidden">
                       <div 
-                        className="bg-indigo-550 h-full rounded-full transition-all duration-500" 
+                        className="bg-indigo-500 h-full rounded-full transition-all duration-500" 
                         style={{ width: `${budgetProgressPct}%` }}
                       ></div>
                     </div>
@@ -572,7 +572,7 @@ export default function Dashboard() {
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-450">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
                       <Wallet size={16} />
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Wallet Summary</h3>
@@ -641,7 +641,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                       <Award size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Goals Progress</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Goals Progress</h3>
                   </div>
                   <Link to="/goals" className="text-[10px] font-bold text-primary-400 hover:underline flex items-center gap-0.5">
                     View All <ChevronRight size={10} />
@@ -675,7 +675,7 @@ export default function Dashboard() {
                       </div>
                       <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl">
                         <span className="text-slate-500 block text-[8px] font-bold uppercase">Deadline</span>
-                        <span className="text-amber-450 font-bold block">{daysLeft > 0 ? `${daysLeft}d left` : 'Expired'}</span>
+                        <span className="text-amber-400 font-bold block">{daysLeft > 0 ? `${daysLeft}d left` : 'Expired'}</span>
                       </div>
                     </div>
 
@@ -713,7 +713,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-450">
                       <ArrowUpRight size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Largest Expense</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Largest Expense</h3>
                   </div>
                   <Link to="/expenses" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     View Details <ChevronRight size={10} />
@@ -789,7 +789,7 @@ export default function Dashboard() {
                       <span className="text-[#5B4CF0] font-black">{categoryShare}% spent</span>
                     </div>
                     <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-indigo-550 h-full rounded-full" style={{ width: `${categoryShare}%` }} />
+                      <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${categoryShare}%` }} />
                     </div>
                   </div>
 
@@ -812,7 +812,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                       <Activity size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Health Score</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Health Score</h3>
                   </div>
                   <Link to="/reports" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     View Details <ChevronRight size={10} />
@@ -905,7 +905,7 @@ export default function Dashboard() {
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-450">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
                       <Clock size={16} />
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Upcoming Obligations</h3>
@@ -952,7 +952,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-450">
                       <Bell size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Recent Notifications</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Recent Notifications</h3>
                   </div>
                 </div>
                 <div className="pt-2.5 pb-1 space-y-1.5">
@@ -981,7 +981,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="pt-2.5 pb-1 space-y-3">
-                  <div className="p-2.5 bg-indigo-550/5 border border-indigo-500/10 rounded-xl flex gap-3">
+                  <div className="p-2.5 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex gap-3">
                     <span className="text-xl flex-shrink-0">💡</span>
                     <div>
                       <h4 className="text-xs font-bold text-slate-200">{tipOfTheDay?.title}</h4>

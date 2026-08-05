@@ -509,13 +509,13 @@ export default function Profile() {
                   {/* Result Panel */}
                   <div className="p-3 bg-dark-900/50 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs transition-all">
                     <div>
-                      <p className="text-[10px] text-slate-505 uppercase tracking-wider font-semibold">Converted Amount</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Converted Amount</p>
                       <p className="text-base font-extrabold text-slate-200 mt-1">
                         {CURRENCIES.find(c => c.code === toCurr)?.symbol || ''} {getConvertedVal()} <span className="text-[10px] text-slate-400 font-normal">{toCurr}</span>
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-slate-505 uppercase tracking-wider font-semibold">Exchange Rate</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Exchange Rate</p>
                       <p className="text-xs font-bold text-primary-400 mt-1">
                         1 {fromCurr} = {getActiveRate()} {toCurr}
                       </p>

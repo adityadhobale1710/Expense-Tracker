@@ -204,7 +204,7 @@ export default function FilterBar({ timeframe, setTimeframe, startDate, setStart
               </div>
               <button
                 onClick={() => setShowDatePicker(false)}
-                className="w-full py-2 bg-gradient-to-r from-primary-600 to-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-primary-550/10 cursor-pointer"
+                className="w-full py-2 bg-gradient-to-r from-primary-600 to-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-primary-500/10 cursor-pointer"
               >
                 Apply Date Range
               </button>

@@ -375,7 +375,7 @@ export default function TransactionTable({
             <button
               onClick={handleBulkDelete}
               disabled={bulkDeleting}
-              className="p-1.5 bg-rose-600 hover:bg-rose-550 disabled:opacity-40 text-white rounded-xl cursor-pointer flex items-center justify-center transition-all hover:shadow-lg active:scale-95"
+              className="p-1.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white rounded-xl cursor-pointer flex items-center justify-center transition-all hover:shadow-lg active:scale-95"
             >
               <Trash2 size={13} />
             </button>
