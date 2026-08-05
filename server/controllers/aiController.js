@@ -75,7 +75,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
   );
 
   // ── 3. Build context (intent-driven, per-module cache) ────────────────────
-  const contextResult = await buildContext(userId, detectedIntents, chat);
+  const contextResult = await buildContext(userId, detectedIntents, chat, trimmedMessage);
+
 
   logger.info(
     `[AI Controller] Context built. ` +
@@ -128,3 +129,20 @@ export const sendMessage = asyncHandler(async (req, res) => {
     aiMessage: chat.messages[chat.messages.length - 1],
   });
 });
+
+// @desc    Get AI Advisor financial insights
+// @route   GET /api/ai/insights
+export const getAIInsights = asyncHandler(async (req, res) => {
+  const { generateInsights } = await import('../services/ai/InsightEngine.js');
+  const insights = await generateInsights({ userId: req.user._id });
+  sendSuccess(res, 200, 'AI insights fetched successfully', insights);
+});
+
+// @desc    Get Dynamic AI Monthly Report
+// @route   GET /api/ai/report
+export const getMonthlyReport = asyncHandler(async (req, res) => {
+  const { generateMonthlyReport } = await import('../services/ai/MonthlyReportGenerator.js');
+  const report = await generateMonthlyReport({ userId: req.user._id });
+  sendSuccess(res, 200, 'AI monthly report generated successfully', report);
+});
+

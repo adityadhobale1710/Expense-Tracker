@@ -507,12 +507,14 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
   // Update achievements
   await updateSavingsAchievements(req.user._id);
 
+  invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
   sendSuccess(res, 200, 'Contribution saved successfully', {
     goal,
     contribution,
     differenceReturned: amount - actualContribution // return cap residue if any
   });
 });
+
 
 // @desc    Get AI Insights for a Goal
 // @route   GET /api/goals/:id/insights

@@ -81,6 +81,15 @@ export default function Dashboard() {
   const [goals, setGoals] = useState([]);
   const [dashWallets, setDashWallets] = useState([]);
 
+  // AI Financial Advisor states (dynamic fallback)
+  const [healthScore, setHealthScore] = useState(82);
+  const [healthGrade, setHealthGrade] = useState('Excellent');
+  const [financialHealth, setFinancialHealth] = useState(null);
+  const [tipOfTheDay, setTipOfTheDay] = useState({
+    title: 'Cut unused streaming services',
+    text: 'Canceling Spotify could save you ₹1,428/year. Redirecting it to gold funds yields better CAGR.'
+  });
+
   const loadDashboard = useCallback(async () => {
     try {
       const payload = await fetchDashboardData();
@@ -96,9 +105,22 @@ export default function Dashboard() {
         setGoals(payload.goals || []);
         setDashWallets(payload.wallets || []);
         setRecentNotifications(payload.recentNotifications || []);
+        if (payload.healthScore !== undefined && payload.healthScore !== null) {
+          setHealthScore(payload.healthScore);
+        }
+        if (payload.grade !== undefined && payload.grade !== null) {
+          setHealthGrade(payload.grade);
+        }
+        if (payload.financialHealth !== undefined && payload.financialHealth !== null) {
+          setFinancialHealth(payload.financialHealth);
+        }
+        if (payload.tipOfTheDay !== undefined && payload.tipOfTheDay !== null) {
+          setTipOfTheDay(payload.tipOfTheDay);
+        }
       }
     } catch {}
   }, [fetchDashboardData]);
+
 
   // Widgets list
   const widgets = [
@@ -801,11 +823,11 @@ export default function Dashboard() {
                     <div className="relative w-20 h-20 flex items-center justify-center">
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="40" className="stroke-slate-800" strokeWidth="8" fill="transparent" />
-                        <circle cx="50" cy="50" r="40" className="stroke-indigo-500" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * 82) / 100} strokeLinecap="round" />
+                        <circle cx="50" cy="50" r="40" className="stroke-indigo-500" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * healthScore) / 100} strokeLinecap="round" />
                       </svg>
                       <div className="absolute flex flex-col items-center">
-                        <span className="text-lg font-black text-slate-100">82</span>
-                        <span className="text-[7px] text-emerald-400 font-bold uppercase tracking-wider">Excellent</span>
+                        <span className="text-lg font-black text-slate-100">{healthScore}</span>
+                        <span className="text-[7px] text-emerald-400 font-bold uppercase tracking-wider">{healthGrade}</span>
                       </div>
                     </div>
                   </div>
@@ -813,21 +835,38 @@ export default function Dashboard() {
                   <div className="col-span-7 space-y-1.5 text-[10px] font-bold">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Savings Index:</span>
-                      <span className="text-slate-200">75%</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.metrics?.savingsRate !== undefined
+                          ? `${Math.round(financialHealth.metricBreakdown.metrics.savingsRate)}%`
+                          : '75%'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Budget Score:</span>
-                      <span className="text-slate-200">88%</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.budgetComplianceScore !== undefined
+                          ? `${Math.round((financialHealth.metricBreakdown.budgetComplianceScore / 25) * 100)}%`
+                          : '88%'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Debt Score:</span>
-                      <span className="text-slate-200">90%</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.debtScore !== undefined
+                          ? `${Math.round((financialHealth.metricBreakdown.debtScore / 20) * 100)}%`
+                          : '90%'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Investment:</span>
-                      <span className="text-slate-200">80%</span>
+                      <span className="text-slate-400">Emergency Fund:</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.emergencyFundScore !== undefined
+                          ? `${Math.round((financialHealth.metricBreakdown.emergencyFundScore / 5) * 100)}%`
+                          : '80%'}
+                      </span>
                     </div>
                   </div>
+
                 </div>
               </div>
             );
@@ -945,12 +984,13 @@ export default function Dashboard() {
                   <div className="p-2.5 bg-indigo-550/5 border border-indigo-500/10 rounded-xl flex gap-3">
                     <span className="text-xl flex-shrink-0">💡</span>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200">Cut unused streaming services</h4>
+                      <h4 className="text-xs font-bold text-slate-200">{tipOfTheDay?.title}</h4>
                       <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
-                        Canceling Spotify could save you ₹1,428/year. Redirecting it to gold funds yields better CAGR.
+                        {tipOfTheDay?.text}
                       </p>
                     </div>
                   </div>
+
                 </div>
               </div>
             );

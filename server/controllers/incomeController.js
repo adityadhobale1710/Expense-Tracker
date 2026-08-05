@@ -134,8 +134,10 @@ export const updateIncome = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   );
 
+  invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 200, 'Income updated', income);
 });
+
 
 // @desc  Delete income
 // @route DELETE /api/income/:id
