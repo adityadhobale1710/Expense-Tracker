@@ -129,7 +129,7 @@ export const generateMonthlyReport = async ({
     achievements.push(`Maintained a healthy savings rate of ${savingsRate.toFixed(1)}%, beating the recommended 20% limit.`);
   }
   const exceededCount = budgetPerformance.filter(b => b.status === 'Exceeded').length;
-  if (exceededCount === 0 && budgets.length > 0) {
+  if (exceededCount === 0 && activeBudgets.length > 0) {
     achievements.push('Stayed under budget in all configured category limits.');
   } else if (exceededCount > 0) {
     improvements.push(`Exceeded budgets in ${exceededCount} categories. Review category limits.`);
@@ -163,7 +163,7 @@ MONTHLY PERFORMANCE SUMMARY:
 - Total Expenses: ₹${expenseSummary.toLocaleString('en-IN')}
 - Net Savings: ₹${savings.toLocaleString('en-IN')} (Rate: ${savingsRate.toFixed(1)}%)
 - Health Index Score: ${health.score}/100 (${health.grade})
-- Exceeded Budgets: ${exceededCount}/${budgets.length}
+- Exceeded Budgets: ${exceededCount}/${activeBudgets.length}
 - Achievements: ${achievements.join(' ')}
 - Improvements: ${improvements.join(' ')}
 - Active Risks: ${risks.slice(0, 2).map(r => r.title).join(', ')}

@@ -2,7 +2,14 @@ import asyncHandler from 'express-async-handler';
 import FinancialDataService from '../services/financial/FinancialDataService.js';
 import Category from '../models/Category.js';
 import Notification from '../models/Notification.js';
+import AIChat from '../models/AIChat.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import logger from '../utils/logger.js';
+import {
+  calculateMonthlyExpense,
+  calculateMonthlyIncome,
+  calculateSavings,
+} from '../services/ai/ToolRegistry.js';
 
 // @desc    Get aggregated dashboard data
 // @route   GET /api/dashboard
@@ -30,29 +37,33 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     dateRange
   } = snapshot;
 
-  // Fallback aggregations (for current month)
-  let totalIncome = 0;
-  let totalExpense = 0;
-  
-  incomes.forEach(i => {
-    if (new Date(i.date) >= dateRange.startDate && new Date(i.date) <= dateRange.endDate) {
-      totalIncome += i.amount;
-    }
-  });
-  
-  expenses.forEach(e => {
-    if (new Date(e.date) >= dateRange.startDate && new Date(e.date) <= dateRange.endDate) {
-      totalExpense += e.amount;
-    }
-  });
+  // Compute summary metrics using ToolRegistry (M4: single source of truth for totals)
+  // Filter to the snapshot's date range before calculating
+  const rangedExpenses = expenses.filter(
+    (e) => new Date(e.date) >= dateRange.startDate && new Date(e.date) <= dateRange.endDate
+  );
+  const rangedIncomes = incomes.filter(
+    (i) => new Date(i.date) >= dateRange.startDate && new Date(i.date) <= dateRange.endDate
+  );
 
-  // Compute summary metrics
-  const balance = totalIncome - totalExpense;
-  const savingsRate = totalIncome > 0 ? Math.round((balance / totalIncome) * 100) : 0;
+  const expSummary = calculateMonthlyExpense(rangedExpenses);
+  const incSummary = calculateMonthlyIncome(rangedIncomes);
+  const savSummary = calculateSavings(incSummary.total, expSummary.total);
+
+  const totalIncome = incSummary.total;
+  const totalExpense = expSummary.total;
+  const balance = savSummary.amount;
+  const savingsRate = totalIncome > 0 ? Math.round(savSummary.rate) : 0;
 
   // Run AI Financial Advisor insights calculation using pre-fetched collections (zero DB duplicate queries)
+  // M7: load (or upsert) the chat document so InsightEngine can read/write the MongoDB insights cache
   let insights = null;
   try {
+    const chat = await AIChat.findOneAndUpdate(
+      { user: userId },
+      {},
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
     const { generateInsights } = await import('../services/ai/InsightEngine.js');
     insights = await generateInsights({
       wallets,
@@ -62,7 +73,8 @@ export const getDashboardData = asyncHandler(async (req, res) => {
       goals,
       loans,
       subscriptions,
-      userId
+      userId,
+      chat,
     });
   } catch (err) {
     logger.warn(`Failed to generate AI dashboard insights: ${err.message}`);

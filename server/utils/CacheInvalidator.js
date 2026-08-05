@@ -46,10 +46,12 @@ export const invalidateAICache = async (userId, modules) => {
     const chat = await AIChat.findOne({ user: userId });
     if (!chat) return; // No chat document yet — nothing to invalidate
 
-    invalidateModules(chat, modules);
+    // Flatten modules to standard array of strings to resolve nested array parameters
+    const flatModules = Array.isArray(modules) ? modules.flat(Infinity) : [modules];
+    invalidateModules(chat, flatModules);
     await chat.save();
 
-    logger.debug(`[CacheInvalidator] Invalidated [${modules.join(', ')}] for user ${userId}`);
+    logger.debug(`[CacheInvalidator] Invalidated [${flatModules.join(', ')}] for user ${userId}`);
   } catch (err) {
     // Non-critical — log and continue. The TTL will expire naturally.
     logger.warn(`[CacheInvalidator] Failed to invalidate cache for user ${userId}: ${err.message}`);

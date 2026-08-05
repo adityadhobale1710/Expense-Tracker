@@ -4,21 +4,25 @@ import { analyzeTrends } from './TrendAnalyzer.js';
 import { generateRecommendations } from './RecommendationEngine.js';
 import { generateAIResponse } from './GeminiService.js';
 import { collectFinancialData } from './DataCollector.js';
+import FinancialDataService from '../financial/FinancialDataService.js';
+import AIChat from '../../models/AIChat.js';
 import logger from '../../utils/logger.js';
 
-// Local memory cache to optimize performance and minimize Gemini API hits
-const insightsCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// M7: TTL constant kept identical to the old in-memory Map so behavior is unchanged.
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes (in ms)
 
 /**
- * Invalidate the memory cache for a specific user.
- * @param {string} userId 
+ * Invalidate the MongoDB-backed insights cache for a specific user.
+ * @param {string} userId
  */
-export const invalidateInsightsCache = (userId) => {
+export const invalidateInsightsCache = async (userId) => {
   if (!userId) return;
-  const key = userId.toString();
-  insightsCache.delete(key);
-  logger.info(`[InsightEngine] Invalidated memory cache for user: ${userId}`);
+  // M7: atomic update — only touches insightsCache, no risk of clobbering moduleCache
+  await AIChat.updateOne(
+    { user: userId },
+    { $set: { insightsCache: {} } }
+  );
+  logger.info(`[InsightEngine] Invalidated DB insights cache for user: ${userId}`);
 };
 
 export const generateInsights = async ({
@@ -29,16 +33,29 @@ export const generateInsights = async ({
   goals,
   loans,
   subscriptions,
-  userId
+  userId,
+  chat: chatArg,    // optional — if provided, skips the AIChat lookup
 } = {}) => {
   const startTime = Date.now();
-  const cacheKey = userId ? userId.toString() : '';
 
-  if (cacheKey && insightsCache.has(cacheKey)) {
-    const cached = insightsCache.get(cacheKey);
-    if (Date.now() - cached.timestamp < CACHE_TTL) {
-      logger.info(`[InsightEngine] Cache HIT for user: ${userId}`);
-      return cached.data;
+  // M7: load (or upsert) the AIChat document for cache read/write.
+  // findOneAndUpdate with upsert is atomic — avoids race between two concurrent
+  // first-ever requests both hitting AIChat.create() and getting a duplicate-key error.
+  let chat = chatArg;
+  if (!chat && userId) {
+    chat = await AIChat.findOneAndUpdate(
+      { user: userId },
+      {},
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  }
+
+  // M7: check MongoDB-persisted cache (timestamp stored as Number ms, same as old Map)
+  if (chat && chat.insightsCache && chat.insightsCache.timestamp) {
+    const age = Date.now() - chat.insightsCache.timestamp; // both are Number ms
+    if (age < CACHE_TTL && chat.insightsCache.data) {
+      logger.info(`[InsightEngine] Cache HIT for user: ${userId} (age: ${Math.round(age / 1000)}s)`);
+      return chat.insightsCache.data;
     }
   }
 
@@ -72,6 +89,11 @@ export const generateInsights = async ({
     activeSubscriptions = collected.subscriptions;
   }
 
+  // M5: fetch 6-month trend window once via FinancialDataService, pass to analyzeTrends
+  // to avoid a duplicate DB query inside TrendAnalyzer.
+  // The dashboardController only has the current-month snapshot, so we always fetch here.
+  const trendWindow = await FinancialDataService.getTrendWindow(userId, 6);
+
   // 1. Calculate all structured indices in parallel
   const health = calculateFinancialHealth({
     wallets: activeWallets,
@@ -100,7 +122,8 @@ export const generateInsights = async ({
     loans: activeLoans,
     subscriptions: activeSubscriptions
   });
-  const trends = await analyzeTrends(userId);
+  // M5: pass pre-fetched data so TrendAnalyzer skips its own DB query
+  const trends = await analyzeTrends(userId, trendWindow);
 
 
   // 2. Extract key metrics for summary highlights
@@ -199,8 +222,24 @@ FINANCIAL DATA MATRIX:
     generatedAt: new Date()
   };
 
-  if (cacheKey) {
-    insightsCache.set(cacheKey, { timestamp: Date.now(), data: result });
+  // M7: write to AIChat document using atomic $set so concurrent moduleCache saves
+  // (from ContextBuilder) cannot clobber this write and vice-versa.
+  // Timestamp stored as Number (ms) — same as the old in-memory Map — so the
+  // Date.now() - cached.timestamp comparison above stays correct.
+  if (chat && userId) {
+    try {
+      await AIChat.updateOne(
+        { user: userId },
+        {
+          $set: {
+            'insightsCache.data': result,
+            'insightsCache.timestamp': Date.now(),
+          },
+        }
+      );
+    } catch (cacheErr) {
+      logger.warn(`[InsightEngine] Failed to persist insights cache: ${cacheErr.message}`);
+    }
   }
 
   return result;

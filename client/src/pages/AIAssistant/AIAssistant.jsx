@@ -14,9 +14,11 @@ export default function AIAssistant() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
   const [fetchLoading, setFetchLoading] = useState(true);
+  const [aiModel, setAiModel] = useState('gemini-2.5-flash-lite'); // L5: updated from response
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const abortControllerRef = useRef(null); // L4: holds the active AbortController
 
   // Suggested Prompts list
   const suggestedPrompts = [
@@ -45,6 +47,13 @@ export default function AIAssistant() {
       }
     };
     fetchHistory();
+
+    // L4: abort any in-flight chat request when the component unmounts
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   // Handle scroll to bottom when messages or loading state changes
@@ -88,9 +97,18 @@ export default function AIAssistant() {
 
     setMessages((prev) => [...prev, tempUserMsg]);
 
+    // L4: create a fresh AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const res = await api.post('/ai/chat', { message: text }, { timeout: 45000 });
-      const { userMessage, aiMessage } = res.data.data;
+      const res = await api.post('/ai/chat', { message: text }, { timeout: 45000, signal: controller.signal });
+      const { userMessage, aiMessage, meta } = res.data.data;
+
+      // L5: update footer model label from the response if provided
+      if (meta?.model) {
+        setAiModel(meta.model);
+      }
 
       setMessages((prev) => {
         // Find our optimistic message and replace it, then append the reply
@@ -104,6 +122,10 @@ export default function AIAssistant() {
         return [...newMsgs, aiMessage];
       });
     } catch (err) {
+      // L4: silently ignore abort errors — caused by navigation/unmount, not a real error
+      if (err.name === 'AbortError' || err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return;
+      }
       console.error('AI chat error:', err);
       // Retrieve friendly message from backend or use local standard fallback
       const friendlyErr = err.response?.data?.message || err.message || 'Unable to connect to the Gemini service. Please check your internet connection.';
@@ -389,7 +411,7 @@ export default function AIAssistant() {
               </div>
               <div className="flex justify-between items-center mt-2 px-1 text-[10px] text-slate-500">
                 <span>Enter to send, Shift + Enter for new line.</span>
-                <span>Powered by Gemini 2.5 Flash</span>
+                <span>Powered by {aiModel}</span>
               </div>
             </div>
           </>
