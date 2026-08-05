@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { to: '/split-bills', icon: '/split-bill.png', label: 'Split Bills' },
   { to: '/family', icon: '👪', label: 'Family Sharing' },
   { to: '/calendar', icon: '📅', label: 'Bill Calendar' },
-  { to: '/ai-insights', icon: '💡', label: 'AI Insights', badge: 'Soon' },
+  { to: '/ai-insights', icon: '💡', label: 'AI Insights' },
   { to: '/ai-assistant', icon: '🤖', label: 'AI Assistant' },
   { to: '/analytics-pro', icon: '📊', label: 'Analytics Pro' },
   { to: '/achievements', icon: '🏆', label: 'Achievements' },

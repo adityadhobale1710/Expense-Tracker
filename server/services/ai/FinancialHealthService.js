@@ -5,11 +5,12 @@
  *
  * Weightings:
  *  - Savings Rate: 25%
- *  - Budget Compliance: 25%
- *  - Debt-to-Income Ratio: 20%
+ *  - Budget Adherence: 20%
  *  - Goal Progress: 15%
- *  - Subscription Burden: 10%
- *  - Emergency Fund Strength: 5%
+ *  - Debt Ratio: 15%
+ *  - Cash Flow: 10%
+ *  - Emergency Fund: 10%
+ *  - Income Stability: 5%
  *
  * Returns: { score, grade, strengths, weaknesses, improvementAreas, metricBreakdown }
  */
@@ -22,20 +23,21 @@ import {
   calculateBudgetUsage,
   calculateGoalProgress,
   calculateLoanSummary,
-  calculateSubscriptionCost,
 } from './ToolRegistry.js';
 import logger from '../../utils/logger.js';
 
-export const calculateFinancialHealth = ({
-  wallets = [],
-  budgets = [],
-  expenses = [],
-  incomes = [],
-  goals = [],
-  loans = [],
-  subscriptions = [],
-} = {}) => {
+export const calculateFinancialHealth = (snapshot = {}) => {
   const startTime = Date.now();
+
+  const {
+    wallets = [],
+    budgets = [],
+    expenses = [],
+    incomes = [],
+    goals = [],
+    loans = [],
+    historicalTrends = { incomes: [], expenses: [] }
+  } = snapshot;
 
   // 1. Core Calculations via ToolRegistry
   const walletSummary = calculateWalletBalance(wallets);
@@ -44,7 +46,6 @@ export const calculateFinancialHealth = ({
   const budgetSummary = calculateBudgetUsage(budgets);
   const goalSummary = calculateGoalProgress(goals);
   const loanSummary = calculateLoanSummary(loans);
-  const subSummary = calculateSubscriptionCost(subscriptions);
   const savings = calculateSavings(incomeSummary.total, expenseSummary.total);
 
   // 2. Score Component: Savings Rate (25 Points)
@@ -54,29 +55,29 @@ export const calculateFinancialHealth = ({
     savingsRateScore = Math.min(25, (savings.rate / 20) * 25);
   }
 
-  // 3. Score Component: Budget Compliance (25 Points)
-  // Ideal: 0 exceeded budgets gets 25 points. Deducts proportionally based on exceeded ratio.
-  let budgetComplianceScore = 25;
+  // 3. Score Component: Budget Adherence (20 Points)
+  // Ideal: 0 exceeded budgets gets 20 points. Deducts proportionally based on exceeded ratio.
+  let budgetComplianceScore = 20;
   if (budgetSummary.budgets.length > 0) {
     const exceededCount = budgetSummary.exceededCount || 0;
-    budgetComplianceScore = Math.max(0, (1 - exceededCount / budgetSummary.budgets.length) * 25);
+    budgetComplianceScore = Math.max(0, (1 - exceededCount / budgetSummary.budgets.length) * 20);
   }
 
-  // 4. Score Component: Debt-to-Income Ratio (20 Points)
-  // EMI ratio: ideal is 0. Under 20% gets 16-20 points. 20-36% gets 10-15. Over 50% gets 0.
-  let debtScore = 20;
+  // 4. Score Component: Debt Ratio (15 Points)
+  // EMI ratio: ideal is 0. Under 20% gets 12-15 points. 20-36% gets 6-10. Over 50% gets 0.
+  let debtScore = 15;
   const totalMonthlyEMI = loanSummary.totalMonthlyEMI || 0;
   const monthlyIncome = incomeSummary.total || 0;
   const emiRatio = monthlyIncome > 0 ? totalMonthlyEMI / monthlyIncome : 0;
 
   if (emiRatio === 0) {
-    debtScore = 20;
+    debtScore = 15;
   } else if (emiRatio <= 0.20) {
-    debtScore = 16;
+    debtScore = 12;
   } else if (emiRatio <= 0.36) {
-    debtScore = 10;
+    debtScore = 8;
   } else if (emiRatio <= 0.50) {
-    debtScore = 5;
+    debtScore = 4;
   } else {
     debtScore = 0;
   }
@@ -90,36 +91,52 @@ export const calculateFinancialHealth = ({
     goalProgressScore = Math.min(15, (avgProgress / 100) * 15);
   }
 
-  // 6. Score Component: Subscription Burden (10 Points)
-  // Ideal: Subscription cost < 5% of monthly income gets 10 points. 5-10% gets 7 points. 10-15% gets 4 points.
-  let subscriptionScore = 10;
-  const subMonthlyCost = subSummary.monthlyTotal || 0;
-  const subRatio = monthlyIncome > 0 ? subMonthlyCost / monthlyIncome : 0;
+  // 6. Score Component: Cash Flow (10 Points)
+  // Net cash flow positive gives 10 points, negative gives 0.
+  const netCashFlow = savings.total;
+  const cashFlowScore = netCashFlow > 0 ? 10 : 0;
 
-  if (subRatio < 0.05) {
-    subscriptionScore = 10;
-  } else if (subRatio < 0.10) {
-    subscriptionScore = 7;
-  } else if (subRatio < 0.15) {
-    subscriptionScore = 4;
-  } else {
-    subscriptionScore = 0;
-  }
-
-  // 7. Score Component: Emergency Fund Strength (5 Points)
-  // Ideal: Liquid wallet balances >= 3 months of expenses gets 5 points.
-  // 1-3 months gets 3 points. < 1 month gets 0.
+  // 7. Score Component: Emergency Fund Strength (10 Points)
+  // Ideal: Liquid wallet balances >= 3 months of expenses gets 10 points.
+  // 1-3 months gets 6 points. < 1 month gets 0.
   let emergencyFundScore = 0;
   const totalLiquid = walletSummary.total || 0;
   const monthlyExpense = expenseSummary.total || 0;
   const coverRatio = monthlyExpense > 0 ? totalLiquid / monthlyExpense : (totalLiquid > 0 ? 3 : 0);
 
   if (coverRatio >= 3) {
-    emergencyFundScore = 5;
+    emergencyFundScore = 10;
   } else if (coverRatio >= 1) {
-    emergencyFundScore = 3;
+    emergencyFundScore = 6;
   } else {
     emergencyFundScore = 0;
+  }
+
+  // 8. Score Component: Income Stability (5 Points)
+  // Compute Coefficient of Variation (stddev / mean) across historical trend months.
+  let stabilityScore = 5;
+  const monthlyIncomes = {};
+  if (historicalTrends && historicalTrends.incomes) {
+    historicalTrends.incomes.forEach(inc => {
+      const date = new Date(inc.date);
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      monthlyIncomes[key] = (monthlyIncomes[key] || 0) + inc.amount;
+    });
+  }
+  const incomeVals = Object.values(monthlyIncomes);
+  if (incomeVals.length >= 2) {
+    const mean = incomeVals.reduce((a, b) => a + b, 0) / incomeVals.length;
+    const variance = incomeVals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / incomeVals.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = mean > 0 ? stdDev / mean : 0;
+
+    if (cv > 0.30) {
+      stabilityScore = 1;
+    } else if (cv > 0.15) {
+      stabilityScore = 3;
+    } else {
+      stabilityScore = 5;
+    }
   }
 
   // Calculate final score out of 100
@@ -128,16 +145,16 @@ export const calculateFinancialHealth = ({
     budgetComplianceScore +
     debtScore +
     goalProgressScore +
-    subscriptionScore +
-    emergencyFundScore
+    cashFlowScore +
+    emergencyFundScore +
+    stabilityScore
   );
 
   // Determine Grade
-  let grade = 'Critical';
+  let grade = 'Needs Attention';
   if (finalScore >= 90) grade = 'Excellent';
   else if (finalScore >= 75) grade = 'Good';
-  else if (finalScore >= 60) grade = 'Fair';
-  else if (finalScore >= 40) grade = 'Needs Improvement';
+  else if (finalScore >= 60) grade = 'Average';
 
   // Strengths, Weaknesses, Improvement Areas (Deterministic)
   const strengths = [];
@@ -145,7 +162,7 @@ export const calculateFinancialHealth = ({
   const improvementAreas = [];
 
   if (savings.rate >= 20) {
-    strengths.push(`Excellent savings rate of ${savings.rate.toFixed(1)}% (Target: 20%)`);
+    strengths.push(`Excellent savings rate of ${savings.rate.toFixed(1)}%`);
   } else if (savings.rate > 0) {
     improvementAreas.push(`Increase savings rate from ${savings.rate.toFixed(1)}% to at least 20%`);
   } else {
@@ -156,7 +173,7 @@ export const calculateFinancialHealth = ({
   if (budgetSummary.exceededCount === 0 && budgetSummary.budgets.length > 0) {
     strengths.push('Strict budget adherence: 0 categories overspent');
   } else if (budgetSummary.exceededCount > 0) {
-    weaknesses.push(`Budget breached in ${budgetSummary.exceededCount} categor(ies)`);
+    weaknesses.push(`Budget breached in ${budgetSummary.exceededCount} categories`);
     improvementAreas.push('Review and adjust category limits or track daily outlays closely');
   }
 
@@ -174,14 +191,9 @@ export const calculateFinancialHealth = ({
     improvementAreas.push('Aim to save at least 3-6 months of basic living expenses');
   }
 
-  if (subRatio >= 0.10) {
-    weaknesses.push(`High subscription load (${Math.round(subRatio * 100)}% of income)`);
-    improvementAreas.push('Perform a subscription audit and cancel unused services');
-  }
-
   // Safeguards for empty arrays/defaults
-  if (strengths.length === 0) strengths.push('Account is set up and tracking finances successfully');
-  if (improvementAreas.length === 0) improvementAreas.push('Continue tracking and review categories monthly');
+  if (strengths.length === 0) strengths.push('Account is tracking and listing metrics successfully');
+  if (improvementAreas.length === 0) improvementAreas.push('Maintain current financial pacing and review next month');
 
   const duration = Date.now() - startTime;
   logger.info(`[FinancialHealthService] Score computed: ${finalScore} in ${duration}ms.`);
@@ -197,14 +209,15 @@ export const calculateFinancialHealth = ({
       budgetComplianceScore: Math.round(budgetComplianceScore),
       debtScore: Math.round(debtScore),
       goalProgressScore: Math.round(goalProgressScore),
-      subscriptionScore: Math.round(subscriptionScore),
+      cashFlowScore: Math.round(cashFlowScore),
       emergencyFundScore: Math.round(emergencyFundScore),
+      stabilityScore: Math.round(stabilityScore),
       metrics: {
         savingsRate: savings.rate,
         budgetsExceeded: budgetSummary.exceededCount,
         debtToIncome: emiRatio * 100,
-        subBurden: subRatio * 100,
-        liquidityRatio: coverRatio
+        liquidityRatio: coverRatio,
+        netCashFlow
       }
     }
   };
