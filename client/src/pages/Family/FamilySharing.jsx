@@ -12,6 +12,74 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { DataTable } from '../../components/ui/DataTable';
 
+const SharedBalanceIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 flex-shrink-0">
+    <defs>
+      {/* Background Gradient */}
+      <linearGradient id="shared-balance-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.15" />
+        <stop offset="50%" stopColor="#8B5CF6" stopOpacity="0.10" />
+        <stop offset="100%" stopColor="#10B981" stopOpacity="0.10" />
+      </linearGradient>
+      
+      {/* Border Gradient */}
+      <linearGradient id="shared-balance-border" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.5" />
+        <stop offset="50%" stopColor="#8B5CF6" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#10B981" stopOpacity="0.5" />
+      </linearGradient>
+
+      {/* Indigo-Violet Gradient */}
+      <linearGradient id="shared-balance-indigo-violet" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6366F1" />
+        <stop offset="100%" stopColor="#8B5CF6" />
+      </linearGradient>
+
+      {/* Emerald Gradient */}
+      <linearGradient id="shared-balance-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10B981" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+
+      {/* Glassmorphism Card Gradient */}
+      <linearGradient id="shared-balance-glass" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
+        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.05" />
+      </linearGradient>
+
+      {/* Subtle Shadow Filter */}
+      <filter id="shared-balance-shadow" x="-20%" y="-20%" width="140%" height="140%" filterUnits="userSpaceOnUse">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#090d16" floodOpacity="0.4" />
+      </filter>
+    </defs>
+
+    {/* Outer Container Background (Rounded-Square with glow) */}
+    <rect x="2" y="2" width="44" height="44" rx="14" fill="url(#shared-balance-bg)" stroke="url(#shared-balance-border)" strokeWidth="1.2" />
+    
+    {/* Glassmorphic sheen border */}
+    <rect x="3" y="3" width="42" height="42" rx="13" stroke="white" strokeOpacity="0.08" strokeWidth="1" pointerEvents="none" />
+
+    {/* Sleek Wallet/Shared Card Graphics */}
+    {/* 1. The Back Card (Indigo/Violet Gradient) */}
+    <rect x="11" y="14" width="22" height="14" rx="3" fill="url(#shared-balance-indigo-violet)" transform="rotate(-6 22 21)" filter="url(#shared-balance-shadow)" />
+
+    {/* 2. The Front Card (Glassmorphism card) */}
+    <rect x="15" y="20" width="22" height="14" rx="3" fill="url(#shared-balance-glass)" stroke="white" strokeOpacity="0.2" strokeWidth="0.8" filter="url(#shared-balance-shadow)" />
+    
+    {/* 3. Mini chip on the front card */}
+    <rect x="18" y="23" width="4.5" height="3.5" rx="0.8" fill="url(#shared-balance-emerald)" />
+    
+    {/* 4. Shared Money Pool (Glowing Emerald Circle/Coin with Plus) */}
+    <circle cx="31" cy="29" r="6.5" fill="url(#shared-balance-emerald)" filter="url(#shared-balance-shadow)" />
+    
+    {/* Plus symbol in the coin */}
+    <path d="M31 26.5V31.5M28.5 29H33.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+
+    {/* Connecting Dots/Arches to represent group sharing */}
+    <path d="M22 30.5C22 28.5 23.5 27.5 25 27.5" stroke="white" strokeOpacity="0.3" strokeWidth="1" strokeDasharray="1.5 1.5" strokeLinecap="round" />
+  </svg>
+);
+
 export default function FamilySharing() {
   const [family, setFamily] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -364,7 +432,7 @@ export default function FamilySharing() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: 'Total Members',       value: `${stats.members} Members`, icon: '👥', color: 'text-indigo-400',   glow: 'from-indigo-500/5 to-transparent' },
-              { label: 'Shared Balance',      value: `₹${stats.sharedBalance.toLocaleString('en-IN')}`, icon: '👛', color: 'text-emerald-400',  glow: 'from-emerald-500/5 to-transparent' },
+              { label: 'Shared Balance',      value: `₹${stats.sharedBalance.toLocaleString('en-IN')}`, icon: <SharedBalanceIcon />, color: 'text-emerald-400',  glow: 'from-emerald-500/5 to-transparent' },
               { label: 'Monthly Shared Spend', value: `₹${stats.sharedExpenses.toLocaleString('en-IN')}`, icon: '📉', color: 'text-rose-400',     glow: 'from-rose-500/5 to-transparent' },
               { label: 'Pending Requests',    value: `${stats.pendingRequests} Pending`, icon: '⌛', color: 'text-orange-400',   glow: 'from-orange-500/5 to-transparent' },
             ].map((stat, idx) => (
@@ -374,7 +442,11 @@ export default function FamilySharing() {
                 className="relative overflow-hidden card p-5 flex items-center gap-4 hover:scale-[1.02] hover:border-slate-600/50 transition-all duration-300 group cursor-default"
               >
                 <div className="absolute inset-0 bg-gradient-to-br opacity-50 group-hover:opacity-100 transition-opacity" style={{ background: stat.glow }} />
-                <span className="text-3xl select-none relative z-10">{stat.icon}</span>
+                {typeof stat.icon === 'string' ? (
+                  <span className="text-3xl select-none relative z-10 w-12 h-12 flex items-center justify-center">{stat.icon}</span>
+                ) : (
+                  <div className="relative z-10 flex-shrink-0 w-12 h-12 flex items-center justify-center">{stat.icon}</div>
+                )}
                 <div className="relative z-10 min-w-0">
                   <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
                   <p className={`text-base font-extrabold mt-0.5 font-mono truncate ${stat.color}`}>{stat.value}</p>
