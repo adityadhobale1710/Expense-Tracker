@@ -172,6 +172,27 @@ class FinancialDataService {
       dateRange: { startDate, endDate }
     };
   }
+  /**
+   * Get expenses + incomes for the last N months (trend window).
+   * Used by TrendAnalyzer to avoid direct model imports.
+   *
+   * @param {string|object} userId
+   * @param {number} months - Number of months to look back (default 6)
+   * @returns {Promise<{ expenses: Array, incomes: Array }>}
+   */
+  static async getTrendWindow(userId, months = 6) {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - (months - 1));
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const [expenses, incomes] = await Promise.all([
+      this.getExpenses(userId, { startDate }),
+      this.getIncomes(userId, { startDate }),
+    ]);
+
+    return { expenses, incomes };
+  }
 }
 
 export default FinancialDataService;

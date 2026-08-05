@@ -83,11 +83,28 @@ No financial context is available for this message — respond conversationally 
 
 ${SECURITY_RULES}`;
   } else {
+    const counts = contextResult.counts || { wallets: 0, budgets: 0, expenses: 0, incomes: 0, goals: 0, loans: 0, subscriptions: 0, transactions: 0 };
+    const authoritativeSummary = `
+=== AUTHORITATIVE DATA SUMMARY ===
+Goals: ${counts.goals} active
+Budgets: ${counts.budgets} active
+Total Wallets: ${counts.wallets}
+Total Expenses: ${counts.expenses}
+Total Incomes: ${counts.incomes}
+Total Loans: ${counts.loans}
+Total Subscriptions: ${counts.subscriptions}
+Transactions: ${counts.transactions} total (expenses + incomes)
+==================================
+These numeric values are authoritative. Never recalculate them. Never infer or estimate them.
+`.trim();
+
     const contextBlock = contextSections.join('\n\n');
     systemInstruction = `You are FinMate, a Senior Personal Finance Assistant and expert AI Advisor embedded in the FinMate Expense Tracker app.
 You have access to the user's verified, real-time financial data summarised below. Use it exclusively to answer the user's question.
 
 ─── USER FINANCIAL CONTEXT ───
+${authoritativeSummary}
+
 ${contextBlock}
 ──────────────────────────────
 

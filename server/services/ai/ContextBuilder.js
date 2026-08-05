@@ -17,14 +17,8 @@
  *   • Logs every decision for observability.
  */
 
-import Wallet from '../../models/Wallet.js';
-import Budget from '../../models/Budget.js';
-import Expense from '../../models/Expense.js';
-import Income from '../../models/Income.js';
-import Goal from '../../models/Goal.js';
-import Loan from '../../models/Loan.js';
-import Subscription from '../../models/Subscription.js';
 import logger from '../../utils/logger.js';
+import FinancialDataService from '../financial/FinancialDataService.js';
 
 import {
   calculateWalletBalance,
@@ -37,8 +31,8 @@ import {
   calculateSubscriptionCost,
   calculateCashFlow,
   calculateComparison,
-  calculateFinancialHealthMetrics,
 } from './ToolRegistry.js';
+import { calculateFinancialHealth } from './FinancialHealthService.js';
 
 // ─── MODULE TTLs (ms) ─────────────────────────────────────────────────────────
 
@@ -114,9 +108,9 @@ const isCacheValid = (chat, moduleName) => {
  * @param {string} moduleName
  * @param {string} data
  */
-const writeCache = (chat, moduleName, data) => {
+const writeCache = (chat, moduleName, data, count) => {
   if (!chat.moduleCache) chat.moduleCache = {};
-  chat.moduleCache[moduleName] = { data, cachedAt: new Date() };
+  chat.moduleCache[moduleName] = { data, count, cachedAt: new Date() };
   // Mark the field as modified so Mongoose saves it (Mixed type)
   if (typeof chat.markModified === 'function') {
     chat.markModified(`moduleCache.${moduleName}`);
@@ -263,10 +257,20 @@ const formatComparison = (data) => {
   ].join('\n');
 };
 
-const formatHealthMetrics = (data) => [
-  `Financial Health Score: ${data.score}/100 (${data.grade})`,
-  ...data.signals.map((s) => `  • ${s.signal}`),
-].join('\n');
+const formatHealthMetrics = (data) => {
+  const lines = [`Financial Health Score: ${data.score}/100 (${data.grade})`];
+  const top2Strengths = (data.strengths || []).slice(0, 2);
+  const top2Weaknesses = (data.weaknesses || []).slice(0, 2);
+  if (top2Strengths.length > 0) {
+    lines.push('Strengths:');
+    top2Strengths.forEach((s) => lines.push(`  ✓ ${s}`));
+  }
+  if (top2Weaknesses.length > 0) {
+    lines.push('Weaknesses:');
+    top2Weaknesses.forEach((w) => lines.push(`  ✗ ${w}`));
+  }
+  return lines.join('\n');
+};
 
 const formatAchievements = (userProfile) => {
   if (!userProfile) return '';
@@ -420,6 +424,25 @@ Simulation Factors: ${sim.reasons.join(', ')}`;
  * @param {string} message - Raw message query
  * @returns {Promise<ContextResult>}
  */
+const getCountFromRaw = (mod, rawData) => {
+  if (!rawData || !rawData[mod]) return 0;
+  if (mod === 'goals') {
+    return rawData.goals.filter(g => g.isDeleted !== true).length;
+  }
+  return rawData[mod].length;
+};
+
+// ─── BUILD (main entry point) ─────────────────────────────────────────────────
+
+/**
+ * Build an optimised financial context for the given intents.
+ *
+ * @param {string | object} userId - MongoDB user ObjectId
+ * @param {Array<{ intent: string, confidence: number }>} detectedIntents
+ * @param {object} chat - AIChat mongoose document (for cache read/write)
+ * @param {string} message - Raw message query
+ * @returns {Promise<ContextResult>}
+ */
 export const buildContext = async (userId, detectedIntents, chat, message = '') => {
   const buildStart = Date.now();
   const intentNames = detectedIntents.map((d) => d.intent);
@@ -435,6 +458,7 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
       cacheHits: [],
       cacheMisses: [],
       generatedAt: new Date(),
+      counts: { wallets: 0, budgets: 0, expenses: 0, incomes: 0, goals: 0, loans: 0, subscriptions: 0, transactions: 0 }
     };
   }
 
@@ -455,6 +479,7 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
   const modulesFetched = [];
   const cacheHits = [];
   const cacheMisses = [];
+  let counts = {};
 
   const ALL_MODULES = ['wallets', 'expenses', 'incomes', 'budgets', 'goals', 'loans', 'subscriptions'];
   
@@ -478,6 +503,18 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
       modulesFetched.push('user');
       cacheHits.push('user');
     }
+
+    counts = {
+      wallets: chat.moduleCache['wallets']?.count || 0,
+      budgets: chat.moduleCache['budgets']?.count || 0,
+      expenses: chat.moduleCache['expenses']?.count || 0,
+      incomes: chat.moduleCache['incomes']?.count || 0,
+      goals: chat.moduleCache['goals']?.count || 0,
+      loans: chat.moduleCache['loans']?.count || 0,
+      subscriptions: chat.moduleCache['subscriptions']?.count || 0,
+      transactions: (chat.moduleCache['expenses']?.count || 0) + (chat.moduleCache['incomes']?.count || 0),
+    };
+
     logger.info(`[ContextBuilder] served all required modules from verified CACHE snapshot.`);
   } else {
     logger.info(`[ContextBuilder] Cache MISS or temporal query detected. Fetching fresh snapshot from DB.`);
@@ -502,19 +539,33 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
       user: () => formatAchievements(rawData.user)
     };
 
-    // Include ALL modules unconditionally to ensure AI has complete context
-    const allModuleKeys = Object.keys(calculations);
-    for (const mod of allModuleKeys) {
-      if (calculations[mod]) {
-        const section = calculations[mod]();
-        if (section) {
-          contextSections.push(section);
-          if (!isCustomTimeQuery) {
-            writeCache(chat, mod, section);
-          }
-          modulesFetched.push(mod);
-          cacheMisses.push(mod);
+    counts = {
+      wallets: rawData.wallets ? rawData.wallets.length : 0,
+      budgets: rawData.budgets ? rawData.budgets.length : 0,
+      expenses: rawData.expenses ? rawData.expenses.length : 0,
+      incomes: rawData.incomes ? rawData.incomes.length : 0,
+      goals: rawData.goals ? rawData.goals.filter(g => g.isDeleted !== true).length : 0,
+      loans: rawData.loans ? rawData.loans.length : 0,
+      subscriptions: rawData.subscriptions ? rawData.subscriptions.length : 0,
+      transactions: (rawData.expenses ? rawData.expenses.length : 0) + (rawData.incomes ? rawData.incomes.length : 0),
+    };
+
+    // M1 fix: only run formatters for modules required by the detected intents.
+    // Always include 'user' (gamification) if it was added to requiredModules.
+    // 'savings' is derived (no DB query) — always computed after expenses+incomes.
+    // Special-case blocks below handle 'comparison', 'financial_health', and simulations.
+    // NOTE: We still WRITE to moduleCache for every module we do fetch, so the cache
+    // warms normally for subsequent requests.
+    for (const mod of Object.keys(calculations)) {
+      if (!requiredModules.has(mod)) continue;
+      const section = calculations[mod]();
+      if (section) {
+        contextSections.push(section);
+        if (!isCustomTimeQuery) {
+          writeCache(chat, mod, section, getCountFromRaw(mod, rawData));
         }
+        modulesFetched.push(mod);
+        cacheMisses.push(mod);
       }
     }
 
@@ -527,8 +578,8 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     // Derived comparison (if requested)
     if (intentNames.includes('comparison')) {
       const [prevExpenses, prevIncomes] = await Promise.all([
-        Expense.find({ user: userId, date: { $gte: nDaysAgo(60), $lt: nDaysAgo(30) } }).populate('category', 'name').lean(),
-        Income.find({ user: userId, date: { $gte: nDaysAgo(60), $lt: nDaysAgo(30) } }).lean()
+        FinancialDataService.getExpenses(userId, { startDate: nDaysAgo(60), endDate: nDaysAgo(30) }),
+        FinancialDataService.getIncomes(userId, { startDate: nDaysAgo(60), endDate: nDaysAgo(30) })
       ]);
       const currExp = calculateMonthlyExpense(rawData.expenses);
       const currInc = calculateMonthlyIncome(rawData.incomes);
@@ -544,22 +595,16 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
       contextSections.push(formatComparison(comp));
     }
 
-    // Derived health score
+    // Derived health score — uses FinancialHealthService (6-factor, same algorithm as Dashboard/AI Insights)
     if (intentNames.includes('financial_health')) {
-      const incData = calculateMonthlyIncome(rawData.incomes);
-      const expData = calculateMonthlyExpense(rawData.expenses);
-      const savings = calculateSavings(incData.total, expData.total);
-      const budgetData = calculateBudgetUsage(rawData.budgets);
-      const goalData = calculateGoalProgress(rawData.goals);
-      const loanData = calculateLoanSummary(rawData.loans);
-
-      const healthMetrics = calculateFinancialHealthMetrics({
-        savingsRate: savings.rate,
-        budgetExceededCount: budgetData.exceededCount,
-        totalBudgets: Math.max(1, rawData.budgets.length),
-        debtToIncomeRatio: incData.total > 0 ? loanData.totalMonthlyEMI / incData.total : 0,
-        goalsOnTrack: goalData.goals.filter((g) => g.progressPct >= 50).length,
-        totalGoals: Math.max(1, goalData.goals.length)
+      const healthMetrics = calculateFinancialHealth({
+        wallets: rawData.wallets,
+        budgets: rawData.budgets,
+        expenses: rawData.expenses,
+        incomes: rawData.incomes,
+        goals: rawData.goals,
+        loans: rawData.loans,
+        subscriptions: rawData.subscriptions,
       });
       contextSections.push(formatHealthMetrics(healthMetrics));
     }
@@ -582,6 +627,7 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     cacheHits,
     cacheMisses,
     generatedAt: new Date(),
+    counts,
   };
 };
 

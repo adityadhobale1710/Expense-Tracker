@@ -194,6 +194,7 @@ export const setPrimary = asyncHandler(async (req, res) => {
   wallet.isPrimary = true;
   await wallet.save();
 
+  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Primary wallet updated successfully', wallet);
 });
 

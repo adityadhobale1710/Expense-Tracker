@@ -5,25 +5,30 @@
  * and trend directions for income, expenses, savings, and category spending.
  */
 
-import Income from '../../models/Income.js';
-import Expense from '../../models/Expense.js';
+import FinancialDataService from '../financial/FinancialDataService.js';
 import logger from '../../utils/logger.js';
 
-export const analyzeTrends = async (userId) => {
+/**
+ * Analyze 6-month spending and income trends.
+ *
+ * @param {string|object} userId
+ * @param {{ expenses?: Array, incomes?: Array }} [prefetched] - Optional pre-fetched data.
+ *   If provided, skips the DB query entirely. Falls back to FinancialDataService.getTrendWindow.
+ * @returns {Promise<object>}
+ */
+export const analyzeTrends = async (userId, prefetched = {}) => {
   const startTime = Date.now();
 
-  const now = new Date();
-  // Get start date for 6 months ago
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5); // current month + 5 previous months
-  sixMonthsAgo.setDate(1);
-  sixMonthsAgo.setHours(0, 0, 0, 0);
-
-  // Fetch 6 months of historical transactions in parallel
-  const [expenses, incomes] = await Promise.all([
-    Expense.find({ user: userId, date: { $gte: sixMonthsAgo } }).populate('category', 'name').lean(),
-    Income.find({ user: userId, date: { $gte: sixMonthsAgo } }).lean()
-  ]);
+  // M5: only query DB if caller hasn't already fetched the data
+  let expenses, incomes;
+  if (prefetched.expenses && prefetched.incomes) {
+    expenses = prefetched.expenses;
+    incomes = prefetched.incomes;
+    logger.info('[TrendAnalyzer] Using pre-fetched trend data (no DB query).');
+  } else {
+    ({ expenses, incomes } = await FinancialDataService.getTrendWindow(userId, 6));
+    logger.info('[TrendAnalyzer] Fetched 6-month trend data from DB via FinancialDataService.');
+  }
 
   // Group transactions by year-month keys
   const monthlyData = {};

@@ -500,55 +500,7 @@ export const calculateComparison = ({
   };
 };
 
-// ─── FINANCIAL HEALTH ─────────────────────────────────────────────────────────
 
-/**
- * Compute an overall financial health score (0–100) from multiple signals.
- *
- * @param {{
- *   savingsRate: number,
- *   budgetExceededCount: number,
- *   totalBudgets: number,
- *   debtToIncomeRatio: number,
- *   goalsOnTrack: number,
- *   totalGoals: number
- * }} params
- * @returns {{ score: number, grade: string, signals: Array<{ signal: string, status: string }> }}
- */
-export const calculateFinancialHealthMetrics = ({
-  savingsRate = 0,
-  budgetExceededCount = 0,
-  totalBudgets = 1,
-  debtToIncomeRatio = 0,
-  goalsOnTrack = 0,
-  totalGoals = 1,
-} = {}) => {
-  // Savings rate: ideal ≥ 20%
-  const savingsScore = clamp(savingsRate / 20, 0, 1) * 30;
-  // Budget compliance: no exceeded budgets = full score
-  const budgetScore = (1 - safeDivide(budgetExceededCount, totalBudgets)) * 30;
-  // Debt-to-income: ideal < 0.36
-  const debtScore = (1 - clamp(debtToIncomeRatio / 0.36, 0, 1)) * 20;
-  // Goal progress: ideal = all goals on track
-  const goalScore = safeDivide(goalsOnTrack, totalGoals) * 20;
-
-  const score = Math.round(savingsScore + budgetScore + debtScore + goalScore);
-
-  const grade =
-    score >= 85 ? 'Excellent' :
-    score >= 70 ? 'Good' :
-    score >= 50 ? 'Fair' :
-    'Needs Attention';
-
-  const signals = [
-    { signal: `Savings rate: ${r2(savingsRate)}%`, status: savingsRate >= 20 ? 'good' : savingsRate >= 10 ? 'fair' : 'poor' },
-    { signal: `Budget compliance: ${budgetExceededCount}/${totalBudgets} exceeded`, status: budgetExceededCount === 0 ? 'good' : budgetExceededCount <= 1 ? 'fair' : 'poor' },
-    { signal: `Debt-to-income: ${r2(debtToIncomeRatio * 100)}%`, status: debtToIncomeRatio < 0.20 ? 'good' : debtToIncomeRatio < 0.36 ? 'fair' : 'poor' },
-    { signal: `Goals on track: ${goalsOnTrack}/${totalGoals}`, status: goalsOnTrack === totalGoals ? 'good' : goalsOnTrack > 0 ? 'fair' : 'poor' },
-  ];
-
-  return { score, grade, signals };
-};
 
 // ─── TEMPORAL PARSING & COMPUTATIONS ──────────────────────────────────────────
 

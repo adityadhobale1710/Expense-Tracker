@@ -3,6 +3,11 @@ import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import FinancialDataService from '../services/financial/FinancialDataService.js';
+import {
+  calculateMonthlyExpense,
+  calculateMonthlyIncome,
+  calculateSavings,
+} from '../services/ai/ToolRegistry.js';
 
 /**
  * Issue #5 fix: sanitize cell values to prevent CSV/Excel formula injection.
@@ -66,15 +71,24 @@ export const getAnalyticsSummary = asyncHandler(async (req, res) => {
   const { incomes: currentIncome, expenses: currentExpense } = currentSnapshot;
   const { incomes: prevIncome, expenses: prevExpense } = prevSnapshot;
 
-  const totalIncome = currentIncome.reduce((sum, i) => sum + i.amount, 0);
-  const totalExpense = currentExpense.reduce((sum, e) => sum + e.amount, 0);
-  const savings = Math.max(0, totalIncome - totalExpense);
-  const balance = totalIncome - totalExpense;
+  // M4: use ToolRegistry calculators (single source of truth for totals)
+  const currentExpSummary = calculateMonthlyExpense(currentExpense);
+  const currentIncSummary = calculateMonthlyIncome(currentIncome);
+  const currentSavSummary = calculateSavings(currentIncSummary.total, currentExpSummary.total);
 
-  const prevTotalIncome = prevIncome.reduce((sum, i) => sum + i.amount, 0);
-  const prevTotalExpense = prevExpense.reduce((sum, e) => sum + e.amount, 0);
-  const prevSavings = Math.max(0, prevTotalIncome - prevTotalExpense);
-  const prevBalance = prevTotalIncome - prevTotalExpense;
+  const totalIncome = currentIncSummary.total;
+  const totalExpense = currentExpSummary.total;
+  const savings = Math.max(0, currentSavSummary.amount);
+  const balance = currentSavSummary.amount;
+
+  const prevExpSummary = calculateMonthlyExpense(prevExpense);
+  const prevIncSummary = calculateMonthlyIncome(prevIncome);
+  const prevSavSummary = calculateSavings(prevIncSummary.total, prevExpSummary.total);
+
+  const prevTotalIncome = prevIncSummary.total;
+  const prevTotalExpense = prevExpSummary.total;
+  const prevSavings = Math.max(0, prevSavSummary.amount);
+  const prevBalance = prevSavSummary.amount;
 
   // Percentage Trends
   const incomeTrend = prevTotalIncome > 0 ? ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100 : 0;
@@ -494,10 +508,13 @@ export const exportPDF = asyncHandler(async (req, res) => {
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   const { incomes, expenses } = snapshot;
 
-  const totalInc = incomes.reduce((sum, i) => sum + i.amount, 0);
-  const totalExp = expenses.reduce((sum, e) => sum + e.amount, 0);
+  // M4: use ToolRegistry calculators for totals
+  const incSummary = calculateMonthlyIncome(incomes);
+  const expSummary = calculateMonthlyExpense(expenses);
+  const totalInc = incSummary.total;
+  const totalExp = expSummary.total;
   const balance = totalInc - totalExp;
-  const savings = Math.max(0, balance);
+  const savingsPDF = Math.max(0, balance);
 
   const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
@@ -521,7 +538,7 @@ export const exportPDF = asyncHandler(async (req, res) => {
   doc.fillColor('#ef4444').fontSize(16).text(`₹${totalExp.toLocaleString('en-IN')}`, 200, 175);
 
   doc.fillColor('#0f172a').fontSize(11).text('Net Savings', 330, 155);
-  doc.fillColor('#3b82f6').fontSize(16).text(`₹${savings.toLocaleString('en-IN')}`, 330, 175);
+  doc.fillColor('#3b82f6').fontSize(16).text(`₹${savingsPDF.toLocaleString('en-IN')}`, 330, 175);
 
   doc.fillColor('#0f172a').fontSize(11).text('Balance', 450, 155);
   doc.fillColor(balance >= 0 ? '#10b981' : '#ef4444').fontSize(16).text(`₹${balance.toLocaleString('en-IN')}`, 450, 175);

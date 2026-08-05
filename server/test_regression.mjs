@@ -48,14 +48,15 @@ const runTests = async () => {
   // 1. Setup Mongo & Generate Token directly
   const dns = await import('dns');
   dns.setServers(['8.8.8.8', '1.1.1.1']);
-  await import('mongoose').then(m => m.connect('mongodb+srv://dhobaleaditya2007_db_user:Z43JxbFQ3GoLOh2V@cluster0.yp5dvm5.mongodb.net/expense_tracker?appName=Cluster0'));
+  const dotenv = await import('dotenv');
+  dotenv.config();
+  const mongoUri = process.env.MONGO_URI || 'mongodb+srv://dhobaleaditya2007_db_user:Z43JxbFQ3GoLOh2V@cluster0.yp5dvm5.mongodb.net/expense_tracker?appName=Cluster0';
+  await import('mongoose').then(m => m.connect(mongoUri));
   const User = (await import('./models/User.js')).default;
   const jwt = await import('jsonwebtoken');
   
-  let user = await User.findOne({ email: 'test_regression@test.com' });
-  if (!user) {
-    user = await User.create({ name: 'Regression Test', email: 'test_regression@test.com', password: 'password123', isVerified: true });
-  }
+  await User.deleteMany({ email: 'test_regression@test.com' });
+  const user = await User.create({ name: 'Regression Test', email: 'test_regression@test.com', password: 'password123', isVerified: true });
   const token = jwt.default.sign({ id: user._id }, 'your_super_secret_jwt_key_change_this_in_production', { expiresIn: '15m' });
   console.log('✅ Generated direct token for regression test user.');
 
