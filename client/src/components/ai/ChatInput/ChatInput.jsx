@@ -44,7 +44,7 @@ export default function ChatInput({ input, setInput, handleSend, handleKeyDown, 
             onKeyDown={handleKeyDown}
             disabled={loading}
             placeholder={loading ? 'Please wait...' : 'Ask anything about your finances...'}
-            className="w-full bg-transparent border-0 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-[15px] resize-none focus:ring-0 leading-relaxed py-4 px-4 min-h-[56px] max-h-[160px]"
+            className="w-full bg-transparent border-0 outline-none text-[#111827] font-medium text-[16px] placeholder:text-[#64748B] placeholder:font-normal dark:text-[#F8FAFC] dark:placeholder:text-[#94A3B8] resize-none focus:ring-0 leading-relaxed py-4 px-4 min-h-[56px] max-h-[160px]"
             aria-label="Ask anything about your finances"
             rows={1}
           />
