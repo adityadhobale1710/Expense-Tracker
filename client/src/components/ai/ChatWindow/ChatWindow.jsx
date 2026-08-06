@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, AlertCircle } from 'lucide-react';
+import { Bot, AlertCircle, Plus } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 import WelcomeScreen from './WelcomeScreen';
@@ -9,7 +9,7 @@ import ChatInput from '../ChatInput/ChatInput';
 export default function ChatWindow({
   messages, setMessages, loading, fetchLoading,
   user, isTyping, handleCopyText, copiedId, messagesEndRef, chatContainerRef,
-  handleScroll, handleSend, input, setInput, handleKeyDown, textareaRef, error
+  handleScroll, handleSend, input, setInput, handleKeyDown, textareaRef, error, handleNewChat
 }) {
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full">
@@ -27,7 +27,7 @@ export default function ChatWindow({
         ) : (
           <>
             {/* AI Header */}
-            <div className="flex items-center gap-3 py-4 px-6 md:px-8 border-b border-ai-border ai-surface-main z-10 shrink-0">
+            <div className="flex items-center justify-between py-4 px-6 md:px-8 border-b border-ai-border ai-surface-main z-10 shrink-0">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="text-[20px] font-semibold text-ai-text-primary tracking-tight flex items-center gap-2">
@@ -37,6 +37,17 @@ export default function ChatWindow({
                 </div>
                 <span className="text-[12px] font-medium text-ai-text-muted mt-0.5">Your AI Finance Assistant</span>
               </div>
+
+              {/* New Chat Button */}
+              <button
+                onClick={handleNewChat}
+                className="ai-btn-primary h-10 px-4 md:px-5 flex items-center gap-2 text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-ai-primary/50 focus:ring-offset-1"
+                aria-label="New Chat"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">New Chat</span>
+                <span className="sm:hidden">New</span>
+              </button>
             </div>
 
             {/* Message Box */}

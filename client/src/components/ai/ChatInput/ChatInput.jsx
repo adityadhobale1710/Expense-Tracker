@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Send, Paperclip, Mic, Image as ImageIcon } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 export default function ChatInput({ input, setInput, handleSend, handleKeyDown, loading, textareaRef }) {
   const localRef = useRef(null);
@@ -44,43 +44,13 @@ export default function ChatInput({ input, setInput, handleSend, handleKeyDown, 
             onKeyDown={handleKeyDown}
             disabled={loading}
             placeholder={loading ? 'Please wait...' : 'Ask anything about your finances...'}
-            className="w-full bg-transparent border-0 outline-none text-[#111827] font-medium text-[16px] placeholder:text-[#64748B] placeholder:font-normal dark:text-[#F8FAFC] dark:placeholder:text-[#94A3B8] resize-none focus:ring-0 leading-relaxed py-4 px-4 min-h-[56px] max-h-[160px]"
+            className="w-full bg-transparent border-0 outline-none text-[#111827] font-medium text-[16px] placeholder:text-[#64748B] placeholder:font-normal dark:text-[#F8FAFC] dark:placeholder:text-[#94A3B8] resize-none focus:ring-0 leading-relaxed py-4 pl-4 pr-14 min-h-[56px] max-h-[160px]"
             aria-label="Ask anything about your finances"
             rows={1}
           />
           
-          {/* Bottom Toolbar & Send Button */}
-          <div className="flex items-center justify-between px-3 pb-3">
-            
-            {/* Future Toolbar Options */}
-            <div className="flex items-center gap-1">
-              <button 
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-not-allowed focus:outline-none"
-                aria-label="Attach File (placeholder)"
-                title="Attach File"
-                disabled
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
-              <button 
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-not-allowed focus:outline-none"
-                aria-label="Voice Input (placeholder)"
-                title="Voice Input"
-                disabled
-              >
-                <Mic className="w-5 h-5" />
-              </button>
-              <button 
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-not-allowed focus:outline-none"
-                aria-label="Upload Image (placeholder)"
-                title="Upload Image"
-                disabled
-              >
-                <ImageIcon className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {/* Send Button */}
+          {/* Send Button */}
+          <div className="absolute right-2.5 bottom-2.5">
             <button
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}

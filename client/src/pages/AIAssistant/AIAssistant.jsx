@@ -133,6 +133,12 @@ export default function AIAssistant() {
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setError(null);
+    setInput('');
+  };
+
   return (
     <div className="flex w-full h-[calc(100vh-64px)] overflow-hidden relative ai-surface-main border-t border-ai-border">
       {/* Main Chat Container */}
@@ -154,6 +160,7 @@ export default function AIAssistant() {
         handleKeyDown={handleKeyDown}
         textareaRef={textareaRef}
         error={error}
+        handleNewChat={handleNewChat}
       />
     </div>
   );
