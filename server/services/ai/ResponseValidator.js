@@ -7,68 +7,223 @@
 
 import logger from '../../utils/logger.js';
 
-export const validateResponse = (aiResponse, counts) => {
+// ============================================================================
+// 1. Value Normalization
+// ============================================================================
+const normalizeNumber = (str, multiplierStr) => {
+  let val = parseFloat(str.replace(/,/g, ''));
+  if (isNaN(val)) return null;
+
+  if (multiplierStr) {
+    const m = multiplierStr.toLowerCase();
+    if (m === 'k') val *= 1000;
+    else if (m === 'lakh' || m === 'l' || m === 'lakhs') val *= 100000;
+    else if (m === 'cr' || m === 'crore' || m === 'crores') val *= 10000000;
+    else if (m === 'm' || m === 'million') val *= 1000000;
+    else if (m === 'b' || m === 'billion') val *= 1000000000;
+  }
+  return val;
+};
+
+// ============================================================================
+// 2. Value Extraction
+// ============================================================================
+const extractFinancialValues = (text) => {
+  const norm = text.toLowerCase();
+  const values = new Set();
+  
+  // Extract Percentages (e.g., "80%", "40.5%")
+  const pctRegex = /([\d.,]+)\s*%/g;
+  let match;
+  while ((match = pctRegex.exec(norm)) !== null) {
+    const val = normalizeNumber(match[1]);
+    if (val !== null) values.add(val);
+  }
+
+  // Extract Currency / Large Numbers
+  // Matches: ₹10,000, 10k, 1 lakh, Rs. 1500, etc.
+  // We require either a currency symbol OR a multiplier to avoid catching dates/years/bullets.
+  const currRegex = /(?:₹|rs\.?|inr|\$|£|€)?\s*([\d,]+(?:\.\d+)?)\s*(k|lakhs?|l|crores?|cr|m|millions?|b|billions?)?\b/g;
+  
+  while ((match = currRegex.exec(norm)) !== null) {
+    const hasSymbol = match[0].match(/₹|rs|inr|\$|£|€/i);
+    const hasMultiplier = match[2];
+    
+    // Only capture if it clearly looks like money (has symbol) or large number (multiplier)
+    // This avoids matching years like '2024' or list items '1.', '2.'
+    if (hasSymbol || hasMultiplier) {
+      const val = normalizeNumber(match[1], match[2]);
+      if (val !== null) values.add(val);
+    }
+  }
+  
+  return Array.from(values);
+};
+
+// ============================================================================
+// 3. Context Builder
+// ============================================================================
+const flattenValidationContext = (vc) => {
+  const allowed = new Set();
+  const add = (v) => { if (typeof v === 'number' && !isNaN(v)) allowed.add(v); };
+
+  if (vc.wallets) {
+    add(vc.wallets.total);
+    vc.wallets.breakdown?.forEach(w => add(w.balance));
+  }
+  if (vc.budgets) {
+    add(vc.budgets.totalLimit);
+    add(vc.budgets.totalSpent);
+    vc.budgets.budgets?.forEach(b => {
+      add(b.limit); add(b.spent); add(b.remaining); add(b.usagePercent);
+    });
+  }
+  if (vc.goals) {
+    vc.goals.goals?.forEach(g => {
+      add(g.targetAmount); add(g.savedAmount); add(g.progressPct); add(g.suggestedMonthlySaving);
+    });
+  }
+  if (vc.loans) {
+    add(vc.loans.totalRemaining);
+    add(vc.loans.totalMonthlyEMI);
+    vc.loans.loans?.forEach(l => {
+      add(l.remaining); add(l.emiAmount); add(l.interestRate);
+    });
+  }
+  if (vc.subscriptions) {
+    add(vc.subscriptions.monthlyTotal);
+    add(vc.subscriptions.yearlyTotal);
+    vc.subscriptions.list?.forEach(s => {
+      add(s.cost); add(s.monthlyCost);
+    });
+  }
+  if (vc.savings) {
+    add(vc.savings.amount);
+    add(vc.savings.rate);
+  }
+  if (vc.expenses) {
+    add(vc.expenses.total);
+    vc.expenses.byCategory?.forEach(c => { add(c.total); add(c.percent); });
+  }
+  if (vc.incomes) {
+    add(vc.incomes.total);
+    vc.incomes.bySource?.forEach(s => { add(s.total); add(s.percent); });
+  }
+  if (vc.health) {
+    add(vc.health.score);
+  }
+  return Array.from(allowed);
+};
+
+// ============================================================================
+// 4. Validation Engine
+// ============================================================================
+const checkValueTolerance = (val, allowedValues) => {
+  let confidence = 'NONE';
+  let matchedValue = null;
+
+  for (const allowed of allowedValues) {
+    if (val === allowed) {
+      return { confidence: 'HIGH', matchedValue: allowed }; // Exact match
+    }
+    
+    // Tolerance: Max 1% difference (handles 33.3 vs 33.33)
+    const diff = Math.abs(val - allowed);
+    const tolerance = Math.max(1, allowed * 0.01);
+    
+    if (diff <= tolerance) {
+      confidence = 'MEDIUM';
+      matchedValue = allowed;
+    }
+  }
+  
+  return { confidence, matchedValue };
+};
+
+const logValidationEvent = ({ duration, extracted, validated, outcome, rule, module, ts }) => {
+  const logStr = `[ResponseValidator] [${outcome}] Rule: ${rule}, Module: ${module}, Duration: ${duration}ms, Extracted: [${extracted}], Validated: [${validated}], TS: ${ts}`;
+  
+  if (outcome === 'CRITICAL') logger.warn(logStr);
+  else logger.info(logStr);
+};
+
+// Public Entry Point
+export const validateResponse = (aiResponse, counts, validationContext = {}, contextVersion = 'v1') => {
+  const startTime = Date.now();
   const norm = aiResponse.toLowerCase();
 
-  // 1. Goal count validation
-  if (counts.goals > 0) {
-    if (
-      norm.includes('no goals') ||
-      norm.includes('0 goals') ||
-      norm.includes('dont have any goals') ||
-      norm.includes("don't have any goals") ||
-      norm.includes('have no active goals')
-    ) {
-      return { isValid: false, reason: `AI claimed 0 goals when user has ${counts.goals} active goals.` };
+  // 1. Existing Count Validation (Fallback/Backward Compatibility)
+  const countChecks = [
+    { key: 'goals', str: 'goals', count: counts.goals },
+    { key: 'budgets', str: 'budgets', count: counts.budgets },
+    { key: 'wallets', str: 'wallets', count: counts.wallets },
+    { key: 'loans', str: 'loans', count: counts.loans },
+    { key: 'subscriptions', str: 'subscriptions', count: counts.subscriptions }
+  ];
+
+  for (const check of countChecks) {
+    if (check.count > 0 && (norm.includes(`no ${check.str}`) || norm.includes(`0 ${check.str}`) || norm.includes(`dont have any ${check.str}`) || norm.includes(`don't have any ${check.str}`))) {
+      logValidationEvent({
+        duration: Date.now() - startTime,
+        extracted: `0 ${check.str}`,
+        validated: `> 0`,
+        outcome: 'CRITICAL',
+        rule: 'CountValidation',
+        module: check.key,
+        ts: new Date().toISOString()
+      });
+      return { isValid: false, reason: `AI claimed 0 ${check.str} when user has ${check.count} active ${check.str}.` };
     }
   }
 
-  // 2. Budget count validation
-  if (counts.budgets > 0) {
-    if (
-      norm.includes('no budgets') ||
-      norm.includes('0 budgets') ||
-      norm.includes('dont have any budgets') ||
-      norm.includes("don't have any budgets")
-    ) {
-      return { isValid: false, reason: `AI claimed 0 budgets when user has ${counts.budgets} active budgets.` };
-    }
-  }
+  // 2. Structured Financial Validation
+  if (Object.keys(validationContext).length > 0) {
+    const extractedValues = extractFinancialValues(aiResponse);
+    const allowedValues = flattenValidationContext(validationContext);
 
-  // 3. Wallet count validation
-  if (counts.wallets > 0) {
-    if (
-      norm.includes('no wallets') ||
-      norm.includes('0 wallets') ||
-      norm.includes('dont have any wallets') ||
-      norm.includes("don't have any wallets")
-    ) {
-      return { isValid: false, reason: `AI claimed 0 wallets when user has ${counts.wallets} active wallets.` };
-    }
-  }
+    for (const val of extractedValues) {
+      const { confidence } = checkValueTolerance(val, allowedValues);
 
-  // 4. Loan count validation
-  if (counts.loans > 0) {
-    if (
-      norm.includes('no loans') ||
-      norm.includes('0 loans') ||
-      norm.includes('dont have any loans') ||
-      norm.includes("don't have any loans")
-    ) {
-      return { isValid: false, reason: `AI claimed 0 loans when user has ${counts.loans} active loans.` };
+      if (confidence === 'NONE') {
+        // AI hallucinates a specific financial number not in the deterministic context
+        logValidationEvent({
+          duration: Date.now() - startTime,
+          extracted: val,
+          validated: 'ONE_OF_AUTHORITATIVE',
+          outcome: 'CRITICAL',
+          rule: 'FinancialToleranceMatch',
+          module: 'Global',
+          ts: new Date().toISOString()
+        });
+        return { 
+          isValid: false, 
+          reason: `AI hallucinated a financial figure (${val}) that does not match the authoritative context.` 
+        };
+      } else if (confidence === 'MEDIUM') {
+        logValidationEvent({
+          duration: Date.now() - startTime,
+          extracted: val,
+          validated: 'TOLERANCE_ACCEPTED',
+          outcome: 'WARNING',
+          rule: 'FinancialToleranceMatch',
+          module: 'Global',
+          ts: new Date().toISOString()
+        });
+      }
     }
-  }
 
-  // 5. Subscription count validation
-  if (counts.subscriptions > 0) {
-    if (
-      norm.includes('no subscriptions') ||
-      norm.includes('0 subscriptions') ||
-      norm.includes('dont have any subscriptions') ||
-      norm.includes("don't have any subscriptions")
-    ) {
-      return { isValid: false, reason: `AI claimed 0 subscriptions when user has ${counts.subscriptions} active subscriptions.` };
-    }
+    logValidationEvent({
+      duration: Date.now() - startTime,
+      extracted: extractedValues.length ? 'Multiple values' : 'None',
+      validated: 'All passed',
+      outcome: 'INFORMATION',
+      rule: 'ValidationComplete',
+      module: 'Global',
+      ts: new Date().toISOString()
+    });
+
+  } else {
+    logger.info(`[ResponseValidator] [INFORMATION] Missing validation context. Accepted response without deep numeric validation.`);
   }
 
   return { isValid: true };

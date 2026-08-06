@@ -22,6 +22,7 @@ import { buildPrompt, estimateTokens } from '../services/ai/PromptBuilder.js';
 import { generateAIResponse } from '../services/ai/GeminiService.js';
 import { routeFact } from '../services/ai/FactRouter.js';
 import { validateResponse, getFallbackFactualResponse } from '../services/ai/ResponseValidator.js';
+import { updateMemoryAsynchronously } from '../services/ai/MemoryService.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
 
@@ -141,7 +142,7 @@ Final Context Object: ${JSON.stringify(contextResult.contextSections)}
   // ── 5. Build prompt ───────────────────────────────────────────────────────
   // Use last 15 messages for conversation context
   const recentMessages = chat.messages.slice(-15);
-  const promptPayload = buildPrompt(contextResult, recentMessages, trimmedMessage);
+  const promptPayload = buildPrompt(contextResult, recentMessages, trimmedMessage, chat.structuredMemory);
 
   // Log estimated token usage for observability
   const tokenEstimate = estimateTokens(promptPayload);
@@ -162,7 +163,7 @@ Final Context Object: ${JSON.stringify(contextResult.contextSections)}
   }
 
   // Phase 5: Response Validation
-  const validationResult = validateResponse(reply, counts);
+  const validationResult = validateResponse(reply, counts, contextResult.validationContext, 'v2');
   if (!validationResult.isValid) {
     logger.warn(`[ResponseValidator] AI Response failed validation: ${validationResult.reason}`);
     
@@ -170,13 +171,13 @@ Final Context Object: ${JSON.stringify(contextResult.contextSections)}
     try {
       logger.info('[ResponseValidator] Attempting prompt correction and regeneration...');
       const correctionPayload = {
-        systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct counts matching the AUTHORITATIVE DATA SUMMARY.`,
+        systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct amounts and counts matching the AUTHORITATIVE DATA SUMMARY exactly.`,
         contents: promptPayload.contents,
       };
       reply = await generateAIResponse(correctionPayload);
       
       // Validate again
-      const reValidation = validateResponse(reply, counts);
+      const reValidation = validateResponse(reply, counts, contextResult.validationContext, 'v2');
       if (!reValidation.isValid) {
         logger.warn(`[ResponseValidator] Regenerated AI Response also failed validation: ${reValidation.reason}`);
         // Fall back to direct backend summary formatting
@@ -207,7 +208,13 @@ Final Context Object: ${JSON.stringify(contextResult.contextSections)}
   // L5: return the resolved model name so the frontend can display it accurately
   const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 
-  // ── 8. Return response ────────────────────────────────────────────────────
+  // ── 8. Asynchronously Update Long-Term Memory (Fire and Forget) ───────────
+  // We pass the last few messages and the user's latest message to extract non-financial context.
+  updateMemoryAsynchronously(chat._id, trimmedMessage, recentMessages).catch(err => {
+    logger.error(`[Memory Update Failed] ${err.message}`);
+  });
+
+  // ── 9. Return response ────────────────────────────────────────────────────
   sendSuccess(res, 200, 'Reply sent', {
     userMessage: chat.messages[chat.messages.length - 2],
     aiMessage: chat.messages[chat.messages.length - 1],

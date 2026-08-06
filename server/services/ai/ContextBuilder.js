@@ -108,9 +108,9 @@ const isCacheValid = (chat, moduleName) => {
  * @param {string} moduleName
  * @param {string} data
  */
-const writeCache = (chat, moduleName, data, count) => {
+const writeCache = (chat, moduleName, data, count, validationData = null) => {
   if (!chat.moduleCache) chat.moduleCache = {};
-  chat.moduleCache[moduleName] = { data, count, cachedAt: new Date() };
+  chat.moduleCache[moduleName] = { data, count, validationData, cachedAt: new Date() };
   // Mark the field as modified so Mongoose saves it (Mixed type)
   if (typeof chat.markModified === 'function') {
     chat.markModified(`moduleCache.${moduleName}`);
@@ -147,28 +147,49 @@ const fmt = (n) => (n ?? 0).toLocaleString('en-IN');
 
 const formatWallets = (data) => {
   if (!data || !data.breakdown || data.breakdown.length === 0) {
-    return 'Wallets: There are currently no active wallets.';
+    return 'Wallets: No active wallets.';
   }
-  const lines = [`Current Balance: ₹${fmt(data.total)} across ${data.count} wallet(s)`];
-  for (const w of data.breakdown) {
-    lines.push(`  • ${w.name} (${w.type}): ₹${fmt(w.balance)} ${w.currency}`);
+  
+  // Intelligent Context Selection: Rank by Primary -> Balance -> Recently Updated
+  const ranked = [...data.breakdown].sort((a, b) => {
+    if (a.isPrimary && !b.isPrimary) return -1;
+    if (!a.isPrimary && b.isPrimary) return 1;
+    if (b.balance !== a.balance) return b.balance - a.balance;
+    return new Date(b.updatedAt) - new Date(a.updatedAt);
+  });
+  
+  const selected = ranked.slice(0, 5); // Select highest-value context
+  
+  const lines = [
+    `### Wallets (Total: ₹${fmt(data.total)} | Count: ${data.count} | Showing Top ${selected.length})`,
+    '| Wallet | Type | Balance | Currency |',
+    '|---|---|---|---|'
+  ];
+  for (const w of selected) {
+    lines.push(`| ${w.name} | ${w.type} | ₹${fmt(w.balance)} | ${w.currency} |`);
   }
   return lines.join('\n');
 };
 
 const formatExpenses = (data, label = 'Last 30 Days') => {
   if (!data || !data.byCategory || data.byCategory.length === 0) {
-    return `Expenses (${label}): There are currently no expenses logged.`;
+    return `Expenses (${label}): No expenses logged.`;
   }
-  const lines = [`Expenses (${label}): ₹${fmt(data.total)} across ${data.count} transactions`];
-  if (data.topCategory) lines.push(`  Top Category: ${data.topCategory}`);
+  const lines = [
+    `### Expenses - ${label} (Total: ₹${fmt(data.total)} | Count: ${data.count})`,
+    ...(data.topCategory ? [`Top Category: ${data.topCategory}`] : []),
+    '| Category | Total | % of Expenses |',
+    '|---|---|---|'
+  ];
   for (const c of data.byCategory.slice(0, 5)) {
-    lines.push(`  • ${c.category}: ₹${fmt(c.total)} (${c.percent}%)`);
+    lines.push(`| ${c.category} | ₹${fmt(c.total)} | ${c.percent}% |`);
   }
   if (data.recent.length > 0) {
-    lines.push('Recent transactions:');
+    lines.push('\n**Recent Transactions:**');
+    lines.push('| Title | Category | Amount |');
+    lines.push('|---|---|---|');
     for (const r of data.recent.slice(0, 4)) {
-      lines.push(`  • ${r.title} (${r.category}): ₹${fmt(r.amount)}`);
+      lines.push(`| ${r.title} | ${r.category} | ₹${fmt(r.amount)} |`);
     }
   }
   return lines.join('\n');
@@ -176,11 +197,15 @@ const formatExpenses = (data, label = 'Last 30 Days') => {
 
 const formatIncomes = (data, label = 'Last 30 Days') => {
   if (!data || !data.bySource || data.bySource.length === 0) {
-    return `Income (${label}): There are currently no incomes logged.`;
+    return `Income (${label}): No incomes logged.`;
   }
-  const lines = [`Income (${label}): ₹${fmt(data.total)} across ${data.count} entries`];
+  const lines = [
+    `### Income - ${label} (Total: ₹${fmt(data.total)} | Count: ${data.count})`,
+    '| Source | Total | % of Income |',
+    '|---|---|---|'
+  ];
   for (const s of data.bySource.slice(0, 4)) {
-    lines.push(`  • ${s.source}: ₹${fmt(s.total)} (${s.percent}%)`);
+    lines.push(`| ${s.source} | ₹${fmt(s.total)} | ${s.percent}% |`);
   }
   return lines.join('\n');
 };
@@ -190,59 +215,125 @@ const formatSavings = (savings) =>
 
 const formatBudgets = (data) => {
   if (!data || !data.budgets || data.budgets.length === 0) {
-    return 'Budgets: There are currently no active budgets.';
+    return 'Budgets: No active budgets.';
   }
-  const lines = [`Budgets: ${data.budgets.length} active | Total limit: ₹${fmt(data.totalLimit)} | Spent: ₹${fmt(data.totalSpent)}`];
-  for (const b of data.budgets) {
+  
+  // Intelligent Context Selection: Rank by Exceeded -> Usage % -> Recently Updated
+  const ranked = [...data.budgets].sort((a, b) => {
+    if (a.status === 'exceeded' && b.status !== 'exceeded') return -1;
+    if (b.status === 'exceeded' && a.status !== 'exceeded') return 1;
+    if (b.usagePercent !== a.usagePercent) return b.usagePercent - a.usagePercent;
+    return new Date(b.updatedAt) - new Date(a.updatedAt);
+  });
+  
+  const selected = ranked.slice(0, 5);
+  
+  const lines = [
+    `### Budgets (Total Limit: ₹${fmt(data.totalLimit)} | Spent: ₹${fmt(data.totalSpent)} | Showing Top ${selected.length})`,
+    '| Category | Limit | Spent | Remaining | Status |',
+    '|---|---|---|---|---|'
+  ];
+  for (const b of selected) {
     const icon = b.status === 'exceeded' ? '🔴' : b.status === 'warning' ? '🟡' : '🟢';
-    lines.push(`  ${icon} ${b.category}: ₹${fmt(b.spent)}/₹${fmt(b.limit)} (${b.usagePercent}%)`);
+    lines.push(`| ${icon} ${b.category} | ₹${fmt(b.limit)} | ₹${fmt(b.spent)} | ₹${fmt(b.remaining)} | ${b.usagePercent}% |`);
   }
-  if (data.warnings.length > 0) lines.push(`Warnings: ${data.warnings.join('; ')}`);
+  if (data.warnings.length > 0) lines.push(`\n**Warnings:** ${data.warnings.slice(0, 3).join('; ')}`);
   return lines.join('\n');
 };
 
 const formatGoals = (data) => {
   if (!data || !data.goals || data.goals.length === 0) {
-    return 'Goals: There are currently no active goals.';
+    return 'Goals: No active goals.';
   }
-  const lines = [`Goals: ${data.activeCount} active, ${data.completedCount} completed`];
-  for (const g of data.goals) {
-    const days = g.daysLeft !== null ? ` | ${g.daysLeft}d left` : '';
-    lines.push(`  • ${g.title}: ₹${fmt(g.savedAmount)}/₹${fmt(g.targetAmount)} (${g.progressPct}%${days})`);
-    if (g.suggestedMonthlySaving > 0) {
-      lines.push(`    Suggested monthly: ₹${fmt(g.suggestedMonthlySaving)}`);
-    }
+  
+  // Intelligent Context Selection: Rank by Overdue -> Deadline approaching -> Largest progress
+  const ranked = [...data.goals].sort((a, b) => {
+    const aOverdue = a.daysLeft !== null && a.daysLeft < 0 && a.status !== 'Completed';
+    const bOverdue = b.daysLeft !== null && b.daysLeft < 0 && b.status !== 'Completed';
+    if (aOverdue && !bOverdue) return -1;
+    if (!aOverdue && bOverdue) return 1;
+    
+    if (a.daysLeft !== null && b.daysLeft !== null) {
+      if (a.daysLeft !== b.daysLeft) return a.daysLeft - b.daysLeft;
+    } else if (a.daysLeft !== null) return -1;
+    else if (b.daysLeft !== null) return 1;
+    
+    return b.progressPct - a.progressPct;
+  });
+  
+  const selected = ranked.slice(0, 5);
+
+  const lines = [
+    `### Goals (Active: ${data.activeCount} | Completed: ${data.completedCount} | Showing Top ${selected.length})`,
+    '| Goal | Target | Saved | Progress | Monthly Sugg. |',
+    '|---|---|---|---|---|'
+  ];
+  for (const g of selected) {
+    const days = g.daysLeft !== null ? ` (${g.daysLeft}d left)` : '';
+    lines.push(`| ${g.title} | ₹${fmt(g.targetAmount)} | ₹${fmt(g.savedAmount)} | ${g.progressPct}%${days} | ₹${fmt(g.suggestedMonthlySaving)} |`);
   }
-  if (data.nearCompletion.length > 0) lines.push(`Near completion: ${data.nearCompletion.join(', ')}`);
-  if (data.atRisk.length > 0) lines.push(`At risk: ${data.atRisk.join(', ')}`);
+  if (data.nearCompletion.length > 0) lines.push(`\n**Near completion:** ${data.nearCompletion.slice(0, 3).join(', ')}`);
+  if (data.atRisk.length > 0) lines.push(`\n**At risk:** ${data.atRisk.slice(0, 3).join(', ')}`);
   return lines.join('\n');
 };
 
 const formatLoans = (data) => {
   if (!data || !data.loans || data.loans.length === 0) {
-    return 'Loans: There are currently no active loans.';
+    return 'Loans: No active loans.';
   }
+  
+  // Intelligent Context Selection: Upcoming payment -> Highest EMI
+  const ranked = [...data.loans].sort((a, b) => {
+    if (a.nextEmiDate && b.nextEmiDate) {
+      const diff = new Date(a.nextEmiDate) - new Date(b.nextEmiDate);
+      if (diff !== 0) return diff;
+    } else if (a.nextEmiDate) return -1;
+    else if (b.nextEmiDate) return 1;
+    
+    return b.emiAmount - a.emiAmount;
+  });
+  
+  const selected = ranked.slice(0, 5);
+
   const lines = [
-    `Loans: ${data.count} active | Total remaining: ₹${fmt(data.totalRemaining)} | Monthly EMI: ₹${fmt(data.totalMonthlyEMI)}`,
+    `### Loans (Total Remaining: ₹${fmt(data.totalRemaining)} | EMI/mo: ₹${fmt(data.totalMonthlyEMI)} | Showing Top ${selected.length})`,
+    '| Loan | Type | Remaining | EMI/mo | Rate |',
+    '|---|---|---|---|---|'
   ];
-  for (const l of data.loans) {
-    lines.push(`  • ${l.name} (${l.type}): ₹${fmt(l.remaining)} remaining @ ${l.interestRate}% | EMI: ₹${fmt(l.emiAmount)}/mo`);
+  for (const l of selected) {
+    lines.push(`| ${l.name} | ${l.type} | ₹${fmt(l.remaining)} | ₹${fmt(l.emiAmount)} | ${l.interestRate}% |`);
   }
   return lines.join('\n');
 };
 
 const formatSubscriptions = (data) => {
   if (!data || !data.list || data.list.length === 0) {
-    return 'Subscriptions: There are currently no active subscriptions.';
+    return 'Subscriptions: No active subscriptions.';
   }
+  
+  // Intelligent Context Selection: Renewing soon -> Highest cost
+  const ranked = [...data.list].sort((a, b) => {
+    if (a.renewalDate && b.renewalDate) {
+      const diff = new Date(a.renewalDate) - new Date(b.renewalDate);
+      if (diff !== 0) return diff;
+    } else if (a.renewalDate) return -1;
+    else if (b.renewalDate) return 1;
+    
+    return b.monthlyCost - a.monthlyCost;
+  });
+  
+  const selected = ranked.slice(0, 5);
+
   const lines = [
-    `Subscriptions: ${data.count} active | ₹${fmt(data.monthlyTotal)}/mo | ₹${fmt(data.yearlyTotal)}/yr`,
+    `### Subscriptions (Total: ₹${fmt(data.monthlyTotal)}/mo | ₹${fmt(data.yearlyTotal)}/yr | Showing Top ${selected.length})`,
+    '| Name | Cost | Cycle | Est. Monthly |',
+    '|---|---|---|---|'
   ];
-  for (const s of data.list) {
-    lines.push(`  • ${s.name}: ₹${fmt(s.cost)}/${s.billingCycle} (≈ ₹${fmt(s.monthlyCost)}/mo)`);
+  for (const s of selected) {
+    lines.push(`| ${s.name} | ₹${fmt(s.cost)} | ${s.billingCycle} | ₹${fmt(s.monthlyCost)} |`);
   }
   if (data.renewingSoon.length > 0) {
-    lines.push(`Renewing soon: ${data.renewingSoon.map((s) => s.name).join(', ')}`);
+    lines.push(`\n**Renewing soon:** ${data.renewingSoon.slice(0, 3).map((s) => s.name).join(', ')}`);
   }
   return lines.join('\n');
 };
@@ -458,7 +549,8 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
       cacheHits: [],
       cacheMisses: [],
       generatedAt: new Date(),
-      counts: { wallets: 0, budgets: 0, expenses: 0, incomes: 0, goals: 0, loans: 0, subscriptions: 0, transactions: 0 }
+      counts: { wallets: 0, budgets: 0, expenses: 0, incomes: 0, goals: 0, loans: 0, subscriptions: 0, transactions: 0 },
+      validationContext: {}
     };
   }
 
@@ -480,6 +572,7 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
   const cacheHits = [];
   const cacheMisses = [];
   let counts = {};
+  const validationContext = {};
 
   const ALL_MODULES = ['wallets', 'expenses', 'incomes', 'budgets', 'goals', 'loans', 'subscriptions'];
   
@@ -490,11 +583,14 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
 
   if (allCached) {
     for (const mod of ALL_MODULES) {
-      const cachedSection = chat.moduleCache[mod]?.data;
-      if (cachedSection) {
-        contextSections.push(cachedSection);
+      const cached = chat.moduleCache[mod];
+      if (cached && cached.data) {
+        contextSections.push(cached.data);
         modulesFetched.push(mod);
         cacheHits.push(mod);
+        if (cached.validationData) {
+          validationContext[mod] = cached.validationData;
+        }
       }
     }
     // Add user achievements
@@ -502,6 +598,9 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
       contextSections.push(chat.moduleCache['user'].data);
       modulesFetched.push('user');
       cacheHits.push('user');
+      if (chat.moduleCache['user'].validationData) {
+        validationContext['user'] = chat.moduleCache['user'].validationData;
+      }
     }
 
     counts = {
@@ -528,15 +627,24 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     });
 
     // Populate formatters and update cache
+    const walletData = calculateWalletBalance(rawData.wallets);
+    const expenseData = calculateMonthlyExpense(rawData.expenses);
+    const incomeData = calculateMonthlyIncome(rawData.incomes);
+    const budgetData = calculateBudgetUsage(rawData.budgets);
+    const goalData = calculateGoalProgress(rawData.goals);
+    const loanData = calculateLoanSummary(rawData.loans);
+    const subData = calculateSubscriptionCost(rawData.subscriptions);
+    const userData = rawData.user;
+
     const calculations = {
-      wallets: () => formatWallets(calculateWalletBalance(rawData.wallets)),
-      expenses: () => formatExpenses(calculateMonthlyExpense(rawData.expenses), dateRange.label),
-      incomes: () => formatIncomes(calculateMonthlyIncome(rawData.incomes), dateRange.label),
-      budgets: () => formatBudgets(calculateBudgetUsage(rawData.budgets)),
-      goals: () => formatGoals(calculateGoalProgress(rawData.goals)),
-      loans: () => formatLoans(calculateLoanSummary(rawData.loans)),
-      subscriptions: () => formatSubscriptions(calculateSubscriptionCost(rawData.subscriptions)),
-      user: () => formatAchievements(rawData.user)
+      wallets: { fmt: () => formatWallets(walletData), data: walletData },
+      expenses: { fmt: () => formatExpenses(expenseData, dateRange.label), data: expenseData },
+      incomes: { fmt: () => formatIncomes(incomeData, dateRange.label), data: incomeData },
+      budgets: { fmt: () => formatBudgets(budgetData), data: budgetData },
+      goals: { fmt: () => formatGoals(goalData), data: goalData },
+      loans: { fmt: () => formatLoans(loanData), data: loanData },
+      subscriptions: { fmt: () => formatSubscriptions(subData), data: subData },
+      user: { fmt: () => formatAchievements(userData), data: userData }
     };
 
     counts = {
@@ -551,18 +659,15 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     };
 
     // M1 fix: only run formatters for modules required by the detected intents.
-    // Always include 'user' (gamification) if it was added to requiredModules.
-    // 'savings' is derived (no DB query) — always computed after expenses+incomes.
-    // Special-case blocks below handle 'comparison', 'financial_health', and simulations.
-    // NOTE: We still WRITE to moduleCache for every module we do fetch, so the cache
-    // warms normally for subsequent requests.
     for (const mod of Object.keys(calculations)) {
       if (!requiredModules.has(mod)) continue;
-      const section = calculations[mod]();
+      const section = calculations[mod].fmt();
       if (section) {
         contextSections.push(section);
+        const valData = calculations[mod].data;
+        validationContext[mod] = valData;
         if (!isCustomTimeQuery) {
-          writeCache(chat, mod, section, getCountFromRaw(mod, rawData));
+          writeCache(chat, mod, section, getCountFromRaw(mod, rawData), valData);
         }
         modulesFetched.push(mod);
         cacheMisses.push(mod);
@@ -570,9 +675,10 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     }
 
     // Derived savings calculation (if both expenses and incomes are available)
-    const expData = calculateMonthlyExpense(rawData.expenses);
-    const incData = calculateMonthlyIncome(rawData.incomes);
+    const expData = expenseData || calculateMonthlyExpense(rawData.expenses);
+    const incData = incomeData || calculateMonthlyIncome(rawData.incomes);
     const savings = calculateSavings(incData.total, expData.total);
+    validationContext.savings = savings;
     contextSections.push(formatSavings(savings));
 
     // Derived comparison (if requested)
@@ -628,6 +734,7 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     cacheMisses,
     generatedAt: new Date(),
     counts,
+    validationContext,
   };
 };
 

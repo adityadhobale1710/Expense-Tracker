@@ -49,6 +49,8 @@ export const calculateWalletBalance = (wallets = []) => {
     type: w.type,
     balance: r2(w.balance || 0),
     currency: w.currency || 'INR',
+    isPrimary: w.isPrimary || false,
+    updatedAt: w.updatedAt || new Date(0)
   }));
   return { total: r2(total), breakdown, count: wallets.length };
 };
@@ -229,7 +231,10 @@ export const calculateBudgetUsage = (budgets = []) => {
     totalLimit += limit;
     totalSpent += spent;
 
-    return { category: categoryName, limit, spent, remaining, usagePercent, status, period: b.period };
+    return { 
+      category: categoryName, limit, spent, remaining, 
+      usagePercent, status, period: b.period, updatedAt: b.updatedAt || new Date(0) 
+    };
   });
 
   return {
