@@ -41,7 +41,13 @@ const aiChatSchema = new mongoose.Schema(
           conversation_summary: "LOW"
         }
       }
-    }
+    },
+    // Phase 4: Daily Quota & Caching
+    dailyUsage: {
+      date: { type: String },
+      count: { type: Number, default: 0 }
+    },
+    responseCache: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
   { timestamps: true }
 );

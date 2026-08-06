@@ -25,6 +25,43 @@ import { validateResponse, getFallbackFactualResponse } from '../services/ai/Res
 import { updateMemoryAsynchronously } from '../services/ai/MemoryService.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
+import crypto from 'crypto';
+
+/**
+ * Atomically checks and increments the user's daily quota.
+ * Uses a two-step approach for exact rolling limits.
+ */
+const incrementDailyQuota = async (userId, reason = 'primary') => {
+  const limit = parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '50', 10);
+  const today = new Date().toISOString().split('T')[0];
+
+  // 1. Try to increment today's existing record if under limit
+  let updatedChat = await AIChat.findOneAndUpdate(
+    { user: userId, 'dailyUsage.date': today, 'dailyUsage.count': { $lt: limit } },
+    { $inc: { 'dailyUsage.count': 1 } },
+    { new: true }
+  );
+
+  if (updatedChat) {
+    logger.info(`[Quota] user ${userId}: ${updatedChat.dailyUsage.count}/${limit}, reason: ${reason}`);
+    return { allowed: true };
+  }
+
+  // 2. Try to rollover if the date is stale
+  updatedChat = await AIChat.findOneAndUpdate(
+    { user: userId, 'dailyUsage.date': { $ne: today } },
+    { $set: { dailyUsage: { date: today, count: 1 } } },
+    { new: true }
+  );
+
+  if (updatedChat) {
+    logger.info(`[Quota] user ${userId}: 1/${limit}, reason: ${reason} (rollover)`);
+    return { allowed: true };
+  }
+
+  // 3. Quota exhausted for today
+  return { allowed: false, limit };
+};
 
 // ─── GET CHAT HISTORY ─────────────────────────────────────────────────────────
 
@@ -110,27 +147,6 @@ export const sendMessage = asyncHandler(async (req, res) => {
   const contextResult = await buildContext(userId, detectedIntents, chat, trimmedMessage);
   const counts = contextResult.counts || { wallets: 0, budgets: 0, expenses: 0, incomes: 0, goals: 0, loans: 0, subscriptions: 0, transactions: 0 };
 
-  // Phase 3 — Audit Logging (Temporary Context Log)
-  logger.info(`
-=== TEMPORARY AI REQUEST CONTEXT AUDIT LOG ===
-User Question: "${trimmedMessage}"
-Detected Intent: "${primaryIntent}"
-Wallets Count: ${counts.wallets}
-Budgets Count: ${counts.budgets}
-Goals Count: ${counts.goals}
-Expenses Count: ${counts.expenses}
-Incomes Count: ${counts.incomes}
-Loans Count: ${counts.loans}
-Subscriptions Count: ${counts.subscriptions}
-Transactions Count: ${counts.transactions}
-Cache Status: ${contextResult.cacheHits.length === 7 ? 'Full Cache HIT' : contextResult.cacheMisses.length > 0 ? 'Cache MISS' : 'Partial'}
-Modules Loaded: [${contextResult.modulesFetched.join(', ') || 'none'}]
-Modules Reloaded: [${contextResult.cacheMisses.join(', ') || 'none'}]
-Modules From Cache: [${contextResult.cacheHits.join(', ') || 'none'}]
-Final Context Object: ${JSON.stringify(contextResult.contextSections)}
-==============================================
-`);
-
   logger.info(
     `[AI Controller] Context built. ` +
     `Modules fetched: [${contextResult.modulesFetched.join(', ') || 'none'}]. ` +
@@ -153,42 +169,121 @@ Final Context Object: ${JSON.stringify(contextResult.contextSections)}
     `Total: ${tokenEstimate.totalTokens}.`
   );
 
-  // ── 6. Call Gemini ────────────────────────────────────────────────────────
+  // ── Phase 4: Lightweight Response Cache ─────────────────────────────────────
+  const CACHE_VERSION = 1;
+  // Hash the authoritative data summary and context sections to detect changes
+  const contextSummaryHash = crypto.createHash('md5')
+    .update(JSON.stringify({ v: CACHE_VERSION, counts, sections: contextResult.contextSections }))
+    .digest('hex');
+  const cacheKey = `${primaryIntent}_${trimmedMessage.toLowerCase().replace(/[^a-z0-9]/g, '')}_${contextSummaryHash}`;
+  const now = Date.now();
+  const cacheTTL = parseInt(process.env.AI_CACHE_TTL || '120000', 10);
+
   let reply;
-  try {
-    reply = await generateAIResponse(promptPayload);
-  } catch (error) {
-    res.status(error.status || 502);
-    throw new Error(error.message);
+  let cacheHit = false;
+
+  if (chat.responseCache && chat.responseCache[cacheKey]) {
+    const cached = chat.responseCache[cacheKey];
+    if (now - cached.timestamp < cacheTTL) {
+      logger.info(`[Cache] Cache hit for key: ${cacheKey}. Skipping Gemini.`);
+      reply = cached.data;
+      cacheHit = true;
+    }
   }
 
-  // Phase 5: Response Validation
-  const validationResult = validateResponse(reply, counts, contextResult.validationContext, 'v2');
-  if (!validationResult.isValid) {
-    logger.warn(`[ResponseValidator] AI Response failed validation: ${validationResult.reason}`);
-    
-    // Attempt single regeneration with strict correction prompt
-    try {
-      logger.info('[ResponseValidator] Attempting prompt correction and regeneration...');
-      const correctionPayload = {
-        systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct amounts and counts matching the AUTHORITATIVE DATA SUMMARY exactly.`,
-        contents: promptPayload.contents,
-      };
-      reply = await generateAIResponse(correctionPayload);
+  if (!cacheHit) {
+    // ── Check Daily Quota ───────────────────────────────────────────────────
+    const quota = await incrementDailyQuota(userId, 'primary-call');
+    if (!quota.allowed) {
+      // Calculate reset at midnight UTC
+      const tomorrow = new Date();
+      tomorrow.setUTCHours(24, 0, 0, 0);
+      const secondsUntilMidnight = Math.floor((tomorrow.getTime() - now) / 1000);
       
-      // Validate again
-      const reValidation = validateResponse(reply, counts, contextResult.validationContext, 'v2');
-      if (!reValidation.isValid) {
-        logger.warn(`[ResponseValidator] Regenerated AI Response also failed validation: ${reValidation.reason}`);
-        // Fall back to direct backend summary formatting
-        reply = getFallbackFactualResponse(counts);
-      } else {
-        logger.info('[ResponseValidator] Prompt correction successful. Regenerated response passed validation.');
-      }
-    } catch (regenError) {
-      logger.warn(`[ResponseValidator] Regeneration failed: ${regenError.message}. Using deterministic fallback.`);
-      reply = getFallbackFactualResponse(counts);
+      res.setHeader('Retry-After', secondsUntilMidnight);
+      res.status(429);
+      // Respond with custom JSON body for frontend detection
+      throw new Error(JSON.stringify({ 
+        message: 'Daily AI limit reached', 
+        resetAt: tomorrow.toISOString() 
+      }));
     }
+
+    // ── 6. Call Gemini ────────────────────────────────────────────────────────
+    try {
+      reply = await generateAIResponse(promptPayload);
+    } catch (error) {
+      // Refund the quota ONLY for external AI failures (e.g. 500, 502, 503, 504)
+      // Do not refund for bad request (400), auth (401/403), rate limit (429), or validation retries
+      const status = error.status || 500;
+      if (status >= 500 && status <= 504) {
+        const today = new Date().toISOString().split('T')[0];
+        await AIChat.findOneAndUpdate(
+          { user: userId, 'dailyUsage.date': today },
+          { $inc: { 'dailyUsage.count': -1 } }
+        );
+        logger.info(`[Quota] Refunded 1 quota for user ${userId} due to external AI failure: ${status}`);
+      }
+      res.status(status);
+      throw new Error(error.message);
+    }
+
+    // Phase 5: Response Validation (with retry quota alignment)
+    const validationResult = validateResponse(reply, counts, contextResult.validationContext, 'v2');
+    if (!validationResult.isValid) {
+      logger.warn(`[ResponseValidator] AI Response failed validation: ${validationResult.reason}`);
+      
+      // Attempt single regeneration with strict correction prompt
+      try {
+        // Retry Quota Alignment
+        const retryQuota = await incrementDailyQuota(userId, 'validation-retry');
+        if (!retryQuota.allowed) {
+          logger.warn(`[ResponseValidator] Retry blocked by quota. Using deterministic fallback.`);
+          reply = getFallbackFactualResponse(counts);
+        } else {
+          logger.info('[ResponseValidator] Attempting prompt correction and regeneration...');
+          const correctionPayload = {
+            systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct amounts and counts matching the AUTHORITATIVE DATA SUMMARY exactly.`,
+            contents: promptPayload.contents,
+          };
+          reply = await generateAIResponse(correctionPayload);
+          
+          // Validate again
+          const reValidation = validateResponse(reply, counts, contextResult.validationContext, 'v2');
+          if (!reValidation.isValid) {
+            logger.warn(`[ResponseValidator] Regenerated AI Response also failed validation: ${reValidation.reason}`);
+            reply = getFallbackFactualResponse(counts);
+          } else {
+            logger.info('[ResponseValidator] Prompt correction successful. Regenerated response passed validation.');
+          }
+        }
+      } catch (regenError) {
+        logger.warn(`[ResponseValidator] Regeneration failed: ${regenError.message}. Using deterministic fallback.`);
+        reply = getFallbackFactualResponse(counts);
+      }
+    }
+    
+    // Refresh chat object from DB so we don't overwrite the atomic dailyUsage increment
+    chat = await AIChat.findById(chat._id);
+
+    // Cache the verified response
+    // Prune entries older than 2 minutes on write so the field doesn't grow unbounded
+    // Note: this cache can go stale for up to 2 minutes after the user mutates data. 
+    // TODO: Invalidate responseCache when moduleCache for overlapping modules is invalidated.
+    const prunedCache = {};
+    if (chat.responseCache) {
+      for (const [key, val] of Object.entries(chat.responseCache)) {
+        if (now - val.timestamp < cacheTTL) {
+          prunedCache[key] = val;
+        }
+      }
+    }
+    prunedCache[cacheKey] = { data: reply, timestamp: now };
+    chat.responseCache = prunedCache;
+    chat.markModified('responseCache');
+  } else {
+    // On cache hit, refresh chat object as well to avoid race conditions with other tabs
+    chat = await AIChat.findById(chat._id);
   }
 
   // ── 7. Persist conversation ───────────────────────────────────────────────
