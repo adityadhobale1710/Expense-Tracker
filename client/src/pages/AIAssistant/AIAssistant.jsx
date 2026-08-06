@@ -103,11 +103,35 @@ export default function AIAssistant() {
         return;
       }
       console.error('AI chat error:', err);
-      const friendlyErr = err.response?.data?.message || err.message || 'Unable to connect to the Gemini service. Please check your internet connection.';
-      setError(friendlyErr);
-      setInput(text);
-      setMessages((prev) => prev.filter((m) => m._id !== tempUserMsg._id));
-      toast.error('Failed to send message.');
+      
+      if (err.response?.status === 429) {
+        const resetAt = err.response.data?.resetAt;
+        let messageText = "Please wait a bit before sending more messages.";
+        
+        if (resetAt) {
+          const resetTime = new Date(resetAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          messageText = `**Notice:** Daily AI limit reached — resets at ${resetTime}.`;
+        }
+        
+        const systemMsg = {
+          _id: `system-${Date.now()}`,
+          role: 'assistant',
+          content: messageText,
+          timestamp: new Date().toISOString(),
+        };
+        
+        setMessages((prev) => {
+          const newMsgs = prev.filter((m) => m._id !== tempUserMsg._id);
+          return [...newMsgs, systemMsg];
+        });
+        setInput(text);
+      } else {
+        const friendlyErr = err.response?.data?.message || err.message || 'Unable to connect to the Gemini service. Please check your internet connection.';
+        setError(friendlyErr);
+        setInput(text);
+        setMessages((prev) => prev.filter((m) => m._id !== tempUserMsg._id));
+        toast.error('Failed to send message.');
+      }
     } finally {
       setLoading(false);
       setIsTyping(false);

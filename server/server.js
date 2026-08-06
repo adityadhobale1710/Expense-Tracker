@@ -193,11 +193,15 @@ app.listen(PORT, () => {
 // logs, then exit(1) so the process manager (PM2 / Render / Railway) can restart.
 
 process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled Promise Rejection:', reason);
+  if (reason instanceof Error) {
+    logger.error(reason.message, { stack: reason.stack, name: reason.name });
+  } else {
+    logger.error(String(reason));
+  }
   process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception:', err);
+  logger.error(err.message || String(err), { stack: err.stack, name: err.name });
   process.exit(1);
 });
