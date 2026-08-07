@@ -6,15 +6,15 @@ import { protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 router.use(protect);
 
-// M6: Dedicated rate limiter for POST /chat only — 15 requests per 15 minutes.
+// M6: Dedicated rate limiter for POST /chat only — 20 requests per 10 minutes.
 // Keys by authenticated userId when available, falls back to IP so unauthenticated
 // requests can't bypass by omitting credentials.
 // TODO: This uses express-rate-limit's default in-memory store. Rate limits are single-instance 
 // and will reset on server restarts. If this app is deployed across multiple instances, 
 // rate-limit-redis (and redis) should be added to share quota state.
 const chatRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15,
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 20,
   keyGenerator: (req) => {
     if (req.user?._id) {
       return req.user._id.toString();
@@ -25,7 +25,8 @@ const chatRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many messages sent. Please wait 15 minutes before sending more.',
+    error: 'RATE_LIMIT_EXCEEDED',
+    message: 'Too many AI requests. Please wait before trying again.',
   },
 });
 
