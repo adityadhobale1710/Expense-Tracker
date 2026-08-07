@@ -27,41 +27,7 @@ import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
 import crypto from 'crypto';
 
-/**
- * Atomically checks and increments the user's daily quota.
- * Uses a two-step approach for exact rolling limits.
- */
-const incrementDailyQuota = async (userId, reason = 'primary') => {
-  const limit = parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '50', 10);
-  const today = new Date().toISOString().split('T')[0];
 
-  // 1. Try to increment today's existing record if under limit
-  let updatedChat = await AIChat.findOneAndUpdate(
-    { user: userId, 'dailyUsage.date': today, 'dailyUsage.count': { $lt: limit } },
-    { $inc: { 'dailyUsage.count': 1 } },
-    { new: true }
-  );
-
-  if (updatedChat) {
-    logger.info(`[Quota] user ${userId}: ${updatedChat.dailyUsage.count}/${limit}, reason: ${reason}`);
-    return { allowed: true };
-  }
-
-  // 2. Try to rollover if the date is stale
-  updatedChat = await AIChat.findOneAndUpdate(
-    { user: userId, 'dailyUsage.date': { $ne: today } },
-    { $set: { dailyUsage: { date: today, count: 1 } } },
-    { new: true }
-  );
-
-  if (updatedChat) {
-    logger.info(`[Quota] user ${userId}: 1/${limit}, reason: ${reason} (rollover)`);
-    return { allowed: true };
-  }
-
-  // 3. Quota exhausted for today
-  return { allowed: false, limit };
-};
 
 // ─── GET CHAT HISTORY ─────────────────────────────────────────────────────────
 
@@ -199,9 +165,11 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
 
   if (!cacheHit) {
-    // ── Check Daily Quota ───────────────────────────────────────────────────
-    const quota = await incrementDailyQuota(userId, 'primary-call');
-    if (!quota.allowed) {
+    // ── Check Daily Quota (Without Incrementing) ─────────────────────────────
+    const limit = parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '100', 10);
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (chat.dailyUsage?.date === today && chat.dailyUsage?.count >= limit) {
       // Calculate reset at midnight UTC
       const tomorrow = new Date();
       tomorrow.setUTCHours(24, 0, 0, 0);
@@ -215,71 +183,43 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
     // ── 6. Call Gemini ────────────────────────────────────────────────────────
     try {
-
       reply = await generateAIResponse(promptPayload);
-
     } catch (error) {
-      // Refund the quota ONLY for external AI failures (e.g. 500, 502, 503, 504)
-      // Do not refund for bad request (400), auth (401/403), rate limit (429), or validation retries
+      // Quota is not consumed until success, so no refund is necessary.
       const status = error.status || 500;
-      if (status >= 500 && status <= 504) {
-        const today = new Date().toISOString().split('T')[0];
-        await AIChat.findOneAndUpdate(
-          { user: userId, 'dailyUsage.date': today },
-          { $inc: { 'dailyUsage.count': -1 } }
-        );
-        logger.info(`[Quota] Refunded 1 quota for user ${userId} due to external AI failure: ${status}`);
-      }
       res.status(status);
       throw new Error(error.message);
     }
 
-    // Phase 5: Response Validation (with retry quota alignment)
+    // Phase 5: Response Validation (Internal retry)
     const validationResult = validateResponse(reply, counts, contextResult.validationContext, 'v2');
-
     
     if (!validationResult.isValid) {
-
       logger.warn(`[ResponseValidator] AI Response failed validation: ${validationResult.reason}`);
       
       // Attempt single regeneration with strict correction prompt
       try {
+        logger.info('[ResponseValidator] Attempting prompt correction and regeneration...');
+        const correctionPayload = {
+          systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct amounts and counts matching the AUTHORITATIVE DATA SUMMARY exactly.`,
+          contents: promptPayload.contents,
+        };
 
-        // Retry Quota Alignment
-        const retryQuota = await incrementDailyQuota(userId, 'validation-retry');
-        if (!retryQuota.allowed) {
-          logger.warn(`[ResponseValidator] Retry blocked by quota. Using deterministic fallback.`);
+        reply = await generateAIResponse(correctionPayload);
+        
+        // Validate again
+        const reValidation = validateResponse(reply, counts, contextResult.validationContext, 'v2');
 
+        if (!reValidation.isValid) {
+          logger.warn(`[ResponseValidator] Regenerated AI Response also failed validation: ${reValidation.reason}`);
           reply = getFallbackFactualResponse(counts);
         } else {
-          logger.info('[ResponseValidator] Attempting prompt correction and regeneration...');
-          const correctionPayload = {
-            systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct amounts and counts matching the AUTHORITATIVE DATA SUMMARY exactly.`,
-            contents: promptPayload.contents,
-          };
-
-          reply = await generateAIResponse(correctionPayload);
-
-          
-          // Validate again
-          const reValidation = validateResponse(reply, counts, contextResult.validationContext, 'v2');
-
-          if (!reValidation.isValid) {
-            logger.warn(`[ResponseValidator] Regenerated AI Response also failed validation: ${reValidation.reason}`);
-
-            reply = getFallbackFactualResponse(counts);
-          } else {
-            logger.info('[ResponseValidator] Prompt correction successful. Regenerated response passed validation.');
-
-          }
+          logger.info('[ResponseValidator] Prompt correction successful. Regenerated response passed validation.');
         }
       } catch (regenError) {
         logger.warn(`[ResponseValidator] Regeneration failed: ${regenError.message}. Using deterministic fallback.`);
-
         reply = getFallbackFactualResponse(counts);
       }
-    } else {
-
     }
     
     // Prune cache occasionally to keep doc size reasonable
@@ -297,15 +237,47 @@ export const sendMessage = asyncHandler(async (req, res) => {
     });
   }
 
-  // ── 7. Persist conversation ───────────────────────────────────────────────
+  // ── 7. Persist conversation & Update Quota ───────────────────────────────
   const userMsg = { role: 'user', content: trimmedMessage };
   const assistantMsg = { role: 'assistant', content: reply };
+  
+  let updatedChat;
+  
+  if (!cacheHit) {
+    const today = new Date().toISOString().split('T')[0];
+    const limit = parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '100', 10);
+    
+    // Increment quota and push messages atomically
+    updatedChat = await AIChat.findOneAndUpdate(
+      { _id: chat._id, 'dailyUsage.date': today },
+      { 
+        $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } },
+        $inc: { 'dailyUsage.count': 1 }
+      },
+      { new: true }
+    );
 
-  const updatedChat = await AIChat.findByIdAndUpdate(
-    chat._id,
-    { $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } } },
-    { new: true }
-  );
+    // If date rolled over, set count to 1
+    if (!updatedChat) {
+      updatedChat = await AIChat.findOneAndUpdate(
+        { _id: chat._id },
+        { 
+          $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } },
+          $set: { dailyUsage: { date: today, count: 1 } }
+        },
+        { new: true }
+      );
+    }
+    
+    logger.info(`[Quota] user ${userId}: ${updatedChat.dailyUsage.count}/${limit}, reason: successful-response`);
+  } else {
+    // Cache hit: Persist messages without consuming quota
+    updatedChat = await AIChat.findByIdAndUpdate(
+      chat._id,
+      { $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } } },
+      { new: true }
+    );
+  }
 
   const totalDuration = Date.now() - requestStart;
   logger.info(`[AI Controller] Request completed in ${totalDuration}ms.`);
@@ -319,11 +291,17 @@ export const sendMessage = asyncHandler(async (req, res) => {
     logger.error(`[Memory Update Failed] ${err.message}`);
   });
 
-  // ── 9. Return response ────────────────────────────────────────────────────
+  // ── 9. Return response (with optional metadata) ─────────────────────────────
   sendSuccess(res, 200, 'Reply sent', {
     userMessage: updatedChat.messages[updatedChat.messages.length - 2],
     aiMessage: updatedChat.messages[updatedChat.messages.length - 1],
-    meta: { model: resolvedModel },
+    meta: { 
+      model: resolvedModel,
+      quota: {
+        used: updatedChat.dailyUsage?.count || 0,
+        limit: parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '100', 10)
+      }
+    },
   });
 });
 
