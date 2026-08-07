@@ -1,3 +1,11 @@
+/*
+ * IMPORTANT DEPLOYMENT INSTRUCTION:
+ * This script MUST be run before deploying any release that includes the unique index
+ * on the `user` field in AIChat.js. If you deploy without running this first, Mongoose
+ * will fail to build the index on startup if any duplicates exist.
+ * A new startup guard exists in server/config/db.js specifically to catch anyone who
+ * deploys without doing so first, which will crash the process until this script is run.
+ */
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -6,7 +14,7 @@ import AIChat from '../models/AIChat.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const dedupe = async () => {
   try {
