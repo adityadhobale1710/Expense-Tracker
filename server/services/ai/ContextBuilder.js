@@ -413,14 +413,11 @@ export const detectAndRunSimulation = (message, data) => {
       monthlySubscriptions
     });
 
-    return `[FINANCIAL SIMULATION]
-Action: Affordability Check for cost ₹${amount.toLocaleString('en-IN')}
-Affordable: ${sim.canAfford ? 'Yes' : 'No'}
-Immediate Shortfall: ₹${sim.shortfall.toLocaleString('en-IN')}
-Remaining Balances: ₹${sim.remainingBalanceAfter.toLocaleString('en-IN')}
-Recovery Time: ${sim.recoveryMonths} months of net savings
-Impact: ${sim.impact}
-Simulation Factors: ${sim.reasons.join(', ')}`;
+    return {
+      text: `[FINANCIAL SIMULATION]\nAction: Affordability Check for cost ₹${amount.toLocaleString('en-IN')}\nAffordable: ${sim.canAfford ? 'Yes' : 'No'}\nImmediate Shortfall: ₹${sim.shortfall.toLocaleString('en-IN')}\nRemaining Balances: ₹${sim.remainingBalanceAfter.toLocaleString('en-IN')}\nRecovery Time: ${sim.recoveryMonths} months of net savings\nImpact: ${sim.impact}\nSimulation Factors: ${sim.reasons.join(', ')}`,
+      sim,
+      inputParams: { amount }
+    };
   }
 
   // 2. If salary increases by X%
@@ -435,12 +432,11 @@ Simulation Factors: ${sim.reasons.join(', ')}`;
       monthlyExpense
     });
 
-    return `[FINANCIAL SIMULATION]
-Action: Income Growth Analysis by ${percent}%
-Projected New Monthly Income: ₹${sim.newMonthlyIncome.toLocaleString('en-IN')}
-Projected New Monthly Savings: ₹${sim.newMonthlySavings.toLocaleString('en-IN')}
-Projected Savings Rate: ${sim.newSavingsRate}%
-Simulation Factors: ${sim.reasons.join(', ')}`;
+    return {
+      text: `[FINANCIAL SIMULATION]\nAction: Income Growth Analysis by ${percent}%\nProjected New Monthly Income: ₹${sim.newMonthlyIncome.toLocaleString('en-IN')}\nProjected New Monthly Savings: ₹${sim.newMonthlySavings.toLocaleString('en-IN')}\nProjected Savings Rate: ${sim.newSavingsRate}%\nSimulation Factors: ${sim.reasons.join(', ')}`,
+      sim,
+      inputParams: { percent }
+    };
   }
 
   // 3. If I save X/month
@@ -455,12 +451,11 @@ Simulation Factors: ${sim.reasons.join(', ')}`;
       monthlyExpense
     });
 
-    return `[FINANCIAL SIMULATION]
-Action: Additional Monthly Savings target ₹${monthlySavings.toLocaleString('en-IN')}
-Projected Monthly Total Savings: ₹${sim.projectedMonthlySavings.toLocaleString('en-IN')}
-Projected 12-Month Accumulation: ₹${sim.projectedYearlySavings.toLocaleString('en-IN')}
-Impact: ${sim.impact}
-Simulation Factors: ${sim.reasons.join(', ')}`;
+    return {
+      text: `[FINANCIAL SIMULATION]\nAction: Additional Monthly Savings target ₹${monthlySavings.toLocaleString('en-IN')}\nProjected Monthly Total Savings: ₹${sim.projectedMonthlySavings.toLocaleString('en-IN')}\nProjected 12-Month Accumulation: ₹${sim.projectedYearlySavings.toLocaleString('en-IN')}\nImpact: ${sim.impact}\nSimulation Factors: ${sim.reasons.join(', ')}`,
+      sim,
+      inputParams: { monthlySavings }
+    };
   }
 
   // 4. If I cancel subscription
@@ -470,12 +465,11 @@ Simulation Factors: ${sim.reasons.join(', ')}`;
     const matchedSub = data.subscriptions?.find(s => s.name.toLowerCase().includes(subName));
     if (matchedSub) {
       const sim = runFinancialSimulation('cancel_subscription', { monthlyCost: matchedSub.cost }, {});
-      return `[FINANCIAL SIMULATION]
-Action: Cancel Subscription "${matchedSub.name}"
-Monthly Savings: ₹${sim.monthlySavingsDelta.toLocaleString('en-IN')}
-Yearly Savings: ₹${sim.yearlySavingsDelta.toLocaleString('en-IN')}
-Impact: ${sim.impact}
-Simulation Factors: ${sim.reasons.join(', ')}`;
+      return {
+        text: `[FINANCIAL SIMULATION]\nAction: Cancel Subscription "${matchedSub.name}"\nMonthly Savings: ₹${sim.monthlySavingsDelta.toLocaleString('en-IN')}\nYearly Savings: ₹${sim.yearlySavingsDelta.toLocaleString('en-IN')}\nImpact: ${sim.impact}\nSimulation Factors: ${sim.reasons.join(', ')}`,
+        sim,
+        inputParams: { monthlyCost: matchedSub.cost }
+      };
     }
   }
 
@@ -484,20 +478,19 @@ Simulation Factors: ${sim.reasons.join(', ')}`;
                           norm.match(/(?:repay|pay off|extra)\s*(?:loan)?\s*with\s*₹?\s*(\d+[\d,]*)/i);
   if (earlyRepayMatch) {
     const extraPayment = parseFloat(earlyRepayMatch[earlyRepayMatch.length - 1].replace(/,/g, ''));
-    const primaryLoan = data.loans?.[0];
+    const loanNameMatch = earlyRepayMatch.length > 2 ? earlyRepayMatch[1] : undefined;
+    const primaryLoan = (loanNameMatch && data.loans?.find(l => l.name.toLowerCase().includes(loanNameMatch.trim().toLowerCase()))) || data.loans?.[0];
     if (primaryLoan) {
       const sim = runFinancialSimulation('early_repayment', {
         extraPayment,
         loanRemaining: primaryLoan.remainingBalance,
         loanEMI: primaryLoan.emiAmount
       }, {});
-      return `[FINANCIAL SIMULATION]
-Action: Early Loan Repayment on "${primaryLoan.name}"
-Extra monthly contribution: ₹${sim.extraMonthlyPayment.toLocaleString('en-IN')}
-Proposed Tenure Remaining: ${sim.remainingTenureMonths} months
-Months Saved from original tenure: ${sim.monthsSaved} months
-Impact: ${sim.impact}
-Simulation Factors: ${sim.reasons.join(', ')}`;
+      return {
+        text: `[FINANCIAL SIMULATION]\nAction: Early Loan Repayment on "${primaryLoan.name}"\nExtra monthly contribution: ₹${sim.extraMonthlyPayment.toLocaleString('en-IN')}\nProposed Tenure Remaining: ${sim.remainingTenureMonths} months\nMonths Saved from original tenure: ${sim.monthsSaved} months\nImpact: ${sim.impact}\nSimulation Factors: ${sim.reasons.join(', ')}`,
+        sim,
+        inputParams: { extraPayment }
+      };
     }
   }
 
@@ -716,9 +709,34 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     }
 
     // Trigger simulation detection and run if matches
-    const simSection = detectAndRunSimulation(message, rawData);
-    if (simSection) {
-      contextSections.push(simSection);
+    const simResult = detectAndRunSimulation(message, rawData);
+    if (simResult) {
+      contextSections.push(simResult.text);
+      
+      // Task 1: Collect numeric fields into validationContext.simulation
+      const s = simResult.sim;
+      const p = simResult.inputParams;
+      validationContext.simulation = {
+        ...(s.shortfall !== undefined && { shortfall: s.shortfall }),
+        ...(s.remainingBalanceAfter !== undefined && { remainingBalanceAfter: s.remainingBalanceAfter }),
+        ...(s.recoveryMonths !== undefined && { recoveryMonths: s.recoveryMonths }),
+        ...(s.newMonthlyIncome !== undefined && { newMonthlyIncome: s.newMonthlyIncome }),
+        ...(s.newMonthlySavings !== undefined && { newMonthlySavings: s.newMonthlySavings }),
+        ...(s.newSavingsRate !== undefined && { newSavingsRate: s.newSavingsRate }),
+        ...(s.projectedMonthlySavings !== undefined && { projectedMonthlySavings: s.projectedMonthlySavings }),
+        ...(s.projectedYearlySavings !== undefined && { projectedYearlySavings: s.projectedYearlySavings }),
+        ...(s.monthlySavingsDelta !== undefined && { monthlySavingsDelta: s.monthlySavingsDelta }),
+        ...(s.yearlySavingsDelta !== undefined && { yearlySavingsDelta: s.yearlySavingsDelta }),
+        ...(s.extraMonthlyPayment !== undefined && { extraMonthlyPayment: s.extraMonthlyPayment }),
+        ...(s.monthsSaved !== undefined && { monthsSaved: s.monthsSaved }),
+        ...(s.remainingTenureMonths !== undefined && { remainingTenureMonths: s.remainingTenureMonths }),
+        ...(p.amount !== undefined && { amount: p.amount }),
+        ...(p.percent !== undefined && { percent: p.percent }),
+        ...(p.monthlySavings !== undefined && { monthlySavings: p.monthlySavings }),
+        ...(p.monthlyCost !== undefined && { monthlyCost: p.monthlyCost }),
+        ...(p.extraPayment !== undefined && { extraPayment: p.extraPayment })
+      };
+      
       logger.info(`[ContextBuilder] Affordability simulation generated and attached.`);
     }
   }

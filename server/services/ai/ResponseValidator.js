@@ -30,14 +30,14 @@ const normalizeNumber = (str, multiplierStr) => {
 // ============================================================================
 const extractFinancialValues = (text) => {
   const norm = text.toLowerCase();
-  const values = new Set();
+  const values = []; // Array of { val, index, matchText }
   
   // Extract Percentages (e.g., "80%", "40.5%")
   const pctRegex = /([\d.,]+)\s*%/g;
   let match;
   while ((match = pctRegex.exec(norm)) !== null) {
     const val = normalizeNumber(match[1]);
-    if (val !== null) values.add(val);
+    if (val !== null) values.push({ val, index: match.index, matchText: match[0] });
   }
 
   // Extract Currency / Large Numbers
@@ -53,16 +53,21 @@ const extractFinancialValues = (text) => {
     // This avoids matching years like '2024' or list items '1.', '2.'
     if (hasSymbol || hasMultiplier) {
       const val = normalizeNumber(match[1], match[2]);
-      if (val !== null) values.add(val);
+      if (val !== null) values.push({ val, index: match.index, matchText: match[0] });
     }
   }
   
-  return Array.from(values);
+  return values;
 };
 
 // ============================================================================
 // 3. Context Builder
 // ============================================================================
+/**
+ * Note: flattenValidationContext must be kept in sync with EVERY context section 
+ * ContextBuilder can produce. Any section or derived number it misses becomes a 
+ * guaranteed false-positive hallucination flag.
+ */
 const flattenValidationContext = (vc) => {
   const allowed = new Set();
   const add = (v) => { if (typeof v === 'number' && !isNaN(v)) allowed.add(v); };
@@ -76,6 +81,7 @@ const flattenValidationContext = (vc) => {
     add(vc.budgets.totalSpent);
     vc.budgets.budgets?.forEach(b => {
       add(b.limit); add(b.spent); add(b.remaining); add(b.usagePercent);
+      if (b.spent > b.limit) add(b.spent - b.limit); // budget overage
     });
   }
   if (vc.goals) {
@@ -113,6 +119,9 @@ const flattenValidationContext = (vc) => {
   if (vc.health) {
     add(vc.health.score);
   }
+  if (vc.simulation) {
+    Object.values(vc.simulation).forEach(val => add(val));
+  }
   return Array.from(allowed);
 };
 
@@ -139,6 +148,22 @@ const checkValueTolerance = (val, allowedValues) => {
   }
   
   return { confidence, matchedValue };
+};
+
+const checkProximity = (text, index, matchText) => {
+  const windowStart = Math.max(0, index - 80);
+  const windowText = text.substring(windowStart, index + matchText.length).toLowerCase();
+  
+  const advisoryPhrases = ['i recommend', 'consider', 'you could aim for', 'a common rule is', 'if you were to', 'suggest', 'propose', 'target', 'budget of', 'would be', 'could be'];
+  const factualPhrases = ['you have', 'your total is', 'you currently', "you've spent", 'you spent', 'your balance', 'total of', 'account has'];
+
+  for (const phrase of factualPhrases) {
+    if (windowText.includes(phrase)) return 'FACTUAL';
+  }
+  for (const phrase of advisoryPhrases) {
+    if (windowText.includes(phrase)) return 'ADVISORY';
+  }
+  return 'BARE'; // default to bare
 };
 
 const logValidationEvent = ({ duration, extracted, validated, outcome, rule, module, ts }) => {
@@ -184,25 +209,41 @@ export const validateResponse = (aiResponse, counts, validationContext = {}, con
     const extractedValues = extractFinancialValues(aiResponse);
     const allowedValues = flattenValidationContext(validationContext);
 
-    for (const val of extractedValues) {
+    for (const item of extractedValues) {
+      const { val, index, matchText } = item;
       const { confidence } = checkValueTolerance(val, allowedValues);
 
       if (confidence === 'NONE') {
-        // AI hallucinates a specific financial number not in the deterministic context
-        logValidationEvent({
-          duration: Date.now() - startTime,
-          extracted: val,
-          validated: 'ONE_OF_AUTHORITATIVE',
-          outcome: 'CRITICAL',
-          rule: 'FinancialToleranceMatch',
-          module: 'Global',
-          ts: new Date().toISOString()
-        });
-        console.log(`\nValidation failed because:\n- hallucinated amount`);
-        return { 
-          isValid: false, 
-          reason: `AI hallucinated a financial figure (${val}) that does not match the authoritative context.` 
-        };
+        const proximity = checkProximity(norm, index, matchText);
+        
+        if (proximity === 'FACTUAL') {
+          // AI hallucinates a specific financial number as a fact about the user
+          logValidationEvent({
+            duration: Date.now() - startTime,
+            extracted: val,
+            validated: 'ONE_OF_AUTHORITATIVE',
+            outcome: 'CRITICAL',
+            rule: `FinancialToleranceMatch [${proximity}]`,
+            module: 'Global',
+            ts: new Date().toISOString()
+          });
+          console.log(`\nValidation failed because:\n- hallucinated amount (factual)`);
+          return { 
+            isValid: false, 
+            reason: `AI hallucinated a factual financial figure (${val}) that does not match the authoritative context.` 
+          };
+        } else {
+          // ADVISORY or BARE: Soft warning, do not fail validation
+          logValidationEvent({
+            duration: Date.now() - startTime,
+            extracted: val,
+            validated: 'ONE_OF_AUTHORITATIVE',
+            outcome: 'WARNING',
+            rule: `FinancialToleranceMatch [${proximity}]`,
+            module: 'Global',
+            ts: new Date().toISOString()
+          });
+        }
       } else if (confidence === 'MEDIUM') {
         logValidationEvent({
           duration: Date.now() - startTime,
