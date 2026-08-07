@@ -91,7 +91,7 @@ export default function ChartCard({
     <>
       {/* Standard Inline Render */}
       {!isFullscreen ? (
-        <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl hover:shadow-2xl transition-all h-full">
+        <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-2xl shadow-xl hover:shadow-2xl transition-all h-full">
           {cardContent}
         </div>
       ) : (
@@ -99,7 +99,7 @@ export default function ChartCard({
         <div className="fixed inset-0 bg-dark-900/90 z-50 p-4 md:p-6 backdrop-blur-md overflow-hidden flex flex-col justify-center">
           <motion.div
             layoutId={`fullscreen-chart-${title}`}
-            className="bg-dark-900 border border-slate-700/60 rounded-3xl p-4 md:p-6 shadow-2xl w-full max-w-5xl mx-auto h-[90dvh] flex flex-col justify-between"
+            className="bg-dark-900 border border-slate-700/60 rounded-2xl p-4 md:p-6 shadow-2xl w-full max-w-5xl mx-auto h-[90dvh] flex flex-col justify-between"
           >
             {cardContent}
           </motion.div>

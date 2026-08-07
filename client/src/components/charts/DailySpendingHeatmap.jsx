@@ -94,7 +94,7 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
   }, [grid]);
 
   return (
-    <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-6">
+    <div className="flex flex-col p-5 bg-dark-800/80 border border-slate-700/60 rounded-2xl shadow-xl space-y-4">
       
       {/* Header controls row */}
       <div className="flex justify-between items-center">
@@ -134,7 +134,7 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
         {/* Grid content */}
         <div className="flex gap-1 items-start">
           {/* Day column labels */}
-          <div className="grid grid-rows-7 gap-[3.5px] pr-2 text-right select-none mt-0.5">
+          <div className="grid grid-rows-7 gap-[2.5px] pr-2 text-right select-none mt-0.5">
             {dayNames.map((day, idx) => (
               <span key={idx} className="text-[8px] font-bold text-slate-500 h-3 leading-3">
                 {idx % 2 === 1 ? day : ''}
@@ -143,15 +143,15 @@ export default function DailySpendingHeatmap({ heatmapData = [], currencySymbol 
           </div>
 
           {/* Grid columns of weeks */}
-          <div className="flex gap-[3.5px]">
+          <div className="flex gap-[2.5px]">
             {grid.map((week, weekIdx) => (
-              <div key={weekIdx} className="grid grid-rows-7 gap-[3.5px]">
+              <div key={weekIdx} className="grid grid-rows-7 gap-[2.5px]">
                 {week.map((cell, dayIdx) => (
                   <div
                     key={dayIdx}
                     onMouseEnter={() => cell.inYear && setHoveredCell(cell)}
                     onMouseLeave={() => setHoveredCell(null)}
-                    className={`w-[10.5px] h-[10.5px] sm:w-[12px] sm:h-[12px] rounded-[2.5px] transition-transform duration-200 ${
+                    className={`w-[8px] h-[8px] sm:w-[10px] sm:h-[10px] rounded-[2px] transition-transform duration-200 ${
                       cell.inYear ? 'cursor-pointer hover:scale-125' : 'pointer-events-none'
                     } ${getColorClass(cell.amount, cell.inYear)} relative`}
                   />

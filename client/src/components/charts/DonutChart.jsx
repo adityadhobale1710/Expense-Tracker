@@ -274,7 +274,7 @@ export default function DonutChart({
         </div>
 
         {/* Custom Legend details */}
-        <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+        <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
           {activeData.map((cat, idx) => {
             const isSelected = selectedCategory === cat?.name;
             return (
