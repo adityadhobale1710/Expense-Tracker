@@ -9,6 +9,9 @@ router.use(protect);
 // M6: Dedicated rate limiter for POST /chat only — 15 requests per 15 minutes.
 // Keys by authenticated userId when available, falls back to IP so unauthenticated
 // requests can't bypass by omitting credentials.
+// TODO: This uses express-rate-limit's default in-memory store. Rate limits are single-instance 
+// and will reset on server restarts. If this app is deployed across multiple instances, 
+// rate-limit-redis (and redis) should be added to share quota state.
 const chatRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 15,
