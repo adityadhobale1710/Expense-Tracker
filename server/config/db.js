@@ -16,6 +16,7 @@ const connectDB = async () => {
     
     if (duplicates.length > 0) {
       logger.error('CRITICAL: Duplicate AIChat documents found for the same user. You MUST run `node server/scripts/dedupeAIChats.mjs` before the unique index can be safely built.');
+      await mongoose.disconnect();
       process.exit(1);
     }
   } catch (error) {
