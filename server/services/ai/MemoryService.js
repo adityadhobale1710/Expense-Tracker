@@ -127,8 +127,16 @@ export const updateMemoryAsynchronously = async (chatId, latestUserMessage, rece
     const currentMemory = chat.structuredMemory || {
       user_preferences: "", ongoing_topics: "", long_term_goals: "",
       conversation_summary: "", pending_followups: "", communication_preferences: "",
-      version: 1, lastUpdated: null, summaryCount: 0
+      version: 1, lastUpdated: null, summaryCount: 0, messagesSinceUpdate: 0
     };
+
+    const currentCount = currentMemory.messagesSinceUpdate || 0;
+    if (currentCount + 1 < 3) {
+      chat.structuredMemory = { ...currentMemory, messagesSinceUpdate: currentCount + 1 };
+      await chat.save();
+      logger.info(`[MemoryService] Skipped Gemini call. messagesSinceUpdate = ${currentCount + 1}/3`);
+      return;
+    }
 
     const promptPayload = {
       systemInstruction: `You are the Memory Manager for an AI Assistant. Your job is to extract long-term conversational memory from the user's recent messages and update the structured memory object.
@@ -161,7 +169,7 @@ CRITICAL RULES:
     const replyStr = await generateAIResponse(promptPayload);
     
     // Strip potential markdown block
-    const cleanedReply = replyStr.replace(/^```json/i, '').replace(/```$/i, '').trim();
+    const cleanedReply = replyStr.trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     
     let parsedMemory;
     try {
@@ -180,6 +188,7 @@ CRITICAL RULES:
         version: (currentMemory.version || 1) + 1,
         lastUpdated: new Date(),
         summaryCount: (currentMemory.summaryCount || 0) + 1,
+        messagesSinceUpdate: 0,
         importance: {
           user_preferences: "CRITICAL",
           communication_preferences: "CRITICAL",

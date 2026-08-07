@@ -28,6 +28,7 @@ const aiChatSchema = new mongoose.Schema(
       version: { type: Number, default: 1 },
       lastUpdated: { type: Date, default: null },
       summaryCount: { type: Number, default: 0 },
+      messagesSinceUpdate: { type: Number, default: 0 },
       // Importance Classification (Internal Only)
       importance: {
         type: Map,
