@@ -23,7 +23,6 @@ import { DataTable } from '../../components/ui/DataTable';
 import CashFlowChart from '../../components/charts/CashFlowChart';
 import DonutChart from '../../components/charts/DonutChart';
 import TreemapChart from '../../components/charts/TreemapChart';
-import SankeyDiagram from '../../components/charts/SankeyDiagram';
 import WaterfallChart from '../../components/charts/WaterfallChart';
 import MonthlySpendingTrend from '../../components/charts/MonthlySpendingTrend';
 import PaymentMethodsChart from '../../components/charts/PaymentMethodsChart';
@@ -752,8 +751,7 @@ export default function AnalyticsPro() {
       {/* Overview Tab Charts */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SankeyDiagram summary={summary || { totalIncome: totalEarnedVal, totalExpense: totalSpentVal, savings: netSavingsVal }} categoryData={expensePieData} />
+          <div className="grid grid-cols-1 gap-6">
             <WaterfallChart summary={{ totalIncome: totalEarnedVal, balance: netSavingsVal }} categoryData={expensePieData} />
           </div>
           <div className="grid grid-cols-1 gap-6">
