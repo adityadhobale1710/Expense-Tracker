@@ -1,4 +1,12 @@
 import winston from 'winston';
+import fs from 'fs';
+
+const traceStream = fs.createWriteStream('trace.log', { flags: 'a' });
+const originalLog = console.log;
+console.log = function(...args) {
+  originalLog.apply(console, args);
+  traceStream.write(args.join(' ') + '\\n');
+};
 
 const { combine, timestamp, json, colorize, printf, errors } = winston.format;
 

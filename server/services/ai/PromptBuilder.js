@@ -16,6 +16,8 @@
  *   • Never exposes DB schema, API keys, or internal implementation details.
  */
 
+import logger from '../../utils/logger.js';
+
 // ─── SYSTEM PROMPT TEMPLATE ───────────────────────────────────────────────────
 
 const INSTRUCTIONS = `
@@ -99,6 +101,9 @@ ${contextBlock}
 
 ${INSTRUCTIONS}`;
   }
+
+  logger.info(`[PromptBuilder] Constructed Context Block with modules: [${contextResult.modulesFetched?.join(', ')}]`);
+  logger.debug(`[PromptBuilder] Context Block Content:\n${contextSections.join('\n\n')}`);
 
   // ── Chat history → Gemini format ──────────────────────────────────────────
   // MERN stores roles as 'user' / 'assistant'; Gemini expects 'user' / 'model'
