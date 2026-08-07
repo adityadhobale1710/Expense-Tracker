@@ -1,4 +1,4 @@
-import { detectIntents } from './services/ai/IntentDetector.js';
+import { detectIntents } from '../../services/ai/IntentDetector.js';
 
 const runTest = async () => {
   const message = "Where am I spending the most?";

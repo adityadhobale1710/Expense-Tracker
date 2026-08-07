@@ -199,7 +199,7 @@ export const validateResponse = (aiResponse, counts, validationContext = {}, con
         module: check.key,
         ts: new Date().toISOString()
       });
-      console.log(`\nValidation failed because:\n- count mismatch`);
+
       return { isValid: false, reason: `AI claimed 0 ${check.str} when user has ${check.count} active ${check.str}.` };
     }
   }
@@ -227,7 +227,7 @@ export const validateResponse = (aiResponse, counts, validationContext = {}, con
             module: 'Global',
             ts: new Date().toISOString()
           });
-          console.log(`\nValidation failed because:\n- hallucinated amount (factual)`);
+
           return { 
             isValid: false, 
             reason: `AI hallucinated a factual financial figure (${val}) that does not match the authoritative context.` 
