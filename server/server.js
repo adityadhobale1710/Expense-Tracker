@@ -42,7 +42,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import gamificationRoutes from './routes/gamificationRoutes.js';
 import billRoutes from './routes/billRoutes.js';
 
-connectDB();
+await connectDB();
 
 
 const app = express();
