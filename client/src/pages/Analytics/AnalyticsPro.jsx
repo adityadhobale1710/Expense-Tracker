@@ -23,7 +23,13 @@ import { DataTable } from '../../components/ui/DataTable';
 import CashFlowChart from '../../components/charts/CashFlowChart';
 import DonutChart from '../../components/charts/DonutChart';
 import TreemapChart from '../../components/charts/TreemapChart';
-import WaterfallChart from '../../components/charts/WaterfallChart';
+
+import IncomeTrendChart from '../../components/charts/IncomeTrendChart';
+import TopIncomeSourcesChart from '../../components/charts/TopIncomeSourcesChart';
+import SavingsTrendChart from '../../components/charts/SavingsTrendChart';
+import IncomeExpenseRatioChart from '../../components/charts/IncomeExpenseRatioChart';
+import FinancialHealthChart from '../../components/charts/FinancialHealthChart';
+
 import MonthlySpendingTrend from '../../components/charts/MonthlySpendingTrend';
 import PaymentMethodsChart from '../../components/charts/PaymentMethodsChart';
 import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
@@ -610,7 +616,7 @@ export default function AnalyticsPro() {
                 </div>
 
                 {/* Simple Legend */}
-                <div className="flex-1 space-y-3 w-full sm:w-auto">
+                <div className="flex-1 space-y-3 w-full sm:w-auto max-h-48 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
                   {incomePieData.map(item => {
                     const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
                     return (
@@ -627,7 +633,7 @@ export default function AnalyticsPro() {
               </div>
 
               {/* Bottom part: Detailed List */}
-              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
+              <div className="mt-6 space-y-5 flex-1 overflow-y-auto max-h-[300px] pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {incomePieData.map(item => {
                   const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
                   return (
@@ -702,7 +708,7 @@ export default function AnalyticsPro() {
                 </div>
 
                 {/* Simple Legend */}
-                <div className="flex-1 space-y-3 w-full sm:w-auto">
+                <div className="flex-1 space-y-3 w-full sm:w-auto max-h-48 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
                   {expensePieData.map(item => {
                     const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
                     return (
@@ -719,7 +725,7 @@ export default function AnalyticsPro() {
               </div>
 
               {/* Bottom part: Detailed List */}
-              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
+              <div className="mt-6 space-y-5 flex-1 overflow-y-auto max-h-[300px] pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {expensePieData.map(item => {
                   const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
                   return (
@@ -751,25 +757,33 @@ export default function AnalyticsPro() {
       {/* Overview Tab Charts */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            <WaterfallChart summary={{ totalIncome: totalEarnedVal, balance: netSavingsVal }} categoryData={expensePieData} />
-          </div>
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SavingsTrendChart monthlyData={mappedMonthlyData} />
             <CashFlowChart cashflowData={cashflowData} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FinancialHealthChart data={needsWantsSavingsData} />
+            <IncomeExpenseRatioChart summary={{ totalIncome: totalEarnedVal, totalExpense: totalSpentVal }} />
           </div>
         </div>
       )}
 
       {/* Earnings Tab Charts */}
       {activeTab === 'earnings' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DonutChart
-            categoryData={incomeCategoryData}
-            rawExpenses={incomes}
-            selectedCategory={selectedDonutCategory}
-            onSelectCategory={setSelectedDonutCategory}
-          />
-          <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DonutChart
+              categoryData={incomeCategoryData}
+              rawExpenses={incomes}
+              selectedCategory={selectedDonutCategory}
+              onSelectCategory={setSelectedDonutCategory}
+            />
+            <TopIncomeSourcesChart categoryData={incomeCategoryData} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <IncomeTrendChart monthlyData={mappedMonthlyData} />
+            <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
+          </div>
         </div>
       )}
 
