@@ -205,12 +205,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
       const secondsUntilMidnight = Math.floor((tomorrow.getTime() - now) / 1000);
       
       res.setHeader('Retry-After', secondsUntilMidnight);
-      res.status(429);
-      // Respond with custom JSON body for frontend detection
-      throw new Error(JSON.stringify({ 
-        message: 'Daily AI limit reached', 
-        resetAt: tomorrow.toISOString() 
-      }));
+      // Respond with JSON body for frontend detection
+      res.status(429).json({ success: false, message: 'Daily AI limit reached', resetAt: tomorrow.toISOString() });
+      return;
     }
 
     // ── 6. Call Gemini ────────────────────────────────────────────────────────
