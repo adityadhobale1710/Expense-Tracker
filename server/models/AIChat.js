@@ -8,7 +8,7 @@ const chatMessageSchema = new mongoose.Schema({
 
 const aiChatSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     messages: [chatMessageSchema],
     // Per-module context cache — each entry holds { data: String, cachedAt: Date }
     // Keyed by module name: wallets | budgets | expenses | incomes | goals | loans | subscriptions
