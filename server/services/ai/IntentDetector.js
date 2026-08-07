@@ -7,7 +7,11 @@
  * • Uses layered scoring: phrase detection → keyword matching → regex → synonyms.
  * • Supports multi-intent detection, sorted by confidence descending.
  * • Falls back to 'unknown' when confidence is too low.
- *
+ */
+
+import logger from '../../utils/logger.js';
+
+/**
  * Usage:
  *   import { detectIntents } from './IntentDetector.js';
  *   const intents = detectIntents("How much did I spend on food?");
@@ -102,13 +106,10 @@ const keywordScore = (text, keywords) => {
  * @returns {number}
  */
 const regexScore = (text, patterns) => {
-  const wordCount = text.split(' ').length;
-  const hitWeight = wordCount <= 3 ? 0.50 : 0.30;
-  let score = 0;
   for (const pattern of patterns) {
-    if (pattern.test(text)) score += hitWeight;
+    if (pattern.test(text)) return 1.0;
   }
-  return Math.min(1.0, score);
+  return 0.0;
 };
 
 // ─── INTENT DEFINITIONS ───────────────────────────────────────────────────────
@@ -441,17 +442,17 @@ export const detectIntents = (message) => {
 
     // Weighted combination: phrases are most reliable, then regex, then keywords
     // For very short messages (1–2 words), the regex signal is dominant — boost it.
-    const wordCount = text.split(' ').length;
-    const isShort = wordCount <= 2;
-    const raw = isShort
-      ? ps * 0.30 + rs * 0.55 + ks * 0.15
-      : ps * 0.55 + rs * 0.30 + ks * 0.15;
+    // M1 regression fix: Allow regex to boost confidence over the 0.40 threshold
+    // so normal questions don't collapse to 'unknown'.
+    const raw = Math.min(1.0, ps * 0.5 + rs * 0.4 + ks * 0.2);
 
     const confidence = Math.round(raw * 100) / 100;
 
     if (confidence >= MIN_CONFIDENCE) {
       results.push({ intent: intentId, confidence });
     }
+    
+    logger.info(`[IntentDetector] Score for "${intentId}" - ps:${ps.toFixed(2)}, ks:${ks.toFixed(2)}, rs:${rs.toFixed(2)}, raw:${raw.toFixed(3)}, conf:${confidence}`);
   }
 
   // Sort by confidence descending

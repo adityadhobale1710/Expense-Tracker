@@ -120,6 +120,19 @@ const runTests = async () => {
     console.log('✅ Transactions Match.');
   }
   
+  // 7. Test Failing Query
+  console.log('\\n[TEST EXPENSE ANALYSIS]');
+  const aiRes4 = await request('POST', '/ai/chat', { message: 'Where am I spending the most?' }, token);
+  const aiReply4 = aiRes4.data.data.aiMessage.content;
+  console.log(`- AI Response: "${aiReply4}"`);
+  
+  if (aiReply4.includes('I have verified your account records directly')) {
+    console.error('❌ AI Fell back to inventory!');
+    // Don't exit 1 yet, we just want to see the trace
+  } else {
+    console.log('✅ AI provided analytical response.');
+  }
+
   console.log('\\n--- ALL TESTS COMPLETED SUCCESSFULLY ---');
 };
 

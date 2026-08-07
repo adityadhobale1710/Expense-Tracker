@@ -104,6 +104,7 @@ const flattenValidationContext = (vc) => {
   if (vc.expenses) {
     add(vc.expenses.total);
     vc.expenses.byCategory?.forEach(c => { add(c.total); add(c.percent); });
+    vc.expenses.recent?.forEach(r => add(r.amount));
   }
   if (vc.incomes) {
     add(vc.incomes.total);
@@ -162,7 +163,8 @@ export const validateResponse = (aiResponse, counts, validationContext = {}, con
   ];
 
   for (const check of countChecks) {
-    if (check.count > 0 && (norm.includes(`no ${check.str}`) || norm.includes(`0 ${check.str}`) || norm.includes(`dont have any ${check.str}`) || norm.includes(`don't have any ${check.str}`))) {
+    // Only enforce count validations if the module was actually provided in the context block
+    if (validationContext[check.key] && check.count > 0 && (norm.includes(`no ${check.str}`) || norm.includes(`0 ${check.str}`) || norm.includes(`dont have any ${check.str}`) || norm.includes(`don't have any ${check.str}`))) {
       logValidationEvent({
         duration: Date.now() - startTime,
         extracted: `0 ${check.str}`,
@@ -172,6 +174,7 @@ export const validateResponse = (aiResponse, counts, validationContext = {}, con
         module: check.key,
         ts: new Date().toISOString()
       });
+      console.log(`\nValidation failed because:\n- count mismatch`);
       return { isValid: false, reason: `AI claimed 0 ${check.str} when user has ${check.count} active ${check.str}.` };
     }
   }
@@ -195,6 +198,7 @@ export const validateResponse = (aiResponse, counts, validationContext = {}, con
           module: 'Global',
           ts: new Date().toISOString()
         });
+        console.log(`\nValidation failed because:\n- hallucinated amount`);
         return { 
           isValid: false, 
           reason: `AI hallucinated a financial figure (${val}) that does not match the authoritative context.` 

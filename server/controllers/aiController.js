@@ -138,6 +138,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
   const primaryIntent = detectedIntents[0]?.intent || 'unknown';
   const topConfidence = detectedIntents[0]?.confidence || 0;
 
+  console.log(`\nSTEP 1\nDetected Intent: ${primaryIntent} (${topConfidence})`);
+
   logger.info(
     `[AI Controller] User: ${userId} | Primary intent: "${primaryIntent}" (${topConfidence}) | ` +
     `All intents: [${detectedIntents.map((d) => `${d.intent}:${d.confidence}`).join(', ')}]`
@@ -154,6 +156,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     `Cache hits: [${contextResult.cacheHits.join(', ') || 'none'}]. ` +
     `Cache misses: [${contextResult.cacheMisses.join(', ') || 'none'}].`
   );
+  console.log(`\nSTEP 2\nContextBuilder finished. Modules: ${contextResult.modulesFetched.join(', ')}`);
 
   // ── 5. Build prompt ───────────────────────────────────────────────────────
   // Use last 15 messages for conversation context
@@ -168,6 +171,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     `Contents: ${tokenEstimate.contentsTokens}, ` +
     `Total: ${tokenEstimate.totalTokens}.`
   );
+  console.log(`\nSTEP 3\nPromptBuilder finished.\nPrompt length: ${tokenEstimate.totalTokens} tokens\nPrompt preview:\n${promptPayload.systemInstruction.substring(0, 500)}...\n`);
 
   // ── Phase 4: Lightweight Response Cache ─────────────────────────────────────
   const CACHE_VERSION = 1;
@@ -211,7 +215,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
     // ── 6. Call Gemini ────────────────────────────────────────────────────────
     try {
+      console.log(`\nSTEP 4\nGemini request started`);
       reply = await generateAIResponse(promptPayload);
+      console.log(`\nSTEP 5\nGemini raw response:\n${reply}`);
     } catch (error) {
       // Refund the quota ONLY for external AI failures (e.g. 500, 502, 503, 504)
       // Do not refund for bad request (400), auth (401/403), rate limit (429), or validation retries
@@ -230,15 +236,20 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
     // Phase 5: Response Validation (with retry quota alignment)
     const validationResult = validateResponse(reply, counts, contextResult.validationContext, 'v2');
+    console.log(`\nSTEP 6\nResponseValidator result: isValid=${validationResult.isValid} reason=${validationResult.reason}`);
+    
     if (!validationResult.isValid) {
+      console.log(`\nSTEP 7\nFallback invoked?\nNO\nWHY: Proceeding to retry loop.`);
       logger.warn(`[ResponseValidator] AI Response failed validation: ${validationResult.reason}`);
       
       // Attempt single regeneration with strict correction prompt
       try {
+        console.log(`\nRetry #1\nreason: ${validationResult.reason}`);
         // Retry Quota Alignment
         const retryQuota = await incrementDailyQuota(userId, 'validation-retry');
         if (!retryQuota.allowed) {
           logger.warn(`[ResponseValidator] Retry blocked by quota. Using deterministic fallback.`);
+          console.log(`\nReturning fallback because:\nRetry exhausted`);
           reply = getFallbackFactualResponse(counts);
         } else {
           logger.info('[ResponseValidator] Attempting prompt correction and regeneration...');
@@ -246,21 +257,29 @@ export const sendMessage = asyncHandler(async (req, res) => {
             systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct amounts and counts matching the AUTHORITATIVE DATA SUMMARY exactly.`,
             contents: promptPayload.contents,
           };
+          console.log(`\nSTEP 4 (Retry)\nGemini request started`);
           reply = await generateAIResponse(correctionPayload);
+          console.log(`\nSTEP 5 (Retry)\nGemini raw response:\n${reply}`);
           
           // Validate again
           const reValidation = validateResponse(reply, counts, contextResult.validationContext, 'v2');
+          console.log(`\nSTEP 6 (Retry)\nResponseValidator result: isValid=${reValidation.isValid} reason=${reValidation.reason}`);
           if (!reValidation.isValid) {
             logger.warn(`[ResponseValidator] Regenerated AI Response also failed validation: ${reValidation.reason}`);
+            console.log(`\nReturning fallback because:\nRetry validation failed: ${reValidation.reason}`);
             reply = getFallbackFactualResponse(counts);
           } else {
             logger.info('[ResponseValidator] Prompt correction successful. Regenerated response passed validation.');
+            console.log(`\nSTEP 7\nFallback invoked?\nNO\nWHY: Retry passed validation.`);
           }
         }
       } catch (regenError) {
         logger.warn(`[ResponseValidator] Regeneration failed: ${regenError.message}. Using deterministic fallback.`);
+        console.log(`\nReturning fallback because:\nGemini regeneration error: ${regenError.message}`);
         reply = getFallbackFactualResponse(counts);
       }
+    } else {
+      console.log(`\nSTEP 7\nFallback invoked?\nNO\nWHY: First response passed validation.`);
     }
     
     // Refresh chat object from DB so we don't overwrite the atomic dailyUsage increment
