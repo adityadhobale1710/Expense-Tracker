@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
 import { FilterX, ArrowLeft } from 'lucide-react';
 import ChartCard from './ChartCard';
+import ExpandableLegend from './ExpandableLegend';
+import AnalyticsEmptyState from './AnalyticsEmptyState';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 export default function DonutChart({ 
   categoryData = [], 
@@ -60,9 +63,11 @@ export default function DonutChart({
   if (!categoryData || categoryData.length === 0 || totalExpense === 0) {
     return (
       <ChartCard title="Category Allocation" subtitle="Expense splits">
-        <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs py-8">
-          No category data available
-        </div>
+        <AnalyticsEmptyState 
+          icon={PieChartIcon} 
+          title="No Category Data" 
+          message="Categorize your transactions to view the breakdown." 
+        />
       </ChartCard>
     );
   }
@@ -273,39 +278,14 @@ export default function DonutChart({
           </div>
         </div>
 
-        {/* Custom Legend details */}
-        <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-          {activeData.map((cat, idx) => {
-            const isSelected = selectedCategory === cat?.name;
-            return (
-              <div
-                key={idx}
-                onClick={() => handleSliceClick(cat)}
-                onDoubleClick={() => handleSliceDoubleClick(cat)}
-                className={`flex justify-between items-center text-[10px] font-semibold py-1.5 px-2.5 rounded-xl border cursor-pointer transition-all ${
-                  selectedCategory && !drillDownCategory
-                    ? isSelected
-                      ? 'bg-slate-800/80 border-slate-700 text-white font-bold scale-[1.01]'
-                      : 'border-transparent text-slate-500 opacity-40 hover:opacity-60'
-                    : 'border-transparent text-slate-300 hover:bg-slate-800/40 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 truncate">
-                  <span
-                    className="w-2 h-2 rounded-full inline-block flex-shrink-0"
-                    style={{ backgroundColor: cat?.color || '#3b82f6' }}
-                  />
-                  <span className="text-xs flex-shrink-0">{cat?.icon || '📁'}</span>
-                  <span className="truncate max-w-[80px] sm:max-w-[120px]">{String(cat?.name || '')}</span>
-                </div>
-                <div className="flex items-center gap-1.5 font-mono text-right">
-                  <span className="font-bold text-slate-200">{currencySymbol}{Math.round(Number(cat?.total ?? 0)).toLocaleString()}</span>
-                  <span className="text-[9px] text-slate-500 font-bold">{Number(cat?.percentage ?? 0).toFixed(0)}%</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Custom Legend details using ExpandableLegend */}
+        <ExpandableLegend
+          data={activeData}
+          currencySymbol={currencySymbol}
+          selectedItemName={selectedCategory}
+          onItemClick={handleSliceClick}
+          onItemDoubleClick={handleSliceDoubleClick}
+        />
 
       </div>
     </div>

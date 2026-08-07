@@ -10,6 +10,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import ChartCard from './ChartCard';
+import { CHART_COLORS, premiumTooltipConfig } from '../../utils/chartTheme';
 
 ChartJS.register(
   CategoryScale,
@@ -42,35 +43,21 @@ export default function TopIncomeSourcesChart({ categoryData = [] }) {
       legend: {
         display: false,
       },
-      tooltip: {
-        backgroundColor: '#0f172a',
-        titleColor: '#cbd5e1',
-        bodyColor: '#f8fafc',
-        borderColor: '#334155',
-        borderWidth: 1,
-        padding: 10,
-        callbacks: {
-          label: function(context) {
-            return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.x);
-          }
-        }
-      },
+      tooltip: premiumTooltipConfig,
     },
     scales: {
       x: {
         grid: {
-          color: '#1e293b',
+          color: CHART_COLORS.grid,
           drawBorder: false,
           borderDash: [5, 5],
         },
         ticks: {
-          color: '#64748b',
+          color: CHART_COLORS.neutral,
           font: {
-            size: 10,
+            size: 11,
+            family: 'Inter, system-ui, sans-serif'
           },
-          callback: function(value) {
-            return '₹' + (value >= 1000 ? (value / 1000) + 'k' : value);
-          }
         },
       },
       y: {
@@ -79,10 +66,11 @@ export default function TopIncomeSourcesChart({ categoryData = [] }) {
           drawBorder: false,
         },
         ticks: {
-          color: '#94a3b8',
+          color: CHART_COLORS.neutral,
           font: {
-            size: 11,
+            size: 12,
             weight: 'bold',
+            family: 'Inter, system-ui, sans-serif'
           },
         },
       },
@@ -95,9 +83,9 @@ export default function TopIncomeSourcesChart({ categoryData = [] }) {
       {
         label: 'Income',
         data: topSources.map(d => d.total),
-        backgroundColor: topSources.map(d => d.color || '#3b82f6'),
-        borderRadius: 4,
-        barThickness: 20,
+        backgroundColor: topSources.map(d => d.color || CHART_COLORS.income),
+        borderRadius: 6,
+        barThickness: 24,
       },
     ],
   };

@@ -12,6 +12,9 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import ChartCard from './ChartCard';
+import { CHART_COLORS, premiumTooltipConfig, premiumGridConfig, premiumAnimation } from '../../utils/chartTheme';
+import AnalyticsEmptyState from './AnalyticsEmptyState';
+import { TrendingUp } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -28,9 +31,11 @@ export default function IncomeTrendChart({ monthlyData = [] }) {
   if (monthlyData.length === 0) {
     return (
       <ChartCard title="Monthly Income Trend" subtitle="Earnings over time">
-        <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs">
-          Not enough data to display income trend.
-        </div>
+        <AnalyticsEmptyState 
+          icon={TrendingUp} 
+          title="No Income Trend" 
+          message="Record income to visualize your earnings trend." 
+        />
       </ChartCard>
     );
   }
@@ -38,55 +43,19 @@ export default function IncomeTrendChart({ monthlyData = [] }) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: premiumAnimation,
     plugins: {
       legend: {
         display: false,
       },
-      tooltip: {
-        backgroundColor: '#0f172a',
-        titleColor: '#cbd5e1',
-        bodyColor: '#f8fafc',
-        borderColor: '#334155',
-        borderWidth: 1,
-        padding: 10,
-        callbacks: {
-          label: function(context) {
-            let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
-            if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
-            }
-            return label;
-          }
-        }
-      },
+      tooltip: premiumTooltipConfig,
     },
     scales: {
-      x: {
-        grid: {
-          display: false,
-          drawBorder: false,
-        },
-        ticks: {
-          color: '#64748b',
-          font: {
-            size: 10,
-          },
-        },
-      },
+      x: premiumGridConfig.x,
       y: {
-        grid: {
-          color: '#1e293b',
-          drawBorder: false,
-          borderDash: [5, 5],
-        },
+        ...premiumGridConfig.y,
         ticks: {
-          color: '#64748b',
-          font: {
-            size: 10,
-          },
+          ...premiumGridConfig.y.ticks,
           callback: function(value) {
             return '₹' + (value >= 1000 ? (value / 1000) + 'k' : value);
           }
@@ -97,6 +66,12 @@ export default function IncomeTrendChart({ monthlyData = [] }) {
       mode: 'index',
       intersect: false,
     },
+    layout: {
+      padding: {
+        top: 5,
+        bottom: 0,
+      }
+    }
   };
 
   const labels = monthlyData.map(d => d.name);
@@ -107,14 +82,16 @@ export default function IncomeTrendChart({ monthlyData = [] }) {
         fill: true,
         label: 'Income',
         data: monthlyData.map(d => d.income),
-        borderColor: '#10b981', // emerald-500
-        backgroundColor: 'rgba(16, 185, 129, 0.1)', // emerald-500 with opacity
+        borderColor: CHART_COLORS.income,
+        backgroundColor: `${CHART_COLORS.income}1A`, // 10% opacity
         tension: 0.4,
-        pointBackgroundColor: '#10b981',
-        pointBorderColor: '#022c22', // emerald-950
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: CHART_COLORS.income,
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
+        pointHoverBackgroundColor: CHART_COLORS.income,
+        pointHoverBorderColor: '#ffffff',
       },
     ],
   };

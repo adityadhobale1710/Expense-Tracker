@@ -6,9 +6,9 @@ export default function ChartCard({
   title,
   subtitle,
   children,
-  onDownload,
   infoText,
-  headerActions
+  headerActions,
+  heightClass = 'h-64 sm:h-72'
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -57,16 +57,6 @@ export default function ChartCard({
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {headerActions}
-          
-          {onDownload && (
-            <button
-              onClick={onDownload}
-              className="p-1.5 hover:bg-slate-700/40 rounded-lg text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-              title="Download Graphic"
-            >
-              <Download size={14} />
-            </button>
-          )}
 
           <button
             onClick={toggleFullscreen}
@@ -80,7 +70,7 @@ export default function ChartCard({
       </div>
 
       {/* Main Chart Body Container */}
-      <div className={`flex-1 w-full min-h-0 ${isFullscreen ? 'h-[75dvh]' : 'h-64 sm:h-72'}`}>
+      <div className={`flex-1 w-full min-h-0 ${isFullscreen ? 'h-[75dvh]' : heightClass}`}>
         {children}
       </div>
 
