@@ -321,6 +321,25 @@ html[data-theme="dark-blue"] {
       animation: fadeIn 0.25s ease-in-out;
     }
   }
+  /* ── AI Design System ───────────────────────────────────── */
+  /* Surfaces */
+  .ai-surface-main { @apply bg-ai-bg text-ai-text-primary; }
+  .ai-surface-card { @apply bg-ai-card shadow-ai-soft rounded-ai-card border border-ai-border; }
+  .ai-surface-sidebar { @apply bg-ai-bg border-r border-ai-border; }
+  .ai-surface-composer { @apply bg-ai-card shadow-ai-medium rounded-ai-composer border border-ai-border; }
+  
+  /* Buttons */
+  .ai-btn-primary { @apply bg-ai-primary hover:bg-ai-hover text-white rounded-ai-btn transition-all duration-200 active:scale-95 shadow-ai-soft; }
+  .ai-btn-secondary { @apply bg-ai-light hover:bg-ai-primary hover:text-white text-ai-primary rounded-ai-btn transition-colors duration-200; }
+  .ai-btn-ghost { @apply text-ai-text-muted hover:text-ai-text-primary hover:bg-ai-surface rounded-md transition-colors duration-200; }
+  
+  /* Messages */
+  .ai-msg-user { @apply bg-ai-primary text-white rounded-ai-msg rounded-tr-none shadow-ai-soft; }
+  .ai-msg-assistant { @apply text-ai-text-primary; } /* Borderless native text */
+  
+  /* Prompts & Icons */
+  .ai-chip { @apply bg-ai-light hover:bg-ai-primary text-ai-primary hover:text-white rounded-ai-pill transition-colors duration-200; }
+  .ai-icon-pastel { @apply w-10 h-10 rounded-full flex items-center justify-center shadow-sm; }
 }
 
 @layer utilities {

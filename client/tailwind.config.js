@@ -10,6 +10,22 @@ export default {
         jakarta: ['Plus Jakarta Sans', 'sans-serif'],
       },
       colors: {
+        ai: {
+          primary: '#4F46E5',
+          hover: '#4338CA',
+          light: '#EEF2FF',
+          bg: '#FCFCFD',
+          card: '#FFFFFF',
+          surface: '#F8FAFC',
+          border: '#E7EAF3',
+          'text-primary': '#111827',
+          'text-secondary': '#4B5563',
+          'text-muted': '#6B7280',
+          placeholder: '#94A3B8',
+          success: '#10B981',
+          warning: '#F59E0B',
+          error: '#EF4444',
+        },
         primary: {
           50: '#f5f3ff',
           100: '#ede9fe',
@@ -41,6 +57,17 @@ export default {
           800: 'rgb(var(--slate-800) / <alpha-value>)',
           900: 'rgb(var(--slate-900) / <alpha-value>)',
         },
+      },
+      boxShadow: {
+        'ai-soft': '0 4px 16px rgba(15,23,42,0.06)',
+        'ai-medium': '0 10px 30px rgba(15,23,42,0.08)',
+      },
+      borderRadius: {
+        'ai-btn': '14px',
+        'ai-card': '20px',
+        'ai-composer': '24px',
+        'ai-msg': '20px',
+        'ai-pill': '999px',
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',
