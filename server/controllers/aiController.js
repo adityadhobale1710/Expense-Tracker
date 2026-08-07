@@ -112,17 +112,20 @@ export const sendMessage = asyncHandler(async (req, res) => {
     if (!chat) {
       chat = await AIChat.create({ user: userId, messages: [] });
     }
-    chat.messages.push({ role: 'user', content: trimmedMessage });
-    chat.messages.push({ role: 'assistant', content: factReply });
-    if (chat.messages.length > 50) {
-      chat.messages = chat.messages.slice(-50);
-    }
-    await chat.save();
+    
+    const userMsg = { role: 'user', content: trimmedMessage };
+    const assistantMsg = { role: 'assistant', content: factReply };
+    
+    const updatedChat = await AIChat.findByIdAndUpdate(
+      chat._id,
+      { $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } } },
+      { new: true }
+    );
 
     const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
     return sendSuccess(res, 200, 'Reply sent', {
-      userMessage: chat.messages[chat.messages.length - 2],
-      aiMessage: chat.messages[chat.messages.length - 1],
+      userMessage: updatedChat.messages[updatedChat.messages.length - 2],
+      aiMessage: updatedChat.messages[updatedChat.messages.length - 1],
       meta: { model: resolvedModel + ' (Deterministic Fact Router)' },
     });
   }
@@ -279,39 +282,29 @@ export const sendMessage = asyncHandler(async (req, res) => {
       console.log(`\nSTEP 7\nFallback invoked?\nNO\nWHY: First response passed validation.`);
     }
     
-    // Refresh chat object from DB so we don't overwrite the atomic dailyUsage increment
-    chat = await AIChat.findById(chat._id);
-
-    // Cache the verified response
-    // Prune entries older than 2 minutes on write so the field doesn't grow unbounded
-    // Note: this cache can go stale for up to 2 minutes after the user mutates data. 
-    // TODO: Invalidate responseCache when moduleCache for overlapping modules is invalidated.
-    const prunedCache = {};
-    if (chat.responseCache) {
+    // Prune cache occasionally to keep doc size reasonable
+    if (chat.responseCache && Object.keys(chat.responseCache).length > 20) {
+      const prunedCache = {};
       for (const [key, val] of Object.entries(chat.responseCache)) {
-        if (now - val.timestamp < cacheTTL) {
-          prunedCache[key] = val;
-        }
+        if (now - val.timestamp < cacheTTL) prunedCache[key] = val;
       }
+      await AIChat.findByIdAndUpdate(chat._id, { $set: { responseCache: prunedCache } });
     }
-    prunedCache[cacheKey] = { data: reply, timestamp: now };
-    chat.responseCache = prunedCache;
-    chat.markModified('responseCache');
-  } else {
-    // On cache hit, refresh chat object as well to avoid race conditions with other tabs
-    chat = await AIChat.findById(chat._id);
+
+    await AIChat.findByIdAndUpdate(chat._id, {
+      $set: { [`responseCache.${cacheKey}`]: { data: reply, timestamp: now } }
+    });
   }
 
   // ── 7. Persist conversation ───────────────────────────────────────────────
-  chat.messages.push({ role: 'user', content: trimmedMessage });
-  chat.messages.push({ role: 'assistant', content: reply });
+  const userMsg = { role: 'user', content: trimmedMessage };
+  const assistantMsg = { role: 'assistant', content: reply };
 
-  // Enforce 50-message rolling window
-  if (chat.messages.length > 50) {
-    chat.messages = chat.messages.slice(-50);
-  }
-
-  await chat.save();
+  const updatedChat = await AIChat.findByIdAndUpdate(
+    chat._id,
+    { $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } } },
+    { new: true }
+  );
 
   const totalDuration = Date.now() - requestStart;
   logger.info(`[AI Controller] Request completed in ${totalDuration}ms.`);
@@ -327,8 +320,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
   // ── 9. Return response ────────────────────────────────────────────────────
   sendSuccess(res, 200, 'Reply sent', {
-    userMessage: chat.messages[chat.messages.length - 2],
-    aiMessage: chat.messages[chat.messages.length - 1],
+    userMessage: updatedChat.messages[updatedChat.messages.length - 2],
+    aiMessage: updatedChat.messages[updatedChat.messages.length - 1],
     meta: { model: resolvedModel },
   });
 });
