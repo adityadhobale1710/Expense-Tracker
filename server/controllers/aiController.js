@@ -283,9 +283,10 @@ export const sendMessage = asyncHandler(async (req, res) => {
     }
     
     // Prune cache occasionally to keep doc size reasonable
-    if (chat.responseCache && Object.keys(chat.responseCache).length > 20) {
+    const freshChat = await AIChat.findById(chat._id).select('responseCache').lean();
+    if (freshChat?.responseCache && Object.keys(freshChat.responseCache).length > 20) {
       const prunedCache = {};
-      for (const [key, val] of Object.entries(chat.responseCache)) {
+      for (const [key, val] of Object.entries(freshChat.responseCache)) {
         if (now - val.timestamp < cacheTTL) prunedCache[key] = val;
       }
       await AIChat.findByIdAndUpdate(chat._id, { $set: { responseCache: prunedCache } });
