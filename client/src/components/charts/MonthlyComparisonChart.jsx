@@ -1,22 +1,28 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import ChartCard from './ChartCard';
+import AnalyticsEmptyState from './AnalyticsEmptyState';
+import { BarChart3 } from 'lucide-react';
+import { CHART_COLORS } from '../../utils/chartTheme';
 
 export default function MonthlyComparisonChart({ monthlyData }) {
   if (!monthlyData || monthlyData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-80 bg-dark-800/80 border border-slate-700/60 rounded-2xl p-6">
-        <p className="text-sm font-semibold text-slate-500">Record logs to build monthly performance graphs</p>
-      </div>
+      <ChartCard title="Annual Monthly Comparisons" subtitle="Income, Expenses, and Savings">
+        <AnalyticsEmptyState 
+          icon={BarChart3} 
+          title="No Monthly Data" 
+          message="Record transactions to build monthly performance graphs." 
+        />
+      </ChartCard>
     );
   }
 
   return (
-    <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-4">
-      <div>
-        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Annual Monthly Comparisons</h3>
-        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Comparative flows of Income, Expenses, and Savings</p>
-      </div>
-
-      <div className="h-72 w-full">
+    <ChartCard 
+      title="Annual Monthly Comparisons" 
+      subtitle="Comparative flows of Income, Expenses, and Savings"
+    >
+      <div className="h-72 w-full mt-4">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
@@ -49,12 +55,12 @@ export default function MonthlyComparisonChart({ monthlyData }) {
               iconType="circle"
             />
             
-            <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} name="Income" />
-            <Bar dataKey="expense" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expense" />
-            <Bar dataKey="savings" fill="#6366f1" radius={[4, 4, 0, 0]} name="Savings" />
+            <Bar dataKey="income" fill={CHART_COLORS.income} radius={[4, 4, 0, 0]} name="Income" />
+            <Bar dataKey="expense" fill={CHART_COLORS.expense} radius={[4, 4, 0, 0]} name="Expense" />
+            <Bar dataKey="savings" fill={CHART_COLORS.savings} radius={[4, 4, 0, 0]} name="Savings" />
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ChartCard>
   );
 }

@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Sector
 } from 'recharts';
 import { useExpense } from '../../context/ExpenseContext';
+import ExpandableLegend from '../../components/charts/ExpandableLegend';
 import api from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -23,6 +24,10 @@ import { DataTable } from '../../components/ui/DataTable';
 import CashFlowChart from '../../components/charts/CashFlowChart';
 import DonutChart from '../../components/charts/DonutChart';
 import TreemapChart from '../../components/charts/TreemapChart';
+import CountUp from 'react-countup';
+import InsightCard from '../../components/charts/InsightCard';
+import AnalyticsSectionTitle from '../../components/charts/AnalyticsSectionTitle';
+import ChartInsight from '../../components/charts/ChartInsight';
 
 import IncomeTrendChart from '../../components/charts/IncomeTrendChart';
 import TopIncomeSourcesChart from '../../components/charts/TopIncomeSourcesChart';
@@ -331,6 +336,10 @@ export default function AnalyticsPro() {
     ];
   }, [expenses, netSavingsVal]);
 
+  const highestExpenseCat = expensePieData[0];
+  const highestIncomeCat = incomePieData[0];
+  const bestSavingsMonth = mappedMonthlyData.length > 0 ? [...mappedMonthlyData].sort((a,b)=>b.savings - a.savings)[0] : null;
+
   if (loading) {
     return (
       <div className="space-y-6 pb-20 animate-fade-in">
@@ -461,7 +470,7 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              ₹{Number(totalEarnedVal).toLocaleString('en-IN')}
+              ₹<CountUp end={Number(totalEarnedVal)} duration={1} separator="," />
             </h3>
             <div className="flex items-center gap-1.5 mt-2">
               <span className="badge bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
@@ -483,7 +492,7 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              ₹{Number(totalSpentVal).toLocaleString('en-IN')}
+              ₹<CountUp end={Number(totalSpentVal)} duration={1} separator="," />
             </h3>
             <div className="flex items-center gap-1.5 mt-2">
               <span className="badge bg-rose-500/20 text-rose-300 text-[10px] font-bold">
@@ -505,7 +514,7 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              ₹{Number(netSavingsVal).toLocaleString('en-IN')}
+              ₹<CountUp end={Number(netSavingsVal)} duration={1} separator="," />
             </h3>
             <div className="flex items-center gap-1.5 mt-2">
               <span className={`badge text-[10px] font-bold ${
@@ -546,8 +555,49 @@ export default function AnalyticsPro() {
         </div>
       </div>
 
+      {/* Insight Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {highestExpenseCat && (
+          <InsightCard
+            title="Highest Spending Category"
+            value={highestExpenseCat.name}
+            subtitle={`₹${highestExpenseCat.value.toLocaleString('en-IN')} total`}
+            icon={TrendingDown}
+          />
+        )}
+        {highestIncomeCat && (
+          <InsightCard
+            title="Largest Income Source"
+            value={highestIncomeCat.name}
+            subtitle={`${((highestIncomeCat.value / (totalEarnedVal || 1)) * 100).toFixed(0)}% of income`}
+            icon={TrendingUp}
+          />
+        )}
+        {bestSavingsMonth && (
+          <InsightCard
+            title="Best Savings Month"
+            value={bestSavingsMonth.name}
+            subtitle={`₹${bestSavingsMonth.savings.toLocaleString('en-IN')} saved`}
+            icon={PiggyBank}
+          />
+        )}
+      </div>
+
+      <AnalyticsSectionTitle 
+        title={
+          activeTab === 'overview' ? 'Complete Overview' : 
+          activeTab === 'earnings' ? 'Income Analytics' : 
+          activeTab === 'expenses' ? 'Expense Analytics' : 'Financial Breakdown'
+        } 
+        subtitle={
+          activeTab === 'overview' ? 'A complete snapshot of your financial performance.' : 
+          activeTab === 'earnings' ? 'Track earnings, income sources, and monthly growth.' : 
+          activeTab === 'expenses' ? 'Understand spending patterns and category distribution.' : ''
+        } 
+      />
+
       {/* Tabs Navigation Switcher */}
-      <div className="flex items-center gap-2 border-b border-slate-700/40 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-700/40 pb-2 mb-6">
         {[
           { id: 'overview', label: '📊 Complete Overview', icon: Layers },
           { id: 'earnings', label: '💼 How I Earn (Incomes)', icon: TrendingUp },
@@ -615,49 +665,23 @@ export default function AnalyticsPro() {
                   </div>
                 </div>
 
-                {/* Simple Legend */}
-                <div className="flex-1 space-y-3 w-full sm:w-auto max-h-48 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                  {incomePieData.map(item => {
-                    const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
-                    return (
-                      <div key={item.name} className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
-                          <span className="text-slate-200 font-medium">{item.name}</span>
-                        </div>
-                        <span className="text-slate-300 font-mono">{percent}%</span>
-                      </div>
-                    );
-                  })}
+                {/* Unified Legend details using ExpandableLegend */}
+                <div className="flex-1 w-full sm:w-auto pl-0 sm:pl-4">
+                  <ExpandableLegend
+                    data={incomePieData.map(item => ({
+                      ...item,
+                      percentage: totalEarnedVal > 0 ? (item.value / totalEarnedVal) * 100 : 0
+                    }))}
+                    currencySymbol="₹"
+                  />
                 </div>
               </div>
-
-              {/* Bottom part: Detailed List */}
-              <div className="mt-6 space-y-5 flex-1 overflow-y-auto max-h-[300px] pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                {incomePieData.map(item => {
-                  const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
-                  return (
-                    <div key={item.name} className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
-                            {item.icon}
-                          </div>
-                          <div>
-                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
-                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
-                          </div>
-                        </div>
-                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
+            {highestIncomeCat && (
+              <ChartInsight 
+                message={`${highestIncomeCat.name} represents ${((highestIncomeCat.value / (totalEarnedVal || 1)) * 100).toFixed(0)}% of your total earnings.`} 
+              />
+            )}
           </div>
         )}
 
@@ -707,49 +731,23 @@ export default function AnalyticsPro() {
                   </div>
                 </div>
 
-                {/* Simple Legend */}
-                <div className="flex-1 space-y-3 w-full sm:w-auto max-h-48 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                  {expensePieData.map(item => {
-                    const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
-                    return (
-                      <div key={item.name} className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
-                          <span className="text-slate-200 font-medium">{item.name}</span>
-                        </div>
-                        <span className="text-slate-300 font-mono">{percent}%</span>
-                      </div>
-                    );
-                  })}
+                {/* Unified Legend details using ExpandableLegend */}
+                <div className="flex-1 w-full sm:w-auto pl-0 sm:pl-4">
+                  <ExpandableLegend
+                    data={expensePieData.map(item => ({
+                      ...item,
+                      percentage: totalSpentVal > 0 ? (item.value / totalSpentVal) * 100 : 0
+                    }))}
+                    currencySymbol="₹"
+                  />
                 </div>
               </div>
-
-              {/* Bottom part: Detailed List */}
-              <div className="mt-6 space-y-5 flex-1 overflow-y-auto max-h-[300px] pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                {expensePieData.map(item => {
-                  const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
-                  return (
-                    <div key={item.name} className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
-                            {item.icon}
-                          </div>
-                          <div>
-                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
-                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
-                          </div>
-                        </div>
-                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
+            {highestExpenseCat && (
+              <ChartInsight 
+                message={`${highestExpenseCat.name} represents ${((highestExpenseCat.value / (totalSpentVal || 1)) * 100).toFixed(0)}% of your monthly expenses.`} 
+              />
+            )}
           </div>
         )}
       </div>

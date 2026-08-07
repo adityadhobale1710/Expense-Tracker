@@ -10,6 +10,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import ChartCard from './ChartCard';
+import { CHART_COLORS, premiumTooltipConfig, premiumLegendConfig, premiumGridConfig, premiumAnimation } from '../../utils/chartTheme';
 
 ChartJS.register(
   CategoryScale,
@@ -32,20 +33,20 @@ export default function MonthlySpendingTrend({ monthlyData = [] }) {
         {
           label: 'Income',
           data: monthlyData.map(d => d.income || 0),
-          backgroundColor: '#9B7BFF',
-          borderRadius: 12,
+          backgroundColor: CHART_COLORS.income,
+          borderRadius: 8,
           borderSkipped: false,
-          barPercentage: 0.8,
-          categoryPercentage: 0.55,
+          barPercentage: 0.85,
+          categoryPercentage: 0.85,
         },
         {
           label: 'Expenses',
           data: monthlyData.map(d => d.expense || 0),
-          backgroundColor: '#FFD84D',
-          borderRadius: 12,
+          backgroundColor: CHART_COLORS.expense,
+          borderRadius: 8,
           borderSkipped: false,
-          barPercentage: 0.8,
-          categoryPercentage: 0.55,
+          barPercentage: 0.85,
+          categoryPercentage: 0.85,
         }
       ]
     };
@@ -54,37 +55,15 @@ export default function MonthlySpendingTrend({ monthlyData = [] }) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 900,
-    },
+    animation: premiumAnimation,
     interaction: {
       mode: 'index',
       intersect: false,
     },
     plugins: {
-      legend: {
-        position: 'top',
-        labels: {
-          color: 'var(--chart-text, #94a3b8)',
-          font: {
-            family: "'Inter', sans-serif",
-            size: 11,
-            weight: 'bold'
-          },
-          usePointStyle: true,
-          boxWidth: 8
-        }
-      },
+      legend: premiumLegendConfig,
       tooltip: {
-        backgroundColor: 'var(--chart-tooltip-bg, #1e293b)',
-        titleColor: 'var(--chart-tooltip-text, #f8fafc)',
-        bodyColor: 'var(--chart-tooltip-text, #f8fafc)',
-        borderColor: 'var(--chart-tooltip-border, #334155)',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 12,
-        titleFont: { size: 12, weight: 'bold' },
-        bodyFont: { size: 11, weight: 'bold' },
+        ...premiumTooltipConfig,
         callbacks: {
           label: function (context) {
             let label = context.dataset.label || '';
@@ -100,36 +79,23 @@ export default function MonthlySpendingTrend({ monthlyData = [] }) {
       }
     },
     scales: {
-      x: {
-        grid: {
-          display: false,
-          drawBorder: false,
-        },
-        ticks: {
-          color: 'var(--chart-text, #94a3b8)',
-          font: {
-            family: "'Inter', sans-serif",
-            size: 10,
-            weight: 'bold'
-          }
-        }
-      },
+      x: premiumGridConfig.x,
       y: {
-        grid: {
-          color: 'rgba(200, 200, 200, 0.1)',
-          drawBorder: false,
-        },
+        ...premiumGridConfig.y,
         ticks: {
-          color: 'var(--chart-text, #94a3b8)',
-          font: {
-            family: "'Inter', sans-serif",
-            size: 10,
-            weight: 'bold'
-          },
+          ...premiumGridConfig.y.ticks,
           callback: function (value) {
-            return '₹' + value.toLocaleString('en-IN');
+            if (value === 0) return '0';
+            if (value >= 1000) return '₹' + value / 1000 + 'k';
+            return '₹' + value;
           }
         }
+      }
+    },
+    layout: {
+      padding: {
+        top: 5,
+        bottom: 0,
       }
     }
   };
