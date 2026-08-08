@@ -78,17 +78,30 @@ export default function Navbar({ onMenuToggle }) {
   }, [showDropdown, showThemeDropdown]);
 
   const fetchNotifications = async () => {
-    if (!user) return;
+    if (!user || document.hidden) return;
     try {
       const { data } = await api.get('/notifications');
       setNotifications(data.data || []);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch notifications', err);
+    }
   };
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
   const markAllRead = async () => {

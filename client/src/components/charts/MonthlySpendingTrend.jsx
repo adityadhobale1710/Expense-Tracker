@@ -1,104 +1,10 @@
-import { useMemo, useState } from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip as ChartTooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { useState } from 'react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import ChartCard from './ChartCard';
-import { CHART_COLORS, premiumTooltipConfig, premiumLegendConfig, premiumGridConfig, premiumAnimation } from '../../utils/chartTheme';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  ChartTooltip,
-  Legend
-);
+import { CHART_COLORS } from '../../utils/chartTheme';
 
 export default function MonthlySpendingTrend({ monthlyData = [] }) {
   const [timeSelector, setTimeSelector] = useState('Month');
-
-  const chartData = useMemo(() => {
-    if (!monthlyData || monthlyData.length === 0) return null;
-
-    return {
-      labels: monthlyData.map(d => d.name),
-      datasets: [
-        {
-          label: 'Income',
-          data: monthlyData.map(d => d.income || 0),
-          backgroundColor: CHART_COLORS.income,
-          borderRadius: 8,
-          borderSkipped: false,
-          barPercentage: 0.85,
-          categoryPercentage: 0.85,
-        },
-        {
-          label: 'Expenses',
-          data: monthlyData.map(d => d.expense || 0),
-          backgroundColor: CHART_COLORS.expense,
-          borderRadius: 8,
-          borderSkipped: false,
-          barPercentage: 0.85,
-          categoryPercentage: 0.85,
-        }
-      ]
-    };
-  }, [monthlyData]);
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: premiumAnimation,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-    plugins: {
-      legend: premiumLegendConfig,
-      tooltip: {
-        ...premiumTooltipConfig,
-        callbacks: {
-          label: function (context) {
-            let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
-            if (context.parsed.y !== null) {
-              label += '₹' + context.parsed.y.toLocaleString('en-IN');
-            }
-            return label;
-          }
-        }
-      }
-    },
-    scales: {
-      x: premiumGridConfig.x,
-      y: {
-        ...premiumGridConfig.y,
-        ticks: {
-          ...premiumGridConfig.y.ticks,
-          callback: function (value) {
-            if (value === 0) return '0';
-            if (value >= 1000) return '₹' + value / 1000 + 'k';
-            return '₹' + value;
-          }
-        }
-      }
-    },
-    layout: {
-      padding: {
-        top: 5,
-        bottom: 0,
-      }
-    }
-  };
 
   const headerActions = (
     <div className="flex bg-slate-800/50 rounded-lg p-1">
@@ -118,7 +24,7 @@ export default function MonthlySpendingTrend({ monthlyData = [] }) {
     </div>
   );
 
-  if (!chartData) {
+  if (!monthlyData || monthlyData.length === 0) {
     return (
       <ChartCard title="Money Flow Trajectory" subtitle="Income vs Expenses">
         <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs">
@@ -135,7 +41,37 @@ export default function MonthlySpendingTrend({ monthlyData = [] }) {
       headerActions={headerActions}
     >
       <div className="w-full h-full relative">
-        <Bar data={chartData} options={options} />
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+            <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={10} tickLine={false} />
+            <YAxis
+              stroke="var(--chart-text)"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => {
+                if (value === 0) return '0';
+                if (value >= 1000) return '₹' + (value / 1000) + 'k';
+                return '₹' + value;
+              }}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--chart-tooltip-bg)',
+                border: '1px solid var(--chart-tooltip-border)',
+                borderRadius: '12px',
+                color: 'var(--chart-tooltip-text)',
+                fontSize: '11px',
+                fontWeight: 'bold'
+              }}
+              formatter={(val, name) => [`₹${val.toLocaleString('en-IN')}`, name]}
+            />
+            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} iconType="circle" />
+            <Bar dataKey="income" name="Income" fill={CHART_COLORS.income || '#10b981'} radius={[4, 4, 0, 0]} barSize={20} />
+            <Bar dataKey="expense" name="Expenses" fill={CHART_COLORS.expense || '#f43f5e'} radius={[4, 4, 0, 0]} barSize={20} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </ChartCard>
   );

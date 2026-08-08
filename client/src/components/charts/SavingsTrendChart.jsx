@@ -1,33 +1,9 @@
 import React from 'react';
-import {
-  Chart as ChartJS,
-  LinearScale,
-  CategoryScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Legend,
-  Tooltip,
-  Title,
-  Filler
-} from 'chart.js';
-import { Chart } from 'react-chartjs-2';
+import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import ChartCard from './ChartCard';
-import { CHART_COLORS, premiumTooltipConfig, premiumLegendConfig, premiumGridConfig, premiumAnimation } from '../../utils/chartTheme';
+import { CHART_COLORS } from '../../utils/chartTheme';
 import AnalyticsEmptyState from './AnalyticsEmptyState';
 import { LineChart } from 'lucide-react';
-
-ChartJS.register(
-  LinearScale,
-  CategoryScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Legend,
-  Tooltip,
-  Title,
-  Filler
-);
 
 export default function SavingsTrendChart({ monthlyData = [] }) {
   if (monthlyData.length === 0) {
@@ -42,85 +18,6 @@ export default function SavingsTrendChart({ monthlyData = [] }) {
     );
   }
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: premiumLegendConfig,
-      tooltip: premiumTooltipConfig,
-    },
-    animation: premiumAnimation,
-    scales: {
-      x: premiumGridConfig.x,
-      y: {
-        ...premiumGridConfig.y,
-        ticks: {
-          ...premiumGridConfig.y.ticks,
-          callback: function(value) {
-            return '₹' + (value >= 1000 ? (value / 1000) + 'k' : value);
-          }
-        }
-      }
-    },
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-    layout: {
-      padding: {
-        top: 5,
-        bottom: 0,
-      }
-    }
-  };
-
-  const labels = monthlyData.map(d => d.name);
-  const data = {
-    labels,
-    datasets: [
-      {
-        type: 'line',
-        label: 'Net Savings',
-        borderColor: CHART_COLORS.savings,
-        backgroundColor: `${CHART_COLORS.savings}30`,
-        borderWidth: 5,
-        tension: 0.45,
-        fill: true,
-        data: monthlyData.map(d => d.savings),
-        pointBackgroundColor: '#ffffff',
-        pointBorderColor: CHART_COLORS.savings,
-        pointBorderWidth: 3,
-        pointRadius: 6,
-        pointHoverRadius: 9,
-        pointHoverBackgroundColor: CHART_COLORS.savings,
-        pointHoverBorderColor: '#ffffff',
-        order: 1
-      },
-      {
-        type: 'bar',
-        label: 'Income',
-        backgroundColor: `${CHART_COLORS.income}E6`,
-        hoverBackgroundColor: CHART_COLORS.income,
-        data: monthlyData.map(d => d.income),
-        borderRadius: 6,
-        barPercentage: 0.85,
-        categoryPercentage: 0.85,
-        order: 2
-      },
-      {
-        type: 'bar',
-        label: 'Expense',
-        backgroundColor: `${CHART_COLORS.expense}E6`,
-        hoverBackgroundColor: CHART_COLORS.expense,
-        data: monthlyData.map(d => d.expense),
-        borderRadius: 6,
-        barPercentage: 0.85,
-        categoryPercentage: 0.85,
-        order: 3
-      },
-    ],
-  };
-
   return (
     <ChartCard
       title="Savings Progress"
@@ -129,7 +26,34 @@ export default function SavingsTrendChart({ monthlyData = [] }) {
       heightClass="h-48 sm:h-52"
     >
       <div className="w-full h-full relative mt-2">
-        <Chart type="bar" options={options} data={data} />
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+            <XAxis dataKey="name" stroke="var(--chart-text)" fontSize={10} tickLine={false} />
+            <YAxis 
+              stroke="var(--chart-text)" 
+              fontSize={10} 
+              tickLine={false} 
+              axisLine={false}
+              tickFormatter={(value) => '₹' + (value >= 1000 ? (value / 1000) + 'k' : value)}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--chart-tooltip-bg)',
+                border: '1px solid var(--chart-tooltip-border)',
+                borderRadius: '12px',
+                color: 'var(--chart-tooltip-text)',
+                fontSize: '11px',
+                fontWeight: 'bold'
+              }}
+              formatter={(val, name) => [`₹${val.toLocaleString('en-IN')}`, name]}
+            />
+            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+            <Bar dataKey="income" name="Income" fill={CHART_COLORS.income || '#10b981'} radius={[4, 4, 0, 0]} barSize={20} />
+            <Bar dataKey="expense" name="Expense" fill={CHART_COLORS.expense || '#f43f5e'} radius={[4, 4, 0, 0]} barSize={20} />
+            <Line type="monotone" dataKey="savings" name="Net Savings" stroke={CHART_COLORS.savings || '#3b82f6'} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </ChartCard>
   );

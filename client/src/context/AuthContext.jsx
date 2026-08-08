@@ -22,7 +22,6 @@ export const AuthProvider = ({ children }) => {
   // localStorage.clear() would delete third-party/iframe data sharing the same origin.
   const clearAppStorage = () => {
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('gam_cache')) localStorage.removeItem(key);
@@ -37,10 +36,9 @@ export const AuthProvider = ({ children }) => {
 
   const verifyRegistrationOtp = async (email, otp) => {
     const { data } = await api.post('/auth/verify-registration-otp', { email, otp });
-    const { accessToken, refreshToken, ...userData } = data.data;
+    const { accessToken, ...userData } = data.data;
     clearAppStorage();
     localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     // K1 fix: reset the api.js isRedirecting flag so future 401s redirect correctly
@@ -61,10 +59,9 @@ export const AuthProvider = ({ children }) => {
     if (!data.data) {
       throw new Error(data.message || 'Login failed');
     }
-    const { accessToken, refreshToken, ...userData } = data.data;
+    const { accessToken, ...userData } = data.data;
     clearAppStorage();
     localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     // K1 fix: reset the api.js isRedirecting flag so future 401s redirect correctly
