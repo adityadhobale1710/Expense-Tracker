@@ -70,7 +70,7 @@ export default function ChartCard({
       </div>
 
       {/* Main Chart Body Container */}
-      <div className={`flex-1 w-full min-h-0 ${isFullscreen ? 'h-[75dvh]' : heightClass}`}>
+      <div className={`flex-none w-full ${isFullscreen ? 'h-[75dvh]' : heightClass}`}>
         {children}
       </div>
 

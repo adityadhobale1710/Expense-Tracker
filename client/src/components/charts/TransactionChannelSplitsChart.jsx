@@ -8,6 +8,7 @@ const METHOD_META = {
   card: { name: 'Card', color: '#f59e0b', icon: '💳' },
   bank: { name: 'Net Banking', color: '#06b6d4', icon: '🏦' },
   other: { name: 'Other', color: '#64748b', icon: '📁' },
+  notset: { name: 'Not Set', color: '#94a3b8', icon: '—' },
 };
 
 const ChannelTooltip = ({ active, payload }) => {
@@ -41,24 +42,20 @@ const ChannelTooltip = ({ active, payload }) => {
 };
 
 export default function TransactionChannelSplitsChart({ rawIncomes = [], currencySymbol = '₹' }) {
-  const { list, hasReal } = useMemo(() => {
+  const { list } = useMemo(() => {
     if (!rawIncomes || rawIncomes.length === 0) {
       return {
         list: [],
-        hasReal: false,
       };
     }
 
     const map = {};
-    let hasRealChannel = false;
 
     rawIncomes.forEach((inc) => {
       const raw = (inc.paymentMethod || '').trim().toLowerCase();
-      const method = METHOD_META[raw] ? raw : 'other';
-
-      if (raw && METHOD_META[raw]) {
-        hasRealChannel = true;
-      }
+      // Missing/unknown payment method on legacy records is preserved and shown
+      // honestly as "Not Set" — never coerced into 'other' or dropped.
+      const method = METHOD_META[raw] ? raw : 'notset';
 
       if (!map[method]) map[method] = { ...METHOD_META[method], total: 0, count: 0 };
       map[method].total += Number(inc.amount) || 0;
@@ -77,15 +74,14 @@ export default function TransactionChannelSplitsChart({ rawIncomes = [], currenc
 
     return {
       list,
-      hasReal: hasRealChannel,
     };
   }, [rawIncomes]);
 
-  if (!list.length || !hasReal) {
+  if (!list.length) {
     return (
       <ChartCard title="Transaction Channel Splits" subtitle="Income distribution by transaction channel">
         <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs">
-          No transaction channel data available
+          No income transactions in this period
         </div>
       </ChartCard>
     );

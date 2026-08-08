@@ -10,7 +10,9 @@ export const getIncomes = asyncHandler(async (req, res) => {
   const { startDate, endDate, category } = req.query;
   // B3 fix: parseInt to prevent NaN
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  // Analytics (e.g. Transaction Channel Splits) requests limit: 1000 — allow it so
+  // historical income beyond the first 100 rows is not silently truncated.
+  const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const filter = { user: req.user._id };
   if (startDate || endDate) {
     filter.date = {};

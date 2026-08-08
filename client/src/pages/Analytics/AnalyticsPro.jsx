@@ -30,12 +30,12 @@ import ChartInsight from '../../components/charts/ChartInsight';
 import IncomeTrendChart from '../../components/charts/IncomeTrendChart';
 import TopIncomeSourcesChart from '../../components/charts/TopIncomeSourcesChart';
 import IncomeExpenseRatioChart from '../../components/charts/IncomeExpenseRatioChart';
-import FinancialHealthChart from '../../components/charts/FinancialHealthChart';
+import SavingsProgressChart from '../../components/charts/SavingsProgressChart';
 
 import MonthlySpendingTrend from '../../components/charts/MonthlySpendingTrend';
 import PaymentMethodsChart from '../../components/charts/PaymentMethodsChart';
 import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
-import DailySpendingHeatmap from '../../components/charts/DailySpendingHeatmap';
+import MonthlyHeatmap from '../../components/charts/MonthlyHeatmap';
 import IncomeExpenseAreaChart from '../../components/charts/IncomeExpenseAreaChart';
 import MonthlyComparisonChart from '../../components/charts/MonthlyComparisonChart';
 import TransactionChannelSplitsChart from '../../components/charts/TransactionChannelSplitsChart';
@@ -43,6 +43,16 @@ import TransactionChannelSplitsChart from '../../components/charts/TransactionCh
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const INCOME_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 const EXPENSE_COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#06b6d4', '#6366f1', '#a855f7', '#ec4899'];
+
+// Local calendar "YYYY-MM-DD" key for a transaction date, matching the MonthlyHeatmap convention.
+const localDateKey = (date) => {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 export default function AnalyticsPro() {
   const { summary, incomes, expenses, fetchIncomes, fetchExpenses, fetchSummary } = useExpense();
@@ -56,7 +66,6 @@ export default function AnalyticsPro() {
 
   // API response states for specific charts
   const [cashflowData, setCashflowData] = useState([]);
-  const [heatmapData, setHeatmapData] = useState([]);
   const [trendData, setTrendData] = useState([]);
   const [prevTrendData, setPrevTrendData] = useState([]);
 
@@ -102,12 +111,11 @@ export default function AnalyticsPro() {
       // CanceledError which is caught and silently ignored below.
       const axiosOpts = signal ? { signal } : {};
 
-      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, heatmapRes, trendRes, prevTrendRes] = await Promise.all([
+      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, trendRes, prevTrendRes] = await Promise.all([
         api.get('/reports/monthly', axiosOpts),
         api.get('/reports/by-category', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/income', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/cashflow', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
-        api.get('/analytics/heatmap', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/trend', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/trend', { params: { startDate: prevStartISO, endDate: prevEndISO }, ...axiosOpts }),
         fetchSummary({ startDate: startISO, endDate: endISO }),
@@ -119,7 +127,6 @@ export default function AnalyticsPro() {
       setIncomeAnalyticsData(incomeAnalyticsRes.data?.data || null);
       setCategoryData(Array.isArray(cRes.data?.data) ? cRes.data.data : []);
       setCashflowData(Array.isArray(cashflowRes.data?.data) ? cashflowRes.data.data : []);
-      setHeatmapData(Array.isArray(heatmapRes.data?.data) ? heatmapRes.data.data : []);
       setTrendData(Array.isArray(trendRes.data?.data) ? trendRes.data.data : []);
       setPrevTrendData(Array.isArray(prevTrendRes.data?.data) ? prevTrendRes.data.data : []);
 
@@ -138,7 +145,7 @@ export default function AnalyticsPro() {
 
         const incVal = incMatch?.total || 0;
         const expVal = expMatch?.total || 0;
-        const savingsVal = Math.max(0, incVal - expVal);
+        const savingsVal = incVal - expVal;
         const savingsRateVal = incVal > 0 ? Math.round((savingsVal / incVal) * 100) : 0;
 
         return {
@@ -312,30 +319,53 @@ export default function AnalyticsPro() {
     }));
   }, [incomePieData]);
 
-  const needsWantsSavingsData = useMemo(() => {
-    let needs = 0;
-    let wants = 0;
-    const savingsVal = netSavingsVal;
-
-    expenses.forEach(exp => {
-      const catName = (exp.category?.name || exp.category || '').toLowerCase();
-      if (['bills', 'utilities', 'rent', 'groceries', 'education', 'health', 'insurance', 'loans', 'emi', 'tax', 'household'].some(keyword => catName.includes(keyword))) {
-        needs += exp.amount || 0;
-      } else {
-        wants += exp.amount || 0;
-      }
-    });
-
-    return [
-      { name: 'Needs & Bills', value: needs, color: '#f59e0b', icon: '💡' },
-      { name: 'Wants & Leisure', value: wants, color: '#ec4899', icon: '🎬' },
-      { name: 'Savings & Investments', value: savingsVal, color: '#10b981', icon: '📈' }
-    ];
-  }, [expenses, netSavingsVal]);
-
   const highestExpenseCat = expensePieData[0];
   const highestIncomeCat = incomePieData[0];
   const bestSavingsMonth = mappedMonthlyData.length > 0 ? [...mappedMonthlyData].sort((a, b) => b.savings - a.savings)[0] : null;
+
+  // Savings Progress dataset — historical full-month savings (from the monthly report)
+  // plus the CURRENT month computed as a real running balance through today only.
+  // mappedMonthlyData's last element is always the current month (its full-month API
+  // value is already filtered by endDate=now); we replace it with a precise running
+  // total computed from the already-loaded transaction arrays so future-dated
+  // transactions can never leak in and the current month is never duplicated.
+  const savingsProgressData = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const firstKey = `${year}-${String(month).padStart(2, '0')}-01`;
+    const todayKey = localDateKey(now);
+
+    const sumToDate = (list = []) =>
+      list.reduce((acc, tx) => {
+        const key = localDateKey(tx.date);
+        if (key && key >= firstKey && key <= todayKey) acc += Number(tx.amount) || 0;
+        return acc;
+      }, 0);
+
+    const currentIncome = sumToDate(incomes);
+    const currentExpense = sumToDate(expenses);
+
+    const currentPoint = {
+      name: MONTH_NAMES[now.getMonth()],
+      income: currentIncome,
+      expense: currentExpense,
+      savings: currentIncome - currentExpense,
+      isCurrent: true,
+    };
+
+    // Completed months only — drop the trailing current-month entry from the report
+    // so we have exactly ONE data point for the current month.
+    const historical = mappedMonthlyData.slice(0, -1).map((d) => ({
+      name: d.name,
+      income: d.income,
+      expense: d.expense,
+      savings: d.income - d.expense,
+      isCurrent: false,
+    }));
+
+    return [...historical, currentPoint];
+  }, [mappedMonthlyData, incomes, expenses]);
 
   if (loading) {
     return (
@@ -749,9 +779,9 @@ export default function AnalyticsPro() {
       {/* Overview Tab Charts */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          <CashFlowChart cashflowData={cashflowData} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CashFlowChart cashflowData={cashflowData} />
-            <FinancialHealthChart data={needsWantsSavingsData} />
+            <SavingsProgressChart data={savingsProgressData} />
             <IncomeExpenseRatioChart summary={{ totalIncome: totalEarnedVal, totalExpense: totalSpentVal }} />
           </div>
         </div>
@@ -768,6 +798,15 @@ export default function AnalyticsPro() {
             <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
             <TransactionChannelSplitsChart rawIncomes={incomes} />
           </div>
+          <div className="lg:col-span-2">
+            <MonthlyHeatmap
+              transactions={incomes}
+              title="Monthly Income Heatmap"
+              subtitle="Daily earning intensity for the selected month"
+              type="income"
+              currencySymbol="₹"
+            />
+          </div>
         </div>
       )}
 
@@ -780,10 +819,16 @@ export default function AnalyticsPro() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
-            <DailySpendingHeatmap heatmapData={heatmapData} />
+            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
           </div>
           <div className="lg:col-span-2">
-            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
+            <MonthlyHeatmap
+              transactions={expenses}
+              title="Monthly Spending Heatmap"
+              subtitle="Daily outflow intensity for the selected month"
+              type="spending"
+              currencySymbol="₹"
+            />
           </div>
         </div>
       )}
