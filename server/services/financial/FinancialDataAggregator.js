@@ -22,11 +22,11 @@ export const getFinancialSnapshotNormalized = async (userId) => {
   const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
   const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-  // Fetch full snapshot via canonical FinancialDataService
-  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate, endDate });
-
-  // Pre-load 6-month trend window for averages/stability metrics
-  const historicalTrends = await FinancialDataService.getTrendWindow(userId, 6);
+  // Fetch full snapshot and 6-month trend window concurrently
+  const [snapshot, historicalTrends] = await Promise.all([
+    FinancialDataService.getFinancialSnapshot(userId, { startDate, endDate }),
+    FinancialDataService.getTrendWindow(userId, 6)
+  ]);
 
   const duration = Date.now() - startTime;
   logger.info(`[FinancialDataAggregator] Unified snapshot loaded in ${duration}ms for user: ${userId}`);

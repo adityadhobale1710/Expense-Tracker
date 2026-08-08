@@ -197,6 +197,13 @@ export const login = asyncHandler(async (req, res) => {
   user.refreshToken = refreshToken;
   await user.save();
 
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+
   sendSuccess(res, 200, 'Login successful', {
     _id: user._id,
     name: user.name,
@@ -218,7 +225,6 @@ export const login = asyncHandler(async (req, res) => {
     simulatedActions: user.simulatedActions,
     achievements: user.achievements,
     accessToken,
-    refreshToken,
   });
 });
 
@@ -230,13 +236,14 @@ export const logout = asyncHandler(async (req, res) => {
     user.refreshToken = null;
     await user.save();
   }
+  res.clearCookie('refreshToken');
   sendSuccess(res, 200, 'Logged out successfully');
 });
 
 // @desc  Refresh access token
 // @route POST /api/auth/refresh-token
 export const refreshToken = asyncHandler(async (req, res) => {
-  const { refreshToken: token } = req.body;
+  const token = req.cookies?.refreshToken;
   if (!token) {
     res.status(401);
     throw new Error('No refresh token provided');
@@ -264,9 +271,15 @@ export const refreshToken = asyncHandler(async (req, res) => {
   user.refreshToken = newRefreshToken;
   await user.save();
 
+  res.cookie('refreshToken', newRefreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+
   sendSuccess(res, 200, 'Token refreshed', {
     accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
   });
 });
 
@@ -401,6 +414,13 @@ export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
   user.refreshToken = refreshToken;
   await user.save();
 
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+
   sendSuccess(res, 200, 'Email verified successfully', {
     _id: user._id,
     name: user.name,
@@ -422,7 +442,6 @@ export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
     simulatedActions: user.simulatedActions,
     achievements: user.achievements,
     accessToken,
-    refreshToken,
   });
 });
 

@@ -1,25 +1,7 @@
 import React from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import ChartCard from './ChartCard';
-import { CHART_COLORS, premiumTooltipConfig } from '../../utils/chartTheme';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { CHART_COLORS } from '../../utils/chartTheme';
 
 export default function TopIncomeSourcesChart({ categoryData = [] }) {
   if (!categoryData || categoryData.length === 0) {
@@ -35,61 +17,6 @@ export default function TopIncomeSourcesChart({ categoryData = [] }) {
   // Sort and take top 5 sources
   const topSources = [...categoryData].sort((a, b) => b.total - a.total).slice(0, 5);
 
-  const options = {
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: premiumTooltipConfig,
-    },
-    scales: {
-      x: {
-        grid: {
-          color: CHART_COLORS.grid,
-          drawBorder: false,
-          borderDash: [5, 5],
-        },
-        ticks: {
-          color: CHART_COLORS.neutral,
-          font: {
-            size: 11,
-            family: 'Inter, system-ui, sans-serif'
-          },
-        },
-      },
-      y: {
-        grid: {
-          display: false,
-          drawBorder: false,
-        },
-        ticks: {
-          color: CHART_COLORS.neutral,
-          font: {
-            size: 12,
-            weight: 'bold',
-            family: 'Inter, system-ui, sans-serif'
-          },
-        },
-      },
-    },
-  };
-
-  const data = {
-    labels: topSources.map(d => d.name),
-    datasets: [
-      {
-        label: 'Income',
-        data: topSources.map(d => d.total),
-        backgroundColor: topSources.map(d => d.color || CHART_COLORS.income),
-        borderRadius: 6,
-        barThickness: 24,
-      },
-    ],
-  };
-
   return (
     <ChartCard
       title="Top Income Sources"
@@ -97,7 +24,29 @@ export default function TopIncomeSourcesChart({ categoryData = [] }) {
       infoText="A breakdown of your top 5 income sources, ordered by total amount."
     >
       <div className="w-full h-full relative">
-        <Bar options={options} data={data} />
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={topSources} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+            <XAxis type="number" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
+            <YAxis type="category" dataKey="name" stroke="var(--chart-text)" fontSize={12} tickLine={false} axisLine={false} width={80} />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--chart-tooltip-bg)',
+                border: '1px solid var(--chart-tooltip-border)',
+                borderRadius: '12px',
+                color: 'var(--chart-tooltip-text)',
+                fontSize: '11px',
+                fontWeight: 'bold'
+              }}
+              formatter={(val, name) => [`₹${val.toLocaleString('en-IN')}`, 'Income']}
+            />
+            <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>
+              {topSources.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color || CHART_COLORS.income || '#10b981'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </ChartCard>
   );
