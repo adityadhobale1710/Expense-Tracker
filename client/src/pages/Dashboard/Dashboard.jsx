@@ -415,8 +415,12 @@ export default function Dashboard() {
                         <td>
                           {item.category ? (
                             <span className="flex items-center gap-1.5 text-xs">
-                              <span>{item.category.icon}</span>
-                              <span className="text-slate-300">{item.category.name}</span>
+                              {typeof item.category !== 'string' && item.category.icon && (
+                                <span>{item.category.icon}</span>
+                              )}
+                              <span className="text-slate-300">
+                                {typeof item.category === 'string' ? item.category : item.category.name}
+                              </span>
                             </span>
                           ) : (
                             <span className="text-slate-500">—</span>

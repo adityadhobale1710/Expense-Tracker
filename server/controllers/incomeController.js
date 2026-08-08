@@ -34,6 +34,9 @@ export const addIncome = asyncHandler(async (req, res) => {
   const { walletId, ...rest } = req.body;
   const payload = { ...rest, user: req.user._id };
 
+  // Normalize: empty/missing paymentMethod falls back to the model default ('other')
+  if (!payload.paymentMethod) delete payload.paymentMethod;
+
   // Link to wallet and update balance
   if (walletId) {
     const wallet = await Wallet.findOne({ _id: walletId, user: req.user._id });
@@ -124,9 +127,12 @@ export const updateIncome = asyncHandler(async (req, res) => {
   }
 
   // B4 fix: whitelist allowed update fields
-  const allowedFields = ['title', 'amount', 'date', 'category', 'source', 'description', 'wallet'];
+  const allowedFields = ['title', 'amount', 'date', 'category', 'source', 'paymentMethod', 'description', 'wallet'];
   const updateData = {};
   allowedFields.forEach((f) => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
+  // Legacy incomes may have no paymentMethod. An empty value means "unchanged / not set"
+  // and must NOT silently become 'other' — only an explicit user choice is stored.
+  if (updateData.paymentMethod === '') delete updateData.paymentMethod;
 
   const income = await Income.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },

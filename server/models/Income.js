@@ -7,6 +7,11 @@ const incomeSchema = new mongoose.Schema(
     amount: { type: Number, required: [true, 'Amount is required'], min: [0, 'Amount must be positive'] },
     category: { type: String, default: 'Other' },
     source: { type: String, default: '' },
+    paymentMethod: {
+      type: String,
+      enum: ['cash', 'card', 'upi', 'bank', 'other'],
+      default: 'other',
+    },
     date: { type: Date, default: Date.now, index: true },
     description: { type: String, default: '' },
     wallet: { type: mongoose.Schema.Types.ObjectId, ref: 'Wallet', default: null },

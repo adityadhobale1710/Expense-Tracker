@@ -22,7 +22,6 @@ import { DataTable } from '../../components/ui/DataTable';
 
 // Import newly integrated chart components
 import CashFlowChart from '../../components/charts/CashFlowChart';
-import DonutChart from '../../components/charts/DonutChart';
 import CountUp from 'react-countup';
 import InsightCard from '../../components/charts/InsightCard';
 import AnalyticsSectionTitle from '../../components/charts/AnalyticsSectionTitle';
@@ -39,6 +38,7 @@ import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
 import DailySpendingHeatmap from '../../components/charts/DailySpendingHeatmap';
 import IncomeExpenseAreaChart from '../../components/charts/IncomeExpenseAreaChart';
 import MonthlyComparisonChart from '../../components/charts/MonthlyComparisonChart';
+import TransactionChannelSplitsChart from '../../components/charts/TransactionChannelSplitsChart';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const INCOME_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
@@ -61,7 +61,6 @@ export default function AnalyticsPro() {
   const [prevTrendData, setPrevTrendData] = useState([]);
 
   // Active indices for interactive hover on pie charts
-  const [selectedDonutCategory, setSelectedDonutCategory] = useState(null);
   const [error, setError] = useState(null);
 
   // Guard against React 18 StrictMode double-invoke. Holds the active AbortController
@@ -762,17 +761,12 @@ export default function AnalyticsPro() {
       {activeTab === 'earnings' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DonutChart
-              categoryData={incomeCategoryData}
-              rawExpenses={incomes}
-              selectedCategory={selectedDonutCategory}
-              onSelectCategory={setSelectedDonutCategory}
-            />
             <TopIncomeSourcesChart categoryData={incomeCategoryData} />
+            <IncomeTrendChart monthlyData={mappedMonthlyData} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <IncomeTrendChart monthlyData={mappedMonthlyData} />
             <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
+            <TransactionChannelSplitsChart rawIncomes={incomes} />
           </div>
         </div>
       )}
@@ -781,21 +775,15 @@ export default function AnalyticsPro() {
       {activeTab === 'expenses' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DonutChart
-              categoryData={expensePieData}
-              rawExpenses={expenses}
-              selectedCategory={selectedDonutCategory}
-              onSelectCategory={setSelectedDonutCategory}
-            />
             <TopCategoriesChart categoryData={expensePieData} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <PaymentMethodsChart rawExpenses={expenses} />
-            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
+            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
             <DailySpendingHeatmap heatmapData={heatmapData} />
+          </div>
+          <div className="lg:col-span-2">
+            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
           </div>
         </div>
       )}
