@@ -11,7 +11,7 @@ export default function AnalyticsSectionTitle({ title, subtitle, icon: Icon }) {
     >
       <div className="flex items-center gap-2 mb-1.5">
         {Icon && <Icon className="text-primary-400" size={20} />}
-        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">{title}</h2>
+        <h2 className="text-xl md:text-2xl font-black text-slate-100 tracking-tight">{title}</h2>
       </div>
       {subtitle && <p className="text-sm text-slate-400 font-medium">{subtitle}</p>}
     </motion.div>

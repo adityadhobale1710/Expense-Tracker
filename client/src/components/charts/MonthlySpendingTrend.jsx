@@ -14,7 +14,7 @@ export default function MonthlySpendingTrend({ monthlyData = [] }) {
           onClick={() => setTimeSelector(period)}
           className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${
             timeSelector === period
-              ? 'bg-slate-700 text-white shadow-sm'
+              ? 'bg-slate-700 text-slate-100 shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
