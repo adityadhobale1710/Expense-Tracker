@@ -40,9 +40,9 @@ export default function ExpandableLegend({
                 className={`flex justify-between items-center text-[11px] font-semibold py-1.5 px-2.5 rounded-xl border cursor-pointer transition-colors ${
                   selectedItemName
                     ? isSelected
-                      ? 'bg-slate-800/80 border-slate-700 text-white font-bold shadow-sm'
+                      ? 'bg-slate-800/80 border-slate-700 text-slate-100 font-bold shadow-sm'
                       : 'border-transparent text-slate-500 opacity-40 hover:opacity-60'
-                    : 'border-transparent text-slate-300 hover:bg-slate-800/40 hover:text-white'
+                    : 'border-transparent text-slate-300 hover:bg-slate-800/40 hover:text-slate-100'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">

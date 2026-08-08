@@ -99,7 +99,7 @@ export default function FinancialHealthChart({ data = [] }) {
           {mappedData.map((item, idx) => (
             <div key={idx} className="group">
               <div className="flex justify-between items-end mb-2">
-                <span className="text-[13px] font-bold text-slate-300 group-hover:text-white transition-colors">
+                <span className="text-[13px] font-bold text-slate-300 group-hover:text-slate-100 transition-colors">
                   {item.name}
                 </span>
                 <div className="text-right flex items-baseline gap-3">

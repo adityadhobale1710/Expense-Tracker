@@ -601,5 +601,55 @@ html[data-theme="light"] .bill-chip-income {
   border-color: rgba(16, 185, 129, 0.2) !important;
 }
 
+/* ── Analytics Page Readability Improvements (Light Theme) ── */
+html[data-theme="light"] .analytics-page .text-slate-400 {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .analytics-page .text-slate-500 {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .analytics-page [class~="text-indigo-200/90"] {
+  color: #4f46e5 !important;
+}
+
+html[data-theme="light"] .analytics-page .text-emerald-300,
+html[data-theme="light"] .analytics-page .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html[data-theme="light"] .analytics-page .text-amber-300,
+html[data-theme="light"] .analytics-page .text-amber-400,
+html[data-theme="light"] .analytics-page .text-yellow-400 {
+  color: #d97706 !important;
+}
+
+html[data-theme="light"] .analytics-page .text-rose-300,
+html[data-theme="light"] .analytics-page .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+html[data-theme="light"] .analytics-page .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+html[data-theme="light"] .analytics-page .text-primary-400 {
+  color: #7c3aed !important;
+}
+
+html[data-theme="light"] .analytics-page .text-orange-400,
+html[data-theme="light"] .analytics-page .text-orange-300 {
+  color: #ea580c !important;
+}
+
+html[data-theme="light"] .analytics-page .text-red-300 {
+  color: #dc2626 !important;
+}
+
+html[data-theme="light"] .analytics-page [class~="text-red-300/80"] {
+  color: #dc2626 !important;
+}
+
 
 

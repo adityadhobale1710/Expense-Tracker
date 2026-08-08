@@ -18,7 +18,7 @@ export default function InsightCard({ title, value, subtitle, icon: Icon, trend 
         )}
       </div>
       <div>
-        <div className="text-xl font-black text-white mb-1 tracking-tight truncate">
+        <div className="text-xl font-black text-slate-100 mb-1 tracking-tight truncate">
           {value}
         </div>
         <div className="flex items-center gap-2 mt-2">

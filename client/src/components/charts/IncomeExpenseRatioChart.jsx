@@ -43,7 +43,7 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
         {/* Income Bar */}
         <div className="space-y-3 group">
           <div className="flex justify-between items-end">
-            <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">Total Income</span>
+            <span className="text-sm font-bold text-slate-300 group-hover:text-slate-100 transition-colors">Total Income</span>
             <span className="text-xl font-mono font-black" style={{ color: CHART_COLORS.income }}>
               {formatCurrency(totalIncome)}
             </span>
@@ -65,7 +65,7 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
         {/* Expense Bar */}
         <div className="space-y-3 group">
           <div className="flex justify-between items-end">
-            <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">Total Expense</span>
+            <span className="text-sm font-bold text-slate-300 group-hover:text-slate-100 transition-colors">Total Expense</span>
             <span className="text-xl font-mono font-black" style={{ color: CHART_COLORS.expense }}>
               {formatCurrency(totalExpense)}
             </span>

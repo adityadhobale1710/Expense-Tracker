@@ -23,7 +23,6 @@ import { DataTable } from '../../components/ui/DataTable';
 // Import newly integrated chart components
 import CashFlowChart from '../../components/charts/CashFlowChart';
 import DonutChart from '../../components/charts/DonutChart';
-import TreemapChart from '../../components/charts/TreemapChart';
 import CountUp from 'react-countup';
 import InsightCard from '../../components/charts/InsightCard';
 import AnalyticsSectionTitle from '../../components/charts/AnalyticsSectionTitle';
@@ -31,7 +30,6 @@ import ChartInsight from '../../components/charts/ChartInsight';
 
 import IncomeTrendChart from '../../components/charts/IncomeTrendChart';
 import TopIncomeSourcesChart from '../../components/charts/TopIncomeSourcesChart';
-import SavingsTrendChart from '../../components/charts/SavingsTrendChart';
 import IncomeExpenseRatioChart from '../../components/charts/IncomeExpenseRatioChart';
 import FinancialHealthChart from '../../components/charts/FinancialHealthChart';
 
@@ -319,7 +317,7 @@ export default function AnalyticsPro() {
     let needs = 0;
     let wants = 0;
     const savingsVal = netSavingsVal;
-    
+
     expenses.forEach(exp => {
       const catName = (exp.category?.name || exp.category || '').toLowerCase();
       if (['bills', 'utilities', 'rent', 'groceries', 'education', 'health', 'insurance', 'loans', 'emi', 'tax', 'household'].some(keyword => catName.includes(keyword))) {
@@ -338,17 +336,17 @@ export default function AnalyticsPro() {
 
   const highestExpenseCat = expensePieData[0];
   const highestIncomeCat = incomePieData[0];
-  const bestSavingsMonth = mappedMonthlyData.length > 0 ? [...mappedMonthlyData].sort((a,b)=>b.savings - a.savings)[0] : null;
+  const bestSavingsMonth = mappedMonthlyData.length > 0 ? [...mappedMonthlyData].sort((a, b) => b.savings - a.savings)[0] : null;
 
   if (loading) {
     return (
-      <div className="space-y-6 pb-20 animate-fade-in">
+      <div className="space-y-6 pb-20 animate-fade-in analytics-page">
         {/* Header skeleton */}
         <div className="flex justify-between items-center pb-5 border-b border-slate-800/40">
           <Skeleton className="h-10 w-48 rounded-xl" />
           <Skeleton className="h-10 w-32 rounded-xl" />
         </div>
-        
+
         {/* Charts grid skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Skeleton.Chart />
@@ -362,7 +360,7 @@ export default function AnalyticsPro() {
 
   if (error) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 max-w-md mx-auto text-center px-4">
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 max-w-md mx-auto text-center px-4 analytics-page">
         <div className="p-4 bg-red-500/10 border border-red-500/25 text-red-400 rounded-3xl text-sm font-medium">
           <p className="font-bold mb-1">Failed to load analytics</p>
           <p className="text-xs text-red-300/80">{error}</p>
@@ -381,7 +379,7 @@ export default function AnalyticsPro() {
 
   if (isEmptyState) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4">
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4 analytics-page">
         <div className="w-16 h-16 rounded-3xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 text-2xl shadow-lg">
           📊
         </div>
@@ -402,7 +400,7 @@ export default function AnalyticsPro() {
   }
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in">
+    <div className="space-y-6 pb-12 animate-fade-in analytics-page">
       {/* Top Header & Breadcrumb Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-800/60 border border-slate-700/40 p-5 rounded-3xl backdrop-blur-xl shadow-xl">
         <div className="flex items-center gap-3">
@@ -438,18 +436,17 @@ export default function AnalyticsPro() {
             <button
               key={id}
               onClick={() => setTimeRange(id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                timeRange === id
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${timeRange === id
                   ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               {label}
             </button>
           ))}
           <button
             onClick={handleRetry}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all ml-1"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all ml-1"
             title="Refresh Data"
           >
             <RefreshCcw size={14} className={loading ? 'animate-spin text-primary-400' : ''} />
@@ -517,13 +514,12 @@ export default function AnalyticsPro() {
               ₹<CountUp end={Number(netSavingsVal)} duration={1} separator="," />
             </h3>
             <div className="flex items-center gap-1.5 mt-2">
-              <span className={`badge text-[10px] font-bold ${
-                savingsRateVal >= 30
+              <span className={`badge text-[10px] font-bold ${savingsRateVal >= 30
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                   : savingsRateVal >= 15
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-              }`}>
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                }`}>
                 {savingsRateVal}% Savings Rate
               </span>
               <span className="text-[10px] text-slate-400 font-medium">Net liquidity</span>
@@ -548,8 +544,8 @@ export default function AnalyticsPro() {
               {savingsRateVal >= 30
                 ? 'You save over 30% of earnings consistently!'
                 : savingsRateVal >= 15
-                ? 'Healthy cash balance, maintain expense speed.'
-                : 'Consider optimizing high-cost expense categories.'}
+                  ? 'Healthy cash balance, maintain expense speed.'
+                  : 'Consider optimizing high-cost expense categories.'}
             </p>
           </div>
         </div>
@@ -583,17 +579,17 @@ export default function AnalyticsPro() {
         )}
       </div>
 
-      <AnalyticsSectionTitle 
+      <AnalyticsSectionTitle
         title={
-          activeTab === 'overview' ? 'Complete Overview' : 
-          activeTab === 'earnings' ? 'Income Analytics' : 
-          activeTab === 'expenses' ? 'Expense Analytics' : 'Financial Breakdown'
-        } 
+          activeTab === 'overview' ? 'Complete Overview' :
+            activeTab === 'earnings' ? 'Income Analytics' :
+              activeTab === 'expenses' ? 'Expense Analytics' : 'Financial Breakdown'
+        }
         subtitle={
-          activeTab === 'overview' ? 'A complete snapshot of your financial performance.' : 
-          activeTab === 'earnings' ? 'Track earnings, income sources, and monthly growth.' : 
-          activeTab === 'expenses' ? 'Understand spending patterns and category distribution.' : ''
-        } 
+          activeTab === 'overview' ? 'A complete snapshot of your financial performance.' :
+            activeTab === 'earnings' ? 'Track earnings, income sources, and monthly growth.' :
+              activeTab === 'expenses' ? 'Understand spending patterns and category distribution.' : ''
+        }
       />
 
       {/* Tabs Navigation Switcher */}
@@ -606,11 +602,10 @@ export default function AnalyticsPro() {
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === id
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === id
                 ? 'bg-slate-800 text-slate-100 border border-slate-600 shadow-md'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
+              }`}
           >
             <span>{label}</span>
           </button>
@@ -678,8 +673,8 @@ export default function AnalyticsPro() {
               </div>
             </div>
             {highestIncomeCat && (
-              <ChartInsight 
-                message={`${highestIncomeCat.name} represents ${((highestIncomeCat.value / (totalEarnedVal || 1)) * 100).toFixed(0)}% of your total earnings.`} 
+              <ChartInsight
+                message={`${highestIncomeCat.name} represents ${((highestIncomeCat.value / (totalEarnedVal || 1)) * 100).toFixed(0)}% of your total earnings.`}
               />
             )}
           </div>
@@ -744,8 +739,8 @@ export default function AnalyticsPro() {
               </div>
             </div>
             {highestExpenseCat && (
-              <ChartInsight 
-                message={`${highestExpenseCat.name} represents ${((highestExpenseCat.value / (totalSpentVal || 1)) * 100).toFixed(0)}% of your monthly expenses.`} 
+              <ChartInsight
+                message={`${highestExpenseCat.name} represents ${((highestExpenseCat.value / (totalSpentVal || 1)) * 100).toFixed(0)}% of your monthly expenses.`}
               />
             )}
           </div>
@@ -756,10 +751,7 @@ export default function AnalyticsPro() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SavingsTrendChart monthlyData={mappedMonthlyData} />
             <CashFlowChart cashflowData={cashflowData} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FinancialHealthChart data={needsWantsSavingsData} />
             <IncomeExpenseRatioChart summary={{ totalIncome: totalEarnedVal, totalExpense: totalSpentVal }} />
           </div>
@@ -798,14 +790,11 @@ export default function AnalyticsPro() {
             <TopCategoriesChart categoryData={expensePieData} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TreemapChart rawExpenses={expenses} />
             <PaymentMethodsChart rawExpenses={expenses} />
+            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
             <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
-          </div>
-          <div className="grid grid-cols-1 gap-6">
             <DailySpendingHeatmap heatmapData={heatmapData} />
           </div>
         </div>
