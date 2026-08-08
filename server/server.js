@@ -153,6 +153,13 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
+// Financial/personal API responses must never be stored in browser or CDN caches
+// — a cached stale snapshot is exactly the stale-data bug class this audit fixes.
+app.use('/api/', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,

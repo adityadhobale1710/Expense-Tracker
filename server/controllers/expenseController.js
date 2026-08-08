@@ -36,7 +36,9 @@ export const getExpenses = asyncHandler(async (req, res) => {
   const { startDate, endDate, category, paymentMethod } = req.query;
   // B1 fix: parseInt to prevent NaN when string values are used in arithmetic
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  // Analytics (e.g. Payment Methods / Splits charts) requests limit: 1000 — allow
+  // it so historical expenses beyond the first 100 rows are not silently truncated.
+  const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const filter = { user: req.user._id };
   if (startDate || endDate) {
     filter.date = {};
@@ -89,8 +91,9 @@ export const addExpense = asyncHandler(async (req, res) => {
   }
 
   await expense.populate('category', 'name icon color');
-  // Invalidate AI context caches affected by new expense
-  invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
+  // Invalidate AI context caches affected by new expense (awaited so the next
+  // AI/Insights read cannot consume the pre-mutation cache snapshot).
+  await invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
   sendSuccess(res, 201, 'Expense added', expense);
 });
 
@@ -199,7 +202,7 @@ export const updateExpense = asyncHandler(async (req, res) => {
     await recalcBudgetSpent(req.user._id, newCatId);
   }
 
-  invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
+  await invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
   sendSuccess(res, 200, 'Expense updated', updatedExpense);
 });
 
@@ -224,8 +227,8 @@ export const deleteExpense = asyncHandler(async (req, res) => {
     await recalcBudgetSpent(req.user._id, expense.category);
   }
 
-  // Invalidate AI context caches affected by deleted expense
-  invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
+  // Invalidate AI context caches affected by deleted expense (awaited — see above)
+  await invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
   sendSuccess(res, 200, 'Expense deleted');
 });
 

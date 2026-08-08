@@ -281,7 +281,7 @@ export const createGoal = asyncHandler(async (req, res) => {
   // Achievements
   await updateSavingsAchievements(req.user._id);
 
-  invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 201, 'Goal created successfully', goal);
 });
 
@@ -328,7 +328,7 @@ export const updateGoal = asyncHandler(async (req, res) => {
   await goal.save();
   await updateSavingsAchievements(req.user._id);
 
-  invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 200, 'Goal updated successfully', goal);
 });
 
@@ -381,7 +381,7 @@ export const deleteGoal = asyncHandler(async (req, res) => {
   });
 
   await goal.save();
-  invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 200, 'Goal deleted successfully');
 });
 
@@ -507,7 +507,7 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
   // Update achievements
   await updateSavingsAchievements(req.user._id);
 
-  invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
+  await invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
   sendSuccess(res, 200, 'Contribution saved successfully', {
     goal,
     contribution,
@@ -859,7 +859,7 @@ export const deleteContribution = asyncHandler(async (req, res) => {
   await goal.save();
   await updateSavingsAchievements(req.user._id);
 
-  invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
+  await invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
   sendSuccess(res, 200, 'Contribution removed successfully', goal);
 });
 

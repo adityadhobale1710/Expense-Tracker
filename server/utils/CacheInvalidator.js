@@ -26,6 +26,13 @@ import logger from './logger.js';
 /**
  * Invalidate specific AI context module caches for a user.
  *
+ * Design:
+ *   • AWAITED — callers must `await` this before sending the mutation response so
+ *     the very next AI request cannot read the pre-mutation cache snapshot.
+ *   • Invalidates the persisted AI responseCache as well, because a deletion/
+ *     update must not be answered from a previously cached financial response.
+ *   • Failures are caught and logged, never thrown.
+ *
  * @param {string | object} userId - MongoDB user ObjectId
  * @param {string[]} modules - Module cache keys to invalidate.
  *   Valid keys: 'wallets' | 'budgets' | 'expenses' | 'incomes' | 'goals' | 'loans' | 'subscriptions'
@@ -35,8 +42,10 @@ export const invalidateAICache = async (userId, modules) => {
   if (!userId || !modules || modules.length === 0) return;
 
   try {
-    // Invalidate the short-lived in-memory insights cache
-    invalidateInsightsCache(userId);
+    // Invalidate the MongoDB-backed insights cache first (awaited) — otherwise a
+    // fast AI Insights read can re-generate from a snapshot that still contains
+    // the just-mutated transaction.
+    await invalidateInsightsCache(userId);
 
     // Asynchronously scan for proactive alerts and generate notifications
     checkAndGenerateNotifications(userId).catch(err => {
@@ -49,9 +58,20 @@ export const invalidateAICache = async (userId, modules) => {
     // Flatten modules to standard array of strings to resolve nested array parameters
     const flatModules = Array.isArray(modules) ? modules.flat(Infinity) : [modules];
     invalidateModules(chat, flatModules);
+
+    // Clear the persisted response cache so a same-question replay cannot be
+    // answered from a snapshot computed from now-invalidated financial data.
+    if (chat.responseCache && Object.keys(chat.responseCache).length > 0) {
+      chat.responseCache = {};
+      if (typeof chat.markModified === 'function') chat.markModified('responseCache');
+    }
+
     await chat.save();
 
-    logger.debug(`[CacheInvalidator] Invalidated [${flatModules.join(', ')}] for user ${userId}`);
+    logger.info(
+      `[DataFreshness] Mutation: ${flatModules.join(', ')} | User: ${userId} | ` +
+      `Cache invalidated (module+insights+response): ${flatModules.join(', ')} | ${new Date().toISOString()}`
+    );
   } catch (err) {
     // Non-critical — log and continue. The TTL will expire naturally.
     logger.warn(`[CacheInvalidator] Failed to invalidate cache for user ${userId}: ${err.message}`);

@@ -55,7 +55,7 @@ export const createWallet = asyncHandler(async (req, res) => {
     icon,
     isPrimary: isPrimary || false,
   });
-  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+  await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 201, 'Wallet created successfully', wallet);
 });
 
@@ -98,7 +98,7 @@ export const updateWallet = asyncHandler(async (req, res) => {
   wallet.isPrimary = isPrimary !== undefined ? isPrimary : wallet.isPrimary;
 
   await wallet.save();
-  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+  await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Wallet updated successfully', wallet);
 });
 
@@ -140,7 +140,7 @@ export const deleteWallet = asyncHandler(async (req, res) => {
   }
 
   await Wallet.findByIdAndDelete(wallet._id);
-  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+  await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Wallet deleted successfully');
 });
 
@@ -176,7 +176,7 @@ export const updateBalance = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Wallet not found');
   }
-  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+  await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Wallet balance updated successfully', wallet);
 });
 
@@ -194,7 +194,7 @@ export const setPrimary = asyncHandler(async (req, res) => {
   wallet.isPrimary = true;
   await wallet.save();
 
-  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+  await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
   sendSuccess(res, 200, 'Primary wallet updated successfully', wallet);
 });
 
@@ -274,7 +274,7 @@ export const transferFunds = asyncHandler(async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-  invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+  await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
     sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
   } catch (error) {
     await session.abortTransaction();

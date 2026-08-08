@@ -55,7 +55,7 @@ const localDateKey = (date) => {
 };
 
 export default function AnalyticsPro() {
-  const { summary, incomes, expenses, fetchIncomes, fetchExpenses, fetchSummary } = useExpense();
+  const { summary, incomes, expenses, dataRevision, fetchIncomes, fetchExpenses, fetchSummary } = useExpense();
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'earnings' | 'expenses' | 'savings'
   const [timeRange, setTimeRange] = useState('6m'); // '1m' | '3m' | '6m'
@@ -195,19 +195,12 @@ export default function AnalyticsPro() {
       // Cleanup: abort on unmount or before the next effect run
       controller.abort();
     };
-  }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [timeRange, dataRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Aggregate Incomes by source for the Earnings Pie Chart
+  // Aggregate Incomes by source for the Earnings Pie Chart.
+  // Pure derived data: the server breakdown (if present) wins, otherwise we
+  // derive from the real loaded incomes. NO fabricated fallback values.
   const incomePieData = useMemo(() => {
-    if (!incomes || incomes.length === 0) {
-      return [
-        { name: 'Salary', value: 65000, icon: '💼', color: '#10b981' },
-        { name: 'Freelancing', value: 18000, icon: '💻', color: '#3b82f6' },
-        { name: 'Investments', value: 12000, icon: '📈', color: '#8b5cf6' },
-        { name: 'Others', value: 5000, icon: '🎁', color: '#f59e0b' }
-      ];
-    }
-
     const iconMap = {
       Salary: '💼',
       Freelance: '💻',
@@ -221,13 +214,17 @@ export default function AnalyticsPro() {
       Uncategorized: '💰'
     };
 
-    if (incomeAnalyticsData && incomeAnalyticsData.sources) {
+    if (incomeAnalyticsData && incomeAnalyticsData.sources && incomeAnalyticsData.sources.length > 0) {
       return incomeAnalyticsData.sources.map((s, idx) => ({
         name: s.source,
         value: s.amount,
         icon: iconMap[s.source] || '💰',
         color: INCOME_COLORS[idx % INCOME_COLORS.length]
       }));
+    }
+
+    if (!incomes || incomes.length === 0) {
+      return [];
     }
 
     const map = {};
@@ -252,7 +249,9 @@ export default function AnalyticsPro() {
     return incomePieData.reduce((acc, item) => acc + item.value, 0);
   }, [summary, incomePieData]);
 
-  // Aggregate Expenses by category for Expense Pie/Donut Chart
+  // Aggregate Expenses by category for Expense Pie/Donut Chart.
+  // Pure derived data: the server category breakdown (if present) wins, otherwise
+  // we derive from the real loaded expenses. NO fabricated fallback values.
   const expensePieData = useMemo(() => {
     if (categoryData && categoryData.length > 0) {
       return categoryData.map((cat, idx) => ({
@@ -265,12 +264,7 @@ export default function AnalyticsPro() {
     }
 
     if (!expenses || expenses.length === 0) {
-      return [
-        { name: 'Food & Dining', value: 12000, count: 14, icon: '🍔', color: '#ef4444' },
-        { name: 'Shopping', value: 8500, count: 6, icon: '🛍️', color: '#f97316' },
-        { name: 'Bills & Utilities', value: 6200, count: 4, icon: '💡', color: '#eab308' },
-        { name: 'Entertainment', value: 3400, count: 5, icon: '🎬', color: '#06b6d4' }
-      ];
+      return [];
     }
 
     const map = {};

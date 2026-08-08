@@ -5,6 +5,7 @@ import Category from '../models/Category.js';
 import Budget from '../models/Budget.js';
 import Notification from '../models/Notification.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // Helper: Recalculate Budget spent
 const recalcBudgetSpent = async (userId, categoryId) => {
@@ -275,6 +276,11 @@ export const markBillPaid = asyncHandler(async (req, res) => {
 
   // Re-calculate budget spent for this category
   await recalcBudgetSpent(req.user._id, categoryObj._id);
+
+  // A new Expense was just created → the AI/Insights/response caches must be
+  // invalidated exactly like a manual Expense add, or the next AI question would
+  // be answered from a snapshot that predates this payment.
+  await invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
 
   // If recurring, calculate the next due date and reset status. Otherwise, set status to paid.
   if (bill.recurring && bill.frequency !== 'none') {

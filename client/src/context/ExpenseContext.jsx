@@ -12,6 +12,10 @@ export const ExpenseProvider = ({ children }) => {
   const [budgets, setBudgets] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  // Monotonic revision counter bumped on every successful income/expense mutation.
+  // Consumers (e.g. AnalyticsPro) depend on it to re-fetch server-derived data
+  // without polling, reloads, or stale cache replays.
+  const [dataRevision, setDataRevision] = useState(0);
 
   // Safe optional gamification reward — won't throw if context not ready
   const gamification = useContext(GamificationContext);
@@ -41,6 +45,7 @@ export const ExpenseProvider = ({ children }) => {
     setIncomes((prev) => [data.data, ...prev]);
     toast.success('Income added!');
     rewardAction('ADD_INCOME');
+    setDataRevision((v) => v + 1);
     return data.data;
   };
 
@@ -49,12 +54,14 @@ export const ExpenseProvider = ({ children }) => {
     const { data } = await api.put(`/income/${id}`, payload);
     setIncomes((prev) => prev.map((i) => (i._id === id ? data.data : i)));
     toast.success('Income updated!');
+    setDataRevision((v) => v + 1);
   };
 
   const deleteIncome = async (id) => {
     await api.delete(`/income/${id}`);
     setIncomes((prev) => prev.filter((i) => i._id !== id));
     toast.success('Income deleted');
+    setDataRevision((v) => v + 1);
   };
 
   // ─── Expenses ─────────────────────────────────────────
@@ -79,6 +86,7 @@ export const ExpenseProvider = ({ children }) => {
     setExpenses((prev) => [data.data, ...prev]);
     toast.success('Expense added!');
     rewardAction('ADD_EXPENSE');
+    setDataRevision((v) => v + 1);
     return data.data;
   };
 
@@ -87,12 +95,14 @@ export const ExpenseProvider = ({ children }) => {
     const { data } = await api.put(`/expenses/${id}`, payload);
     setExpenses((prev) => prev.map((e) => (e._id === id ? data.data : e)));
     toast.success('Expense updated!');
+    setDataRevision((v) => v + 1);
   };
 
   const deleteExpense = async (id) => {
     await api.delete(`/expenses/${id}`);
     setExpenses((prev) => prev.filter((e) => e._id !== id));
     toast.success('Expense deleted');
+    setDataRevision((v) => v + 1);
   };
 
   // ─── Categories ───────────────────────────────────────
@@ -169,7 +179,7 @@ export const ExpenseProvider = ({ children }) => {
 
   return (
     <ExpenseContext.Provider value={{
-      incomes, expenses, categories, budgets, summary, loading,
+      incomes, expenses, categories, budgets, summary, loading, dataRevision,
       fetchIncomes, addIncome, updateIncome, deleteIncome,
       fetchExpenses, addExpense, updateExpense, deleteExpense,
       fetchCategories, fetchBudgets, addBudget, updateBudget, deleteBudget,

@@ -62,7 +62,7 @@ export const createLoan = asyncHandler(async (req, res) => {
     remainingBalance: remainingBalance !== undefined ? Number(remainingBalance) : numAmount,
     nextEmiDate: nextEmiDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
   });
-  invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
   sendSuccess(res, 201, 'Loan logged successfully', loan);
 });
 
@@ -94,7 +94,7 @@ export const updateLoan = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Loan not found');
   }
-  invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
   sendSuccess(res, 200, 'Loan terms updated successfully', loan);
 });
 
@@ -106,7 +106,7 @@ export const deleteLoan = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Loan not found');
   }
-  invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
   sendSuccess(res, 200, 'Loan log deleted successfully');
 });
 
