@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Search, Filter, X, Plus, Edit3, Trash2,
   ChevronLeft, ChevronRight, RotateCcw, Calendar,
-  CreditCard, Banknote, Wallet, Tag, SlidersHorizontal,
+  Banknote, Wallet, Tag, SlidersHorizontal,
   BarChart3, PieChart as PieChartIcon, CheckCircle2, Clock, Zap,
   Receipt, Briefcase, DollarSign,
 } from 'lucide-react';
@@ -159,17 +159,6 @@ const PieTooltip = ({ active, payload }) => {
     </div>
   );
 };
-const ChannelTooltip = ({ active, payload }) => {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="bg-dark-800 border border-slate-700 rounded-xl px-3 py-2 shadow-xl text-xs">
-      <p className="text-slate-100 font-bold">{d.name}</p>
-      <p className="text-emerald-400 font-black mt-0.5">₹{Number(d.value).toLocaleString('en-IN')}</p>
-      <p className="text-slate-400 mt-0.5">{Number(d.pct).toFixed(1)}% of income · {d.count} transaction{d.count === 1 ? '' : 's'}</p>
-    </div>
-  );
-};
 const AreaTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -273,29 +262,6 @@ export default function Income() {
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([name, value]) => ({ name, value }));
   }, [incomes]);
-
-  // Transaction channel breakdown — respects all active filters (uses `filtered`)
-  const channelChartData = useMemo(() => {
-    if (!filtered.length) return [];
-    const map = {};
-    filtered.forEach(i => {
-      const method = PAYMENT_METHODS.includes(i.paymentMethod) ? i.paymentMethod : 'other';
-      if (!map[method]) map[method] = { name: PM_LABELS[method] || 'Other', value: 0, count: 0 };
-      map[method].value += i.amount;
-      map[method].count += 1;
-    });
-    const total = filtered.reduce((s, i) => s + i.amount, 0);
-    return Object.entries(map)
-      .map(([method, d]) => ({
-        name: d.name,
-        value: d.value,
-        count: d.count,
-        pct: total > 0 ? (d.value / total) * 100 : 0,
-        color: PM_COLORS[method] || '#64748b',
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [filtered]);
-  const hasChannelData = channelChartData.some(d => d.name !== 'Other');
 
   const trendData = useMemo(() => {
     const months = [];
@@ -556,47 +522,6 @@ export default function Income() {
                   fill="url(#incArea)" dot={{ fill: '#10b981', r: 3, strokeWidth: 0 }} />
               </AreaChart>
             </ResponsiveContainer>
-          </motion.div>
-
-          {/* Transaction Channel Splits */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="card lg:col-span-2">
-            <h3 className="font-bold text-slate-100 flex items-center gap-2 mb-4">
-              <CreditCard size={16} className="text-emerald-400" /> Transaction Channel Splits
-            </h3>
-            {!hasChannelData ? (
-              <p className="text-slate-500 text-sm text-center py-8">No transaction channel data available</p>
-            ) : (
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <ResponsiveContainer width={180} height={180}>
-                  <PieChart>
-                    <Pie data={channelChartData} cx="50%" cy="50%" innerRadius={50} outerRadius={75}
-                      paddingAngle={2} dataKey="value" stroke="none">
-                      {channelChartData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip content={<ChannelTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {channelChartData.map(d => {
-                    const total = channelChartData.reduce((s, x) => s + x.value, 0);
-                    const pct = total > 0 ? (d.value / total) * 100 : 0;
-                    return (
-                      <div key={d.name} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                          <span className="text-slate-300 truncate">{d.name}</span>
-                          <span className="text-slate-500">{d.count}</span>
-                        </div>
-                        <span className="text-slate-400 font-semibold whitespace-nowrap">
-                          {pct.toFixed(1)}% · {fmt(d.value)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </motion.div>
         </div>
       )}
