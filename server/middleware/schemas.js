@@ -71,6 +71,7 @@ export const incomeSchema = Joi.object({
   date: Joi.date().iso().required(),
   category: Joi.string().max(100).allow('').optional(),
   source: Joi.string().max(100).allow('').optional(),
+  paymentMethod: Joi.string().valid('cash', 'card', 'upi', 'bank', 'other').allow('').optional(),
   description: Joi.string().max(500).allow('').optional(),
 }).unknown(false);
 
