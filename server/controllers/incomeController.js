@@ -53,7 +53,7 @@ export const addIncome = asyncHandler(async (req, res) => {
 
   const income = await Income.create(payload);
 
-  invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
+  await invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 201, 'Income added', income);
 });
 
@@ -142,7 +142,7 @@ export const updateIncome = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   );
 
-  invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
+  await invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 200, 'Income updated', income);
 });
 
@@ -163,6 +163,6 @@ export const deleteIncome = asyncHandler(async (req, res) => {
     }
   }
 
-  invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
+  await invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 200, 'Income deleted');
 });

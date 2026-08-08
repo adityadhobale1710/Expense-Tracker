@@ -46,7 +46,7 @@ export const createSubscription = asyncHandler(async (req, res) => {
     renewalDate,
     reminder: typeof reminder === 'boolean' ? reminder : false,
   });
-  invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
   sendSuccess(res, 201, 'Subscription created successfully', subscription);
 });
 
@@ -79,7 +79,7 @@ export const updateSubscription = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Subscription not found');
   }
-  invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
   sendSuccess(res, 200, 'Subscription updated successfully', subscription);
 });
 
@@ -91,6 +91,6 @@ export const deleteSubscription = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Subscription not found');
   }
-  invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
+  await invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
   sendSuccess(res, 200, 'Subscription deleted successfully');
 });
