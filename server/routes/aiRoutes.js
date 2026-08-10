@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import { getChatHistory, sendMessage } from '../controllers/aiController.js';
+import { getChatHistory, sendMessage, clearHistory } from '../controllers/aiController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -31,6 +31,8 @@ const chatRateLimiter = rateLimit({
 });
 
 router.get('/history', getChatHistory);
+// AUDIT-ARCH-007: DELETE /history clears backend conversation history on "New Chat"
+router.delete('/history', clearHistory);
 router.post('/chat', chatRateLimiter, sendMessage);
 
 export default router;

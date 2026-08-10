@@ -1,6 +1,8 @@
+import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 import Bill from '../models/Bill.js';
 import Expense from '../models/Expense.js';
+import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
 import Budget from '../models/Budget.js';
 import Notification from '../models/Notification.js';
@@ -230,96 +232,126 @@ export const deleteBill = asyncHandler(async (req, res) => {
 // @desc    Mark a bill as Paid (and create expense)
 // @route   POST /api/bills/:id/pay
 export const markBillPaid = asyncHandler(async (req, res) => {
-  const { notes = 'Paid via Bill Calendar' } = req.body;
-  const bill = await Bill.findOne({ _id: req.params.id, user: req.user._id });
+  // MASTER-022/057: Accept optional walletId to deduct bill payment from a wallet
+  const { notes = 'Paid via Bill Calendar', walletId } = req.body;
+  const userId = req.user._id;
 
-  if (!bill) {
-    res.status(404);
-    throw new Error('Bill not found');
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const paymentRecord = {
-    paidAt: new Date(),
-    amountPaid: bill.amount,
-    notes,
-  };
+  try {
+    const bill = await Bill.findOne({ _id: req.params.id, user: userId }).session(session);
 
-  bill.paymentHistory.push(paymentRecord);
-
-  // Sync to Expenses: Find or create Category first
-  let categoryObj = await Category.findOne({
-    user: req.user._id,
-    name: { $regex: `^${bill.category}$`, $options: 'i' },
-    type: 'expense',
-  });
-
-  if (!categoryObj) {
-    categoryObj = await Category.create({
-      user: req.user._id,
-      name: bill.category,
-      icon: bill.icon || '💸',
-      color: bill.color || '#3b82f6',
-      type: 'expense',
-    });
-  }
-
-  // Create Expense record
-  const expense = await Expense.create({
-    user: req.user._id,
-    title: `[Bill Paid] ${bill.title}`,
-    amount: bill.amount,
-    date: new Date(),
-    category: categoryObj._id,
-    paymentMethod: bill.paymentMethod || 'other',
-    description: notes,
-  });
-
-  // Re-calculate budget spent for this category
-  await recalcBudgetSpent(req.user._id, categoryObj._id);
-
-  // A new Expense was just created → the AI/Insights/response caches must be
-  // invalidated exactly like a manual Expense add, or the next AI question would
-  // be answered from a snapshot that predates this payment.
-  await invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
-
-  // If recurring, calculate the next due date and reset status. Otherwise, set status to paid.
-  if (bill.recurring && bill.frequency !== 'none') {
-    const nextDate = new Date(bill.dueDate);
-    switch (bill.frequency) {
-      case 'daily':
-        nextDate.setDate(nextDate.getDate() + 1);
-        break;
-      case 'weekly':
-        nextDate.setDate(nextDate.getDate() + 7);
-        break;
-      case 'monthly':
-        nextDate.setMonth(nextDate.getMonth() + 1);
-        break;
-      case 'quarterly':
-        nextDate.setMonth(nextDate.getMonth() + 3);
-        break;
-      case 'yearly':
-        nextDate.setFullYear(nextDate.getFullYear() + 1);
-        break;
-      default:
-        nextDate.setMonth(nextDate.getMonth() + 1);
+    if (!bill) {
+      res.status(404);
+      throw new Error('Bill not found');
     }
-    bill.dueDate = nextDate;
-    bill.status = 'upcoming'; // Middleware will recalculate when needed
-  } else {
-    bill.status = 'paid';
+
+    // Validate and deduct wallet balance if a walletId was provided
+    let linkedWalletId = null;
+    if (walletId) {
+      const wallet = await Wallet.findOneAndUpdate(
+        { _id: walletId, user: userId, balance: { $gte: bill.amount } },
+        { $inc: { balance: -bill.amount } },
+        { new: true, session }
+      );
+      if (!wallet) {
+        const existing = await Wallet.findOne({ _id: walletId, user: userId }).session(session);
+        if (!existing) { res.status(404); throw new Error('Wallet not found'); }
+        res.status(400); throw new Error('Insufficient wallet balance for bill payment');
+      }
+      linkedWalletId = wallet._id;
+    }
+
+    const paymentRecord = {
+      paidAt: new Date(),
+      amountPaid: bill.amount,
+      notes,
+    };
+
+    bill.paymentHistory.push(paymentRecord);
+
+    // Sync to Expenses: Find or create Category first
+    let categoryObj = await Category.findOne({
+      user: userId,
+      name: bill.category,
+      type: 'expense',
+    }).session(session);
+
+    if (!categoryObj) {
+      const [newCat] = await Category.create([{
+        user: userId,
+        name: bill.category,
+        icon: bill.icon || '💸',
+        color: bill.color || '#3b82f6',
+        type: 'expense',
+      }], { session });
+      categoryObj = newCat;
+    }
+
+    // Create Expense record with optional wallet link
+    const [expense] = await Expense.create([{
+      user: userId,
+      title: `[Bill Paid] ${bill.title}`,
+      amount: bill.amount,
+      date: new Date(),
+      category: categoryObj._id,
+      paymentMethod: bill.paymentMethod || 'other',
+      description: notes,
+      // MASTER-022/057: Link wallet to the expense if provided
+      wallet: linkedWalletId,
+    }], { session });
+
+    // If recurring, calculate the next due date and reset status. Otherwise, set status to paid.
+    if (bill.recurring && bill.frequency !== 'none') {
+      const nextDate = new Date(bill.dueDate);
+      switch (bill.frequency) {
+        case 'daily':
+          nextDate.setDate(nextDate.getDate() + 1);
+          break;
+        case 'weekly':
+          nextDate.setDate(nextDate.getDate() + 7);
+          break;
+        case 'monthly':
+          nextDate.setMonth(nextDate.getMonth() + 1);
+          break;
+        case 'quarterly':
+          nextDate.setMonth(nextDate.getMonth() + 3);
+          break;
+        case 'yearly':
+          nextDate.setFullYear(nextDate.getFullYear() + 1);
+          break;
+        default:
+          nextDate.setMonth(nextDate.getMonth() + 1);
+      }
+      bill.dueDate = nextDate;
+      bill.status = 'upcoming'; // Middleware will recalculate when needed
+    } else {
+      bill.status = 'paid';
+    }
+
+    await bill.save({ session });
+
+    // Create system notification
+    await Notification.create([{
+      user: userId,
+      type: 'general',
+      message: `Bill "${bill.title}" marked as paid. Expense logged.`,
+    }], { session });
+
+    await session.commitTransaction();
+
+    // Side-effects (can happen outside transaction)
+    await recalcBudgetSpent(userId, categoryObj._id);
+    await invalidateAICache(userId, CACHE_MODULES.EXPENSE_ADD);
+
+    sendSuccess(res, 200, 'Bill marked as paid successfully', { bill, expense });
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  await bill.save();
-
-  // Create system notification
-  await Notification.create({
-    user: req.user._id,
-    type: 'general',
-    message: `Bill "${bill.title}" marked as paid. Expense logged.`,
-  });
-
-  sendSuccess(res, 200, 'Bill marked as paid successfully', { bill, expense });
 });
 
 // @desc    Skip the current cycle of a recurring bill

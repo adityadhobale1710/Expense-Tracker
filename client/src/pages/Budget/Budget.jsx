@@ -364,8 +364,8 @@ export default function Budget() {
   // Aggregate metrics calculation
   const totalBudgeted = useMemo(() => combinedBudgets.reduce((s, b) => s + b.limit, 0), [combinedBudgets]);
   const totalSpent = useMemo(() => combinedBudgets.reduce((s, b) => s + b.spent, 0), [combinedBudgets]);
-  const remainingBudget = useMemo(() => Math.max(0, totalBudgeted - totalSpent), [totalBudgeted, totalSpent]);
-  const utilizationPct = useMemo(() => (totalBudgeted > 0 ? Math.min(Math.round((totalSpent / totalBudgeted) * 100), 100) : 0), [totalBudgeted, totalSpent]);
+  const remainingBudget = useMemo(() => totalBudgeted - totalSpent, [totalBudgeted, totalSpent]); // MASTER-044: Allow negative to show deficit
+  const utilizationPct = useMemo(() => (totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0), [totalBudgeted, totalSpent]); // MASTER-044: Allow >100% to show overrun
   const overspentCount = useMemo(() => combinedBudgets.filter(b => b.spent > b.limit).length, [combinedBudgets]);
   const savingsEstimate = useMemo(() => totalBudgeted > totalSpent ? totalBudgeted - totalSpent : 0, [totalBudgeted, totalSpent]);
 

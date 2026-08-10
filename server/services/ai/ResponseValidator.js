@@ -109,11 +109,15 @@ const flattenValidationContext = (vc) => {
   }
   if (vc.expenses) {
     add(vc.expenses.total);
+    // MASTER-001: Add average so the AI can correctly cite monthly expense averages
+    add(vc.expenses.average);
     vc.expenses.byCategory?.forEach(c => { add(c.total); add(c.percent); });
     vc.expenses.recent?.forEach(r => add(r.amount));
   }
   if (vc.incomes) {
     add(vc.incomes.total);
+    // MASTER-001: Add average so the AI can correctly cite monthly income averages
+    add(vc.incomes.average);
     vc.incomes.bySource?.forEach(s => { add(s.total); add(s.percent); });
   }
   if (vc.health) {

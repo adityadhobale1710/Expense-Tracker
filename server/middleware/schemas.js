@@ -73,6 +73,8 @@ export const incomeSchema = Joi.object({
   source: Joi.string().max(100).allow('').optional(),
   paymentMethod: Joi.string().valid('cash', 'card', 'upi', 'bank', 'other').allow('').optional(),
   description: Joi.string().max(500).allow('').optional(),
+  // MASTER-014: Allow walletId so income can be linked to a wallet for balance tracking
+  walletId: Joi.string().hex().length(24).allow(null, '').optional(),
 }).unknown(false);
 
 // ─── Wallet schemas (I5 fix: new) ─────────────────────────────────────────────

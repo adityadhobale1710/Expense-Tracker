@@ -15,6 +15,8 @@ const incomeSchema = new mongoose.Schema(
     date: { type: Date, default: Date.now, index: true },
     description: { type: String, default: '' },
     wallet: { type: mongoose.Schema.Types.ObjectId, ref: 'Wallet', default: null },
+    // MASTER-045: Flag to exclude wallet-to-wallet transfers from income/expense aggregations
+    isTransfer: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

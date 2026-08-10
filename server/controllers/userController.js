@@ -1,5 +1,19 @@
+import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
+import Expense from '../models/Expense.js';
+import Income from '../models/Income.js';
+import Budget from '../models/Budget.js';
+import Wallet from '../models/Wallet.js';
+import Goal from '../models/Goal.js';
+import Loan from '../models/Loan.js';
+import Subscription from '../models/Subscription.js';
+import Notification from '../models/Notification.js';
+import Category from '../models/Category.js';
+import Bill from '../models/Bill.js';
+import SplitExpense from '../models/SplitExpense.js';
+import Family from '../models/Family.js';
+import AIChat from '../models/AIChat.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 // @desc  Get current user profile
@@ -195,50 +209,56 @@ const ACHIEVEMENT_REWARDS = {
   wal7: { xp: 1500, coins: 150 }
 };
 
+// MASTER-024: Keys MUST be uppercase to match client action codes (ADD_INCOME, ADD_EXPENSE, etc.)
 const ACTION_REWARDS = {
-  login: { xp: 100, coins: 10 },
-  add_expense: { xp: 50, coins: 5 },
-  add_income: { xp: 50, coins: 5 },
-  upload_receipt: { xp: 150, coins: 15 },
-  create_budget: { xp: 200, coins: 20 },
-  stay_daily_budget: { xp: 100, coins: 10 },
-  stay_weekly_budget: { xp: 300, coins: 30 },
-  stay_monthly_budget: { xp: 1000, coins: 100 },
-  complete_review: { xp: 500, coins: 50 },
-  add_goal: { xp: 150, coins: 15 },
-  reach_goal: { xp: 1000, coins: 100 },
-  add_investment: { xp: 300, coins: 30 },
-  track_bills: { xp: 100, coins: 10 },
-  pay_bills_on_time: { xp: 250, coins: 25 },
-  categorize_expense: { xp: 40, coins: 4 },
-  export_reports: { xp: 200, coins: 20 },
-  view_analytics: { xp: 75, coins: 7 },
-  maintain_streak: { xp: 150, coins: 15 },
-  invite_friends: { xp: 500, coins: 50 },
-  backup_data: { xp: 100, coins: 10 },
+  LOGIN: { xp: 100, coins: 10 },
+  ADD_EXPENSE: { xp: 50, coins: 5 },
+  ADD_INCOME: { xp: 50, coins: 5 },
+  UPLOAD_RECEIPT: { xp: 150, coins: 15 },
+  CREATE_BUDGET: { xp: 200, coins: 20 },
+  STAY_DAILY_BUDGET: { xp: 100, coins: 10 },
+  STAY_WEEKLY_BUDGET: { xp: 300, coins: 30 },
+  STAY_MONTHLY_BUDGET: { xp: 1000, coins: 100 },
+  COMPLETE_REVIEW: { xp: 500, coins: 50 },
+  ADD_GOAL: { xp: 150, coins: 15 },
+  REACH_GOAL: { xp: 1000, coins: 100 },
+  ADD_INVESTMENT: { xp: 300, coins: 30 },
+  TRACK_BILLS: { xp: 100, coins: 10 },
+  PAY_BILLS_ON_TIME: { xp: 250, coins: 25 },
+  CATEGORIZE_EXPENSE: { xp: 40, coins: 4 },
+  EXPORT_REPORTS: { xp: 200, coins: 20 },
+  VIEW_ANALYTICS: { xp: 75, coins: 7 },
+  MAINTAIN_STREAK: { xp: 150, coins: 15 },
+  INVITE_FRIENDS: { xp: 500, coins: 50 },
+  BACKUP_DATA: { xp: 100, coins: 10 },
+  DAILY_LOGIN: { xp: 100, coins: 10 },
 
-  // New Actions
-  create_family: { xp: 150, coins: 15 },
-  invite_family_member: { xp: 200, coins: 20 },
-  log_family_expense: { xp: 200, coins: 20 },
-  set_family_budget: { xp: 300, coins: 30 },
-  family_active_30d: { xp: 1000, coins: 100 },
-  create_split_bill: { xp: 300, coins: 30 },
-  settle_split_bill: { xp: 500, coins: 50 },
-  add_loan: { xp: 150, coins: 15 },
-  make_loan_payment: { xp: 200, coins: 20 },
-  payoff_loan: { xp: 1000, coins: 100 },
-  pay_loan_on_time: { xp: 250, coins: 25 },
-  add_subscription: { xp: 150, coins: 15 },
-  view_subscriptions: { xp: 75, coins: 7 },
-  cancel_subscription: { xp: 250, coins: 25 },
-  review_sub_budget: { xp: 300, coins: 30 },
-  switch_annual_plan: { xp: 400, coins: 40 },
-  create_wallet: { xp: 150, coins: 15 },
-  wallet_transfer: { xp: 200, coins: 20 },
-  wallet_balance_30d: { xp: 1000, coins: 100 },
-  diverse_wallets: { xp: 300, coins: 30 },
-  wallet_milestone: { xp: 1500, coins: 150 }
+  // Family & Social
+  CREATE_FAMILY: { xp: 150, coins: 15 },
+  INVITE_FAMILY_MEMBER: { xp: 200, coins: 20 },
+  LOG_FAMILY_EXPENSE: { xp: 200, coins: 20 },
+  SET_FAMILY_BUDGET: { xp: 300, coins: 30 },
+  FAMILY_ACTIVE_30D: { xp: 1000, coins: 100 },
+  CREATE_SPLIT_BILL: { xp: 300, coins: 30 },
+  SETTLE_SPLIT_BILL: { xp: 500, coins: 50 },
+
+  // Loans & Subscriptions
+  ADD_LOAN: { xp: 150, coins: 15 },
+  MAKE_LOAN_PAYMENT: { xp: 200, coins: 20 },
+  PAYOFF_LOAN: { xp: 1000, coins: 100 },
+  PAY_LOAN_ON_TIME: { xp: 250, coins: 25 },
+  ADD_SUBSCRIPTION: { xp: 150, coins: 15 },
+  VIEW_SUBSCRIPTIONS: { xp: 75, coins: 7 },
+  CANCEL_SUBSCRIPTION: { xp: 250, coins: 25 },
+  REVIEW_SUB_BUDGET: { xp: 300, coins: 30 },
+  SWITCH_ANNUAL_PLAN: { xp: 400, coins: 40 },
+
+  // Wallets
+  CREATE_WALLET: { xp: 150, coins: 15 },
+  WALLET_TRANSFER: { xp: 200, coins: 20 },
+  WALLET_BALANCE_30D: { xp: 1000, coins: 100 },
+  DIVERSE_WALLETS: { xp: 300, coins: 30 },
+  WALLET_MILESTONE: { xp: 1500, coins: 150 }
 };
 
 // @desc  Update gamification progress
@@ -390,8 +410,43 @@ export const changePassword = asyncHandler(async (req, res) => {
 // @desc  Delete account
 // @route DELETE /api/users/me
 export const deleteMe = asyncHandler(async (req, res) => {
-  await User.findByIdAndDelete(req.user._id);
-  sendSuccess(res, 200, 'Account deleted successfully');
+  const userId = req.user._id;
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // MASTER-025: Cascading delete — remove all user-linked data before deleting the user
+    // to prevent orphaned documents and comply with GDPR/privacy requirements.
+    // Wrapped in a transaction so partial deletions rollback safely.
+    await Promise.all([
+      Expense.deleteMany({ user: userId }, { session }),
+      Income.deleteMany({ user: userId }, { session }),
+      Budget.deleteMany({ user: userId }, { session }),
+      Wallet.deleteMany({ user: userId }, { session }),
+      Goal.deleteMany({ user: userId }, { session }),
+      Loan.deleteMany({ user: userId }, { session }),
+      Subscription.deleteMany({ user: userId }, { session }),
+      Notification.deleteMany({ user: userId }, { session }),
+      Category.deleteMany({ user: userId }, { session }),
+      Bill.deleteMany({ user: userId }, { session }),
+      SplitExpense.deleteMany({ creator: userId }, { session }),
+      Family.deleteMany({ creator: userId }, { session }),
+      AIChat.deleteMany({ user: userId }, { session }),
+    ]);
+
+    await User.findByIdAndDelete(userId, { session });
+
+    await session.commitTransaction();
+
+    res.clearCookie('refreshToken');
+    sendSuccess(res, 200, 'Account and all associated data deleted successfully');
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 });
 
 

@@ -110,7 +110,9 @@ export const generateInsights = async ({
     incomes: activeIncomes,
     goals: activeGoals,
     loans: activeLoans,
-    subscriptions: activeSubscriptions
+    subscriptions: activeSubscriptions,
+    // AUDIT-CALC-002: Pass historical trend data so income stability is scored on real data
+    historicalTrends: trendWindow
   });
   const risks = analyzeRisks({
     wallets: activeWallets,
@@ -315,7 +317,8 @@ export const calculateFinancialHealth = (snapshot = {}) => {
   }
 
   // 6. Score Component: Cash Flow (10 Points)
-  const netCashFlow = savings.total;
+  // MASTER-040: Fixed savings.total → savings.amount (calculateSavings returns { amount, rate, isPositive, deficit })
+  const netCashFlow = savings.amount;
   const cashFlowScore = netCashFlow > 0 ? 10 : 0;
 
   // 7. Score Component: Emergency Fund Strength (10 Points)

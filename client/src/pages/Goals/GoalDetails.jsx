@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import { useDialog } from '../../hooks/useDialog';
 
 import { useGoals } from '../../hooks/useGoals';
-import { useGoalAnalytics } from '../../hooks/useGoalAnalytics';
+import { useGoalAnalytics, useGoalContributions } from '../../hooks/useGoalAnalytics';
 import { calculateDaysRemaining, formatDaysRemaining } from '../../utils/goalCalculations';
 import { getPriorityBadgeClass, getStatusBadgeClass } from '../../utils/goalHelpers';
 
@@ -35,15 +35,14 @@ export default function GoalDetails() {
     isLoadingInsights,
     analytics,
     recommendations,
-    isLoadingRecommendations,
-    getContributionsQuery
+    isLoadingRecommendations
   } = useGoalAnalytics(id);
 
   const {
     contributions = [],
     total = 0,
     pages = 1
-  } = getContributionsQuery(page, limit).data || {};
+  } = useGoalContributions(id, page, limit).data || {};
 
   const {
     updateGoalStatus,

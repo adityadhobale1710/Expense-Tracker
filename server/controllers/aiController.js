@@ -47,6 +47,21 @@ export const getChatHistory = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Chat history retrieved', returnedMessages);
 });
 
+// ─── CLEAR CHAT HISTORY ───────────────────────────────────────────────────────
+
+// @desc    Clear AI Chat History (New Chat action)
+// @route   DELETE /api/ai/history
+// AUDIT-ARCH-007: Frontend "New Chat" must also clear backend history to prevent
+// old conversation context from bleeding into the new session.
+export const clearHistory = asyncHandler(async (req, res) => {
+  await AIChat.findOneAndUpdate(
+    { user: req.user._id },
+    { $set: { messages: [], moduleCache: {} } },
+    { upsert: false }
+  );
+  sendSuccess(res, 200, 'Chat history cleared');
+});
+
 // ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
 
 // @desc    Send Message to AI assistant
@@ -71,7 +86,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
   const requestStart = Date.now();
 
   // ── 1. Check Fact Router (Simple Fact Router - Phase 6) ───────────────────
-  const factReply = await routeFact(userId, trimmedMessage);
+  const tzOffset = req.headers['x-timezone-offset'] ? parseInt(req.headers['x-timezone-offset'], 10) : new Date().getTimezoneOffset();
+  const factReply = await routeFact(userId, trimmedMessage, tzOffset);
   if (factReply) {
     // Load or initialise the chat session to save history
     let chat = await AIChat.findOne({ user: userId });
@@ -88,7 +104,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+    const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
     return sendSuccess(res, 200, 'Reply sent', {
       userMessage: updatedChat.messages[updatedChat.messages.length - 2],
       aiMessage: updatedChat.messages[updatedChat.messages.length - 1],
@@ -115,7 +131,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   );
 
   // ── 4. Build context (intent-driven, per-module cache) ────────────────────
-  const contextResult = await buildContext(userId, detectedIntents, chat, trimmedMessage);
+  const contextResult = await buildContext(userId, detectedIntents, chat, trimmedMessage, tzOffset);
   const counts = contextResult.counts || { wallets: 0, budgets: 0, expenses: 0, incomes: 0, goals: 0, loans: 0, subscriptions: 0, transactions: 0 };
 
   logger.info(
@@ -283,7 +299,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   logger.info(`[AI Controller] Request completed in ${totalDuration}ms.`);
 
   // L5: return the resolved model name so the frontend can display it accurately
-  const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+  const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
   // ── 8. Asynchronously Update Long-Term Memory (Fire and Forget) ───────────
   // We pass the last few messages and the user's latest message to extract non-financial context.

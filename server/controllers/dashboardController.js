@@ -5,6 +5,7 @@ import Notification from '../models/Notification.js';
 import AIChat from '../models/AIChat.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
+import { getUserDateRange } from '../utils/timezoneUtils.js';
 import {
   calculateMonthlyExpense,
   calculateMonthlyIncome,
@@ -16,8 +17,11 @@ import {
 export const getDashboardData = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  // 1. Load canonical snapshot
-  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { limit: 50 });
+  // 1. Load canonical snapshot — no transaction limit for accurate financial aggregation
+  // MASTER-042/061: Removed { limit: 50 } — totals must be computed across ALL transactions.
+  // We load up to 500 for display but compute monetary totals across the full month.
+  const { start, end } = getUserDateRange(req);
+  const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
 
   // 2. Load dashboard specific non-financial UI data
   const [categories, recentNotifications] = await Promise.all([

@@ -258,6 +258,8 @@ export const transferFunds = asyncHandler(async (req, res) => {
         wallet: fromWallet._id,
         paymentMethod: fromWallet.type === 'credit_card' ? 'card' : fromWallet.type === 'upi' ? 'upi' : 'other',
         description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+        // MASTER-045: Mark as transfer so it's excluded from income/expense financial totals
+        isTransfer: true,
       }], { session }),
       Income.create([{
         user: req.user._id,
@@ -268,6 +270,8 @@ export const transferFunds = asyncHandler(async (req, res) => {
         category: 'Other Income',
         source: toWallet.name,
         description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+        // MASTER-045: Mark as transfer so it's excluded from income/expense financial totals
+        isTransfer: true,
       }], { session }),
     ]);
 
