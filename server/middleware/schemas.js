@@ -49,6 +49,7 @@ export const expenseSchema = Joi.object({
   description: Joi.string().max(500).allow('').optional(),
   tags: Joi.array().items(Joi.string().max(50)).optional(),
   walletId: Joi.string().hex().length(24).allow(null, '').optional(),
+  receipt: Joi.string().max(1000).allow('').optional(),
 }).unknown(false);
 
 // ─── Budget schemas ───────────────────────────────────────────────────────────
