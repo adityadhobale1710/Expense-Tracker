@@ -28,6 +28,8 @@ import AnalyticsSectionTitle from '../../components/charts/AnalyticsSectionTitle
 import ChartInsight from '../../components/charts/ChartInsight';
 
 import IncomeTrendChart from '../../components/charts/IncomeTrendChart';
+import IncomeComparisonCard from '../../components/charts/IncomeComparisonCard';
+import ExpenseComparisonCard from '../../components/charts/ExpenseComparisonCard';
 import TopIncomeSourcesChart from '../../components/charts/TopIncomeSourcesChart';
 import IncomeExpenseRatioChart from '../../components/charts/IncomeExpenseRatioChart';
 import SavingsProgressChart from '../../components/charts/SavingsProgressChart';
@@ -61,6 +63,9 @@ export default function AnalyticsPro() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
   const [incomeAnalyticsData, setIncomeAnalyticsData] = useState(null);
+  const [incomeComparison, setIncomeComparison] = useState({ currentMonth: 0, previousMonth: 0 });
+  const [expenseComparison, setExpenseComparison] = useState({ currentMonth: 0, previousMonth: 0 });
+  const [expenseComparisonMonthlyData, setExpenseComparisonMonthlyData] = useState([]);
 
   const [scopedSummary, setScopedSummary] = useState(null);
   const [scopedIncomes, setScopedIncomes] = useState([]);
@@ -125,6 +130,50 @@ export default function AnalyticsPro() {
       // Format monthly report
       const { incomes: incList = [], expenses: expList = [] } = mRes.data?.data || {};
       const now = new Date();
+
+      const currentM = now.getMonth() + 1;
+      const currentY = now.getFullYear();
+      let prevM = currentM - 1;
+      let prevY = currentY;
+      if (prevM === 0) {
+        prevM = 12;
+        prevY = currentY - 1;
+      }
+      
+      const currentMonthIncome = incList
+        .filter(x => x._id?.month === currentM && x._id?.year === currentY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      const previousMonthIncome = incList
+        .filter(x => x._id?.month === prevM && x._id?.year === prevY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      setIncomeComparison({ currentMonth: currentMonthIncome, previousMonth: previousMonthIncome });
+
+      const currentMonthExpense = expList
+        .filter(x => x._id?.month === currentM && x._id?.year === currentY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      const previousMonthExpense = expList
+        .filter(x => x._id?.month === prevM && x._id?.year === prevY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      setExpenseComparison({ currentMonth: currentMonthExpense, previousMonth: previousMonthExpense });
+
+      // Build consistent 6-month historical data for the Expense chart
+      // We start from 5 months ago up to the current month.
+      const expense6Months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+        const m = d.getMonth() + 1;
+        const y = d.getFullYear();
+        const expMatch = expList.find((x) => x._id?.month === m && x._id?.year === y);
+        return {
+          name: MONTH_NAMES[d.getMonth()],
+          expense: expMatch?.total || 0
+        };
+      });
+      setExpenseComparisonMonthlyData(expense6Months);
+
       const count = timeRange === '1m' ? 1 : timeRange === '3m' ? 3 : 6;
 
       const formattedMonths = Array.from({ length: count }, (_, i) => {
@@ -693,6 +742,15 @@ export default function AnalyticsPro() {
           </div>
         )}
 
+        {/* Income This Month vs Last Month (Only on Earnings Tab) */}
+        {activeTab === 'earnings' && (
+          <IncomeComparisonCard 
+            currentMonthIncome={incomeComparison.currentMonth}
+            previousMonthIncome={incomeComparison.previousMonth}
+            mappedMonthlyData={mappedMonthlyData}
+          />
+        )}
+
         {/* Expenses Category Pie / Donut Chart (How Much I Spend) */}
         {(activeTab === 'overview' || activeTab === 'expenses') && (
           <div className="bg-dark-800/80 border border-slate-700/60 p-6 rounded-3xl shadow-xl space-y-4 flex flex-col justify-between">
@@ -757,6 +815,15 @@ export default function AnalyticsPro() {
               />
             )}
           </div>
+        )}
+
+        {/* Expense This Month vs Last Month (Only on Expenses Tab) */}
+        {activeTab === 'expenses' && (
+          <ExpenseComparisonCard 
+            currentMonthExpense={expenseComparison.currentMonth}
+            previousMonthExpense={expenseComparison.previousMonth}
+            expenseComparisonMonthlyData={expenseComparisonMonthlyData}
+          />
         )}
       </div>
 
