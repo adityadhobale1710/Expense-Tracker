@@ -68,7 +68,9 @@ app.use(cors({
     const allowedUrls = [...clientUrls, ...fallbackUrls];
 
     const isAllowed = allowedUrls.includes(origin) ||
-      (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
+      // ISSUE-002: Use strict regex instead of startsWith to prevent localhost origin spoofing
+      // e.g. http://localhost.evil.com would have matched startsWith('http://localhost')
+      (process.env.NODE_ENV === 'development' && (/^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)));
 
     if (isAllowed) {
       return callback(null, true);

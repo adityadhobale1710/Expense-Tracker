@@ -29,15 +29,6 @@ export function useGoalAnalytics(goalId = null) {
     queryFn: () => goalService.getGoalRecommendations()
   });
 
-  // Helper function to query paginated contributions
-  const getContributionsQuery = (page = 1, limit = 20) => {
-    return useQuery({
-      queryKey: ['goalContributions', goalId, page, limit],
-      queryFn: () => goalService.getGoalContributions(goalId, page, limit),
-      enabled: !!goalId
-    });
-  };
-
   return {
     goal: detailQuery.data || null,
     isLoadingGoal: detailQuery.isLoading,
@@ -53,10 +44,16 @@ export function useGoalAnalytics(goalId = null) {
 
     recommendations: recommendationsQuery.data || [],
     isLoadingRecommendations: recommendationsQuery.isLoading,
-    refetchRecommendations: recommendationsQuery.refetch,
-
-    getContributionsQuery
+    refetchRecommendations: recommendationsQuery.refetch
   };
+}
+
+export function useGoalContributions(goalId, page = 1, limit = 20) {
+  return useQuery({
+    queryKey: ['goalContributions', goalId, page, limit],
+    queryFn: () => goalService.getGoalContributions(goalId, page, limit),
+    enabled: !!goalId
+  });
 }
 
 export default useGoalAnalytics;

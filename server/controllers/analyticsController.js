@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import FinancialDataService from '../services/financial/FinancialDataService.js';
+import { getUserDateRange, getUserLocalTime } from '../utils/timezoneUtils.js';
 import {
   calculateMonthlyExpense,
   calculateMonthlyIncome,
@@ -19,31 +20,6 @@ const sanitizeCell = (val) => {
 };
 
 /**
- * Helper: Parses query parameters for start and end dates
- * Fallback is current month
- */
-const getQueryDateRange = (req) => {
-  const { startDate, endDate, start: qStart, end: qEnd } = req.query;
-  const rawStart = startDate || qStart;
-  const rawEnd = endDate || qEnd;
-  let start = rawStart ? new Date(rawStart) : null;
-  let end = rawEnd ? new Date(rawEnd) : null;
-
-  const now = new Date();
-  if (!start || isNaN(start.getTime())) {
-    start = new Date(now.getFullYear(), now.getMonth(), 1);
-  } else {
-    start.setHours(0, 0, 0, 0);
-  }
-  if (!end || isNaN(end.getTime())) {
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  } else {
-    end.setHours(23, 59, 59, 999);
-  }
-  return { start, end };
-};
-
-/**
  * Helper: Calculate duration in days
  */
 const getDaysDuration = (start, end) => {
@@ -56,7 +32,7 @@ const getDaysDuration = (start, end) => {
  */
 export const getAnalyticsSummary = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
   const duration = end - start;
 
   const prevStart = new Date(start.getTime() - duration - 1);
@@ -90,11 +66,20 @@ export const getAnalyticsSummary = asyncHandler(async (req, res) => {
   const prevSavings = Math.max(0, prevSavSummary.amount);
   const prevBalance = prevSavSummary.amount;
 
-  // Percentage Trends
-  const incomeTrend = prevTotalIncome > 0 ? ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100 : 0;
-  const expenseTrend = prevTotalExpense > 0 ? ((totalExpense - prevTotalExpense) / prevTotalExpense) * 100 : 0;
-  const savingsTrend = prevSavings > 0 ? ((savings - prevSavings) / prevSavings) * 100 : 0;
-  const balanceTrend = prevBalance !== 0 ? ((balance - prevBalance) / Math.abs(prevBalance)) * 100 : 0;
+  // Percentage Trends — AUDIT-CALC-004: Handle zero-previous-period correctly
+  // If previous was 0 and current is positive → 100% (new activity), not 0%
+  const incomeTrend = prevTotalIncome > 0
+    ? ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100
+    : (totalIncome > 0 ? 100 : 0);
+  const expenseTrend = prevTotalExpense > 0
+    ? ((totalExpense - prevTotalExpense) / prevTotalExpense) * 100
+    : (totalExpense > 0 ? 100 : 0);
+  const savingsTrend = prevSavings > 0
+    ? ((savings - prevSavings) / prevSavings) * 100
+    : (savings > 0 ? 100 : 0);
+  const balanceTrend = prevBalance !== 0
+    ? ((balance - prevBalance) / Math.abs(prevBalance)) * 100
+    : (balance !== 0 ? 100 : 0);
 
   // Averages & High/Low Days
   const daysInPeriod = getDaysDuration(start, end) + 1;
@@ -146,24 +131,32 @@ export const getAnalyticsSummary = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsMonthly = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
-  twelveMonthsAgo.setDate(1);
-  twelveMonthsAgo.setHours(0, 0, 0, 0);
+  const tzOffset = req.headers['x-timezone-offset'] ? parseInt(req.headers['x-timezone-offset'], 10) : new Date().getTimezoneOffset();
+  const nowUtc = new Date();
+  const userNow = new Date(nowUtc.getTime() - (tzOffset * 60000));
+  
+  const startOf12MonthsAgoUser = new Date(Date.UTC(userNow.getUTCFullYear(), userNow.getUTCMonth() - 11, 1));
+  const twelveMonthsAgo = new Date(startOf12MonthsAgoUser.getTime() + (tzOffset * 60000));
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: twelveMonthsAgo });
   const { incomes, expenses } = snapshot;
 
   const monthsData = [];
-  const currentDate = new Date(twelveMonthsAgo);
+  const currentDate = new Date(startOf12MonthsAgoUser);
   const monthsNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   for (let i = 0; i < 12; i++) {
-    const yr = currentDate.getFullYear();
-    const mo = currentDate.getMonth();
+    const yr = currentDate.getUTCFullYear();
+    const mo = currentDate.getUTCMonth();
 
-    const incTotal = incomes.filter(inc => new Date(inc.date).getFullYear() === yr && new Date(inc.date).getMonth() === mo).reduce((sum, inc) => sum + inc.amount, 0);
-    const expTotal = expenses.filter(exp => new Date(exp.date).getFullYear() === yr && new Date(exp.date).getMonth() === mo).reduce((sum, exp) => sum + exp.amount, 0);
+    const incTotal = incomes.filter(inc => {
+      const uDate = getUserLocalTime(new Date(inc.date), tzOffset);
+      return uDate.getUTCFullYear() === yr && uDate.getUTCMonth() === mo;
+    }).reduce((sum, inc) => sum + inc.amount, 0);
+    const expTotal = expenses.filter(exp => {
+      const uDate = getUserLocalTime(new Date(exp.date), tzOffset);
+      return uDate.getUTCFullYear() === yr && uDate.getUTCMonth() === mo;
+    }).reduce((sum, exp) => sum + exp.amount, 0);
     const savings = Math.max(0, incTotal - expTotal);
 
     monthsData.push({
@@ -185,7 +178,7 @@ export const getAnalyticsMonthly = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsCategory = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   const { expenses } = snapshot;
@@ -232,7 +225,7 @@ export const getAnalyticsCategory = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsTrend = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   // We fetch up to 30 days prior to the start of range to accurately calculate trailing averages
   const extendedStart = new Date(start.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -315,7 +308,7 @@ export const getAnalyticsTrend = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsCashflow = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   const incomes = snapshot.incomes.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -357,7 +350,7 @@ export const getAnalyticsCashflow = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsHeatmap = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   
@@ -382,7 +375,7 @@ export const getAnalyticsHeatmap = asyncHandler(async (req, res) => {
  */
 export const getAnalyticsIncome = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   
@@ -414,7 +407,7 @@ export const getAnalyticsIncome = asyncHandler(async (req, res) => {
  */
 export const exportCSV = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   const incomes = snapshot.incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -424,12 +417,21 @@ export const exportCSV = asyncHandler(async (req, res) => {
 
   incomes.forEach((inc) => {
     const dateStr = new Date(inc.date).toISOString().split('T')[0];
-    csvContent += `"${dateStr}","Income","${inc.category || 'Other'}","${inc.title.replace(/"/g, '""')}",${inc.amount},"bank","${inc.description ? inc.description.replace(/"/g, '""') : ''}"\n`;
+    // MASTER-026: sanitizeCell prevents CSV formula injection on all text fields
+    const title = sanitizeCell(inc.title || '');
+    const category = sanitizeCell(inc.category || 'Other');
+    const description = sanitizeCell(inc.description || '');
+    csvContent += `"${dateStr}","Income","${category}","${title.replace(/"/g, '""')}",${inc.amount},"bank","${description.replace(/"/g, '""')}"\n`;
   });
 
   expenses.forEach((exp) => {
     const dateStr = new Date(exp.date).toISOString().split('T')[0];
-    csvContent += `"${dateStr}","Expense","${exp.category?.name || 'Uncategorized'}","${exp.title.replace(/"/g, '""')}",${exp.amount},"${exp.paymentMethod}","${exp.description ? exp.description.replace(/"/g, '""') : ''}"\n`;
+    // MASTER-026: sanitizeCell prevents CSV formula injection on all text fields
+    const title = sanitizeCell(exp.title || '');
+    const category = sanitizeCell(exp.category?.name || 'Uncategorized');
+    const paymentMethod = sanitizeCell(exp.paymentMethod || '');
+    const description = sanitizeCell(exp.description || '');
+    csvContent += `"${dateStr}","Expense","${category}","${title.replace(/"/g, '""')}",${exp.amount},"${paymentMethod}","${description.replace(/"/g, '""')}"\n`;
   });
 
   res.setHeader('Content-Type', 'text/csv');
@@ -443,7 +445,7 @@ export const exportCSV = asyncHandler(async (req, res) => {
  */
 export const exportExcel = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   const incomes = snapshot.incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -503,7 +505,7 @@ export const exportExcel = asyncHandler(async (req, res) => {
  */
 export const exportPDF = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { start, end } = getQueryDateRange(req);
+  const { start, end } = getUserDateRange(req);
 
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate: start, endDate: end });
   const { incomes, expenses } = snapshot;

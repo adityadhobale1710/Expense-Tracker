@@ -1,33 +1,13 @@
 import asyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 import FinancialDataService from '../services/financial/FinancialDataService.js';
+import { getUserDateRange, getUserLocalTime } from '../utils/timezoneUtils.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 // @desc  Overall summary: total income, expense, balance
 // @route GET /api/reports/summary
 export const getSummary = asyncHandler(async (req, res) => {
-  const { month, year, startDate, endDate } = req.query;
-  let start, end;
-
-  if (startDate || endDate) {
-    if (startDate && startDate !== 'undefined' && startDate !== 'null') {
-      const parsedStart = new Date(startDate);
-      if (!isNaN(parsedStart.getTime())) start = parsedStart;
-    }
-    if (endDate && endDate !== 'undefined' && endDate !== 'null') {
-      const parsedEnd = new Date(endDate);
-      if (!isNaN(parsedEnd.getTime())) end = parsedEnd;
-    }
-  }
-
-  // Fallback to month/year/current month if start/end are not set
-  if (!start || !end) {
-    const now = new Date();
-    const y = year ? Number(year) : now.getFullYear();
-    const m = month !== undefined ? Number(month) : now.getMonth();
-    if (!start) start = new Date(y, m, 1);
-    if (!end) end = new Date(y, m + 1, 0, 23, 59, 59);
-  }
+  const { start, end } = getUserDateRange(req);
 
   const { incomes, expenses } = await FinancialDataService.getFinancialSnapshot(req.user._id, { startDate: start, endDate: end });
 
@@ -42,8 +22,13 @@ export const getSummary = asyncHandler(async (req, res) => {
 // @desc  Monthly trend (last 6 months)
 // @route GET /api/reports/monthly
 export const getMonthlyReport = asyncHandler(async (req, res) => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const tzOffset = req.headers['x-timezone-offset'] ? parseInt(req.headers['x-timezone-offset'], 10) : new Date().getTimezoneOffset();
+  const nowUtc = new Date();
+  const userNow = new Date(nowUtc.getTime() - (tzOffset * 60000));
+  
+  const startOf6MonthsAgoUser = new Date(Date.UTC(userNow.getUTCFullYear(), userNow.getUTCMonth() - 5, 1));
+  const start = new Date(startOf6MonthsAgoUser.getTime() + (tzOffset * 60000));
+  const now = nowUtc;
 
   const { incomes, expenses } = await FinancialDataService.getFinancialSnapshot(req.user._id, { startDate: start, endDate: now });
 
@@ -52,14 +37,14 @@ export const getMonthlyReport = asyncHandler(async (req, res) => {
   const monthlyExpenses = {};
 
   incomes.forEach(inc => {
-    const d = new Date(inc.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const d = getUserLocalTime(new Date(inc.date), tzOffset);
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     monthlyIncomes[key] = (monthlyIncomes[key] || 0) + inc.amount;
   });
 
   expenses.forEach(exp => {
-    const d = new Date(exp.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const d = getUserLocalTime(new Date(exp.date), tzOffset);
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     monthlyExpenses[key] = (monthlyExpenses[key] || 0) + exp.amount;
   });
 
@@ -80,15 +65,7 @@ export const getMonthlyReport = asyncHandler(async (req, res) => {
 // @desc  Category breakdown
 // @route GET /api/reports/by-category
 export const getCategoryReport = asyncHandler(async (req, res) => {
-  const { startDate, endDate } = req.query;
-  
-  let start, end;
-  if (startDate && startDate !== 'undefined' && startDate !== 'null') {
-    start = new Date(startDate);
-  }
-  if (endDate && endDate !== 'undefined' && endDate !== 'null') {
-    end = new Date(endDate);
-  }
+  const { start, end } = getUserDateRange(req);
 
   const { expenses } = await FinancialDataService.getFinancialSnapshot(req.user._id, { startDate: start, endDate: end });
 

@@ -14,10 +14,11 @@ import {
   calculateSavings
 } from './ToolRegistry.js';
 import logger from '../../utils/logger.js';
+import { getBoundsForOffset } from '../../utils/timezoneUtils.js';
 
 const fmt = (n) => (n ?? 0).toLocaleString('en-IN');
 
-export const routeFact = async (userId, message) => {
+export const routeFact = async (userId, message, tzOffset = null) => {
   const norm = message.trim().toLowerCase();
 
   // 1. Current Balance / Wallet balance
@@ -91,10 +92,7 @@ export const routeFact = async (userId, message) => {
 
   // 9. Today's spending
   if (/today's spending|spending today|expenses today|spent today|spend today/i.test(norm)) {
-    const start = new Date();
-    start.setHours(0,0,0,0);
-    const end = new Date();
-    end.setHours(23,59,59,999);
+    const { start, end } = getBoundsForOffset(tzOffset, 'today');
     const expenses = await FinancialDataService.getExpenses(userId, { startDate: start, endDate: end });
     const expData = calculateMonthlyExpense(expenses);
     const reply = `You spent **₹${fmt(expData.total)}** today across ${expData.count} transaction(s).`;
@@ -104,11 +102,7 @@ export const routeFact = async (userId, message) => {
 
   // 10. This week's spending
   if (/this week's spending|spending this week|expenses this week|spent this week|spend this week/i.test(norm)) {
-    const start = new Date();
-    const day = start.getDay();
-    start.setDate(start.getDate() - day);
-    start.setHours(0,0,0,0);
-    const end = new Date();
+    const { start, end } = getBoundsForOffset(tzOffset, 'week');
     const expenses = await FinancialDataService.getExpenses(userId, { startDate: start, endDate: end });
     const expData = calculateMonthlyExpense(expenses);
     const reply = `You spent **₹${fmt(expData.total)}** this week across ${expData.count} transaction(s).`;

@@ -45,51 +45,11 @@ export const register = asyncHandler(async (req, res) => {
       throw new Error('User already exists with this email');
     }
 
-    // User exists but is not verified → Re-registration path
-    // A2 fix: also wrap this path in a session so DB stays clean if email fails
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      existingUser.name = name;
-      existingUser.phone = phone || '';
-      existingUser.password = password;
-
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      existingUser.registrationOtp = otp;
-      existingUser.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-      await existingUser.save({ session });
-      await session.commitTransaction();
-      session.endSession();
-
-      const emailHtml = getHtmlTemplate({
-        title: 'Email Verification',
-        greeting: `Welcome, ${existingUser.name}`,
-        body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
-        code: otp,
-        footerText: 'If you did not initiate this registration, you can safely ignore this email.',
-      });
-
-      // A1 fix: propagate SMTP failures so user gets a meaningful error
-      const emailResult = await sendEmail({
-        to: existingUser.email,
-        subject: 'Your verification code',
-        html: emailHtml,
-        text: `Hello ${existingUser.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
-      });
-
-      if (!emailResult.success && !emailResult.mocked) {
-        logger.error(`[register] SMTP delivery failed for ${existingUser.email}: ${emailResult.error}`);
-        res.status(502);
-        throw new Error('Failed to send verification email. Please try again later.');
-      }
-
-      return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: existingUser.email });
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      throw error;
-    }
+    // AUDIT-AUTH-003: Reject re-registration of unverified emails.
+    // Previously this path silently overwrote the user's password, allowing account hijacking.
+    // Now we reject with 409 and direct the user to the resend-OTP flow.
+    res.status(409);
+    throw new Error('An account with this email is pending verification. Please check your inbox or use the resend OTP option.');
   }
 
   // Brand new user registration path
@@ -162,7 +122,8 @@ export const login = asyncHandler(async (req, res) => {
     res.status(401);
     return res.json({
       success: false,
-      message: 'User is not registered'
+      // AUDIT-AUTH-004: Generic message to prevent user enumeration
+      message: 'Invalid email or password'
     });
   }
 
@@ -188,7 +149,8 @@ export const login = asyncHandler(async (req, res) => {
     res.status(401);
     return res.json({
       success: false,
-      message: 'Incorrect password.'
+      // AUDIT-AUTH-004: Same generic message — don't reveal whether email or password is wrong
+      message: 'Invalid email or password'
     });
   }
 
@@ -266,6 +228,12 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new Error('Invalid refresh token');
   }
 
+  // MASTER-036: Blocked users must not be able to silently renew sessions
+  if (user.isBlocked || user.isDisabled || user.status === 'disabled' || user.status === 'blocked') {
+    res.status(403);
+    throw new Error('Account has been disabled. Please contact support.');
+  }
+
   const newAccessToken = generateAccessToken(user._id);
   const newRefreshToken = generateRefreshToken(user._id);
   user.refreshToken = newRefreshToken;
@@ -294,8 +262,8 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email });
   if (!user) {
-    res.status(404);
-    throw new Error('User is not registered');
+    // AUDIT-AUTH-004: Generic response — do not reveal whether email is registered
+    return sendSuccess(res, 200, 'If that email is registered, a verification code has been sent');
   }
 
   // Generate 6-digit random token/OTP

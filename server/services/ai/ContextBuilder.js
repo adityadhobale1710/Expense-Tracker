@@ -527,7 +527,7 @@ const getCountFromRaw = (mod, rawData) => {
  * @param {string} message - Raw message query
  * @returns {Promise<ContextResult>}
  */
-export const buildContext = async (userId, detectedIntents, chat, message = '') => {
+export const buildContext = async (userId, detectedIntents, chat, message = '', tzOffset = null) => {
   const buildStart = Date.now();
   const intentNames = detectedIntents.map((d) => d.intent);
   const primaryIntent = intentNames[0] || 'unknown';
@@ -613,11 +613,9 @@ export const buildContext = async (userId, detectedIntents, chat, message = '') 
     
     // Load fresh data in parallel using standard collectFinancialData loader
     const rawData = await collectFinancialData(userId, {
-      expensesStartDate: dateRange.start,
-      expensesEndDate: dateRange.end,
-      incomesStartDate: dateRange.start,
-      incomesEndDate: dateRange.end
-    });
+      expensesStartDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Approximate for cache fallback if needed
+      expensesEndDate: new Date(),
+    }, tzOffset);
 
     // Populate formatters and update cache
     const walletData = calculateWalletBalance(rawData.wallets);

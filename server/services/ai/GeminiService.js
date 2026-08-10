@@ -181,7 +181,7 @@ export const generateAIResponse = async ({ systemInstruction, contents }) => {
 
     try {
       const ai = getGenAIClient();
-      const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+      const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
       // Race the API call with a 15-second timeout
       const result = await withTimeout(

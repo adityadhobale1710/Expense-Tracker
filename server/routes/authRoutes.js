@@ -28,13 +28,8 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post('/register', validate(registerSchema), register);
-router.post('/login', loginLimiter, validate(loginSchema), login);
-router.post('/logout', protect, logout);
-router.post('/refresh-token', refreshToken);
-router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
-router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
-// Rate limiter for OTP: max 5 requests per 10 minutes
+// MASTER-035: Strict rate limiter for all OTP/password-reset sensitive endpoints.
+// Max 5 attempts per 10 minutes per IP to block brute-force on 6-digit OTP tokens.
 const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: process.env.NODE_ENV === 'production' ? 5 : 1000,
@@ -48,6 +43,13 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+router.post('/register', validate(registerSchema), register);
+router.post('/login', loginLimiter, validate(loginSchema), login);
+router.post('/logout', protect, logout);
+router.post('/refresh-token', refreshToken);
+// MASTER-035: Apply otpLimiter to forgot/reset-password to prevent OTP brute-force
+router.post('/forgot-password', otpLimiter, validate(forgotPasswordSchema), forgotPassword);
+router.post('/reset-password', otpLimiter, validate(resetPasswordSchema), resetPassword);
 router.post('/verify-registration-otp', otpLimiter, validate(verifyRegistrationOtpSchema), verifyRegistrationOtp);
 router.post('/resend-registration-otp', otpLimiter, validate(resendRegistrationOtpSchema), resendRegistrationOtp);
 

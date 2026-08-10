@@ -7,15 +7,19 @@
 
 import FinancialDataService from '../financial/FinancialDataService.js';
 import logger from '../../utils/logger.js';
+import { getBoundsForOffset } from '../../utils/timezoneUtils.js';
 
-export const collectFinancialData = async (userId, dateRanges = {}) => {
+export const collectFinancialData = async (userId, dateRanges = {}, tzOffset = null) => {
   const startTime = Date.now();
 
-  const defaultStart = new Date();
-  defaultStart.setDate(defaultStart.getDate() - 30);
-
-  const startDate = dateRanges.expensesStartDate || defaultStart;
-  const endDate = dateRanges.expensesEndDate || new Date();
+  let startDate = dateRanges.expensesStartDate;
+  let endDate = dateRanges.expensesEndDate;
+  
+  if (!startDate || !endDate) {
+    const bounds = getBoundsForOffset(tzOffset, 'last30days');
+    if (!startDate) startDate = bounds.start;
+    if (!endDate) endDate = bounds.end;
+  }
 
   // Load via unified Snapshot
   const snapshot = await FinancialDataService.getFinancialSnapshot(userId, { startDate, endDate });

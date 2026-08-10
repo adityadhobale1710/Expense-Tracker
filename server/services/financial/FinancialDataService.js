@@ -64,6 +64,8 @@ class FinancialDataService {
    */
   static async getExpenses(userId, options = {}) {
     const query = { user: userId };
+    // MASTER-045: Exclude wallet-to-wallet transfers from financial totals
+    if (!options.includeTransfers) query.isTransfer = { $ne: true };
     
     if (options.startDate || options.endDate) {
       query.date = {};
@@ -86,6 +88,8 @@ class FinancialDataService {
    */
   static async getIncomes(userId, options = {}) {
     const query = { user: userId };
+    // MASTER-045: Exclude wallet-to-wallet transfers from financial totals
+    if (!options.includeTransfers) query.isTransfer = { $ne: true };
     
     if (options.startDate || options.endDate) {
       query.date = {};
@@ -93,7 +97,7 @@ class FinancialDataService {
       if (options.endDate) query.date.$lte = new Date(options.endDate);
     }
 
-    let mQuery = Income.find(query).populate('category', 'name icon color');
+    let mQuery = Income.find(query);
     
     if (options.sort) mQuery = mQuery.sort(options.sort);
     else mQuery = mQuery.sort({ date: -1, createdAt: -1 });

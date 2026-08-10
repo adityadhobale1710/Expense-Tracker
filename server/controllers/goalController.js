@@ -671,12 +671,13 @@ export const getGoalRecommendations = asyncHandler(async (req, res) => {
       const monthlySavingsPotential = Math.round(topCatVal * 0.2);
       const impactDays = Math.ceil(targetGoal.remainingAmount / (targetGoal.suggestedDailySaving + (monthlySavingsPotential / 30)));
       const daysEarlier = Math.max(2, Math.ceil(targetGoal.remainingAmount / (targetGoal.suggestedDailySaving || 100)) - impactDays);
-      
+      const confidence = savedPct >= 80 ? 88 : savedPct >= 50 ? 92 : 95;
+
       recommendations.push({
         recommendation: `Reduce ${topCat} by 20%`,
-        reason: `Your spending in "${topCat}" is ₹${topCatVal.toLocaleString('en-IN')} this month, representing your highest discretionary outlet.`,
+        reason: `Your spending in "${topCat}" is ₹${topCatVal.toLocaleString('en-IN')} this month, representing your highest discretionary outlet. You are currently ${savedPct}% toward "${targetGoal.title}".`,
         impact: `Redirecting this 20% (₹${monthlySavingsPotential.toLocaleString('en-IN')}) will help you achieve "${targetGoal.title}" ${daysEarlier} days earlier.`,
-        confidence: 94
+        confidence
       });
     }
   }
@@ -684,11 +685,12 @@ export const getGoalRecommendations = asyncHandler(async (req, res) => {
   // General savings recommendations
   const totalRemaining = goals.reduce((sum, g) => sum + g.remainingAmount, 0);
   const avgMonthlyTarget = goals.reduce((sum, g) => sum + g.suggestedMonthlySaving, 0);
+  const suggestedMonthly = Math.round(avgMonthlyTarget * 0.5);
 
   recommendations.push({
     recommendation: 'Establish consistent monthly savings',
-    reason: 'Manual savings transfers can be irregular, affecting the consistency of your progress.',
-    impact: `Allocating a fixed monthly amount of ₹${Math.round(avgMonthlyTarget * 0.5).toLocaleString('en-IN')} will help keep your goals on track.`,
+    reason: `With ₹${totalRemaining.toLocaleString('en-IN')} still to save across ${goals.length} active goals, manual savings transfers can be irregular, affecting the consistency of your progress.`,
+    impact: `Allocating a fixed monthly amount of ₹${suggestedMonthly.toLocaleString('en-IN')} will help close the remaining ₹${totalRemaining.toLocaleString('en-IN')} and keep your goals on track.`,
     confidence: 90
   });
 

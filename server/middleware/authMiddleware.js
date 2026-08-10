@@ -14,6 +14,11 @@ export const protect = asyncHandler(async (req, res, next) => {
         res.status(401);
         throw new Error('User not found');
       }
+      // MASTER-036: Reject blocked/disabled users even if their token is still valid
+      if (req.user.isBlocked || req.user.isDisabled || req.user.status === 'disabled' || req.user.status === 'blocked') {
+        res.status(403);
+        throw new Error('Account has been disabled. Please contact support.');
+      }
       return next();
     } catch (error) {
       res.status(401);
@@ -37,6 +42,11 @@ export const protect = asyncHandler(async (req, res, next) => {
       if (!req.user) {
         res.status(401);
         throw new Error('User not found');
+      }
+      // MASTER-036: Reject blocked/disabled users for query-token export path too
+      if (req.user.isBlocked || req.user.isDisabled || req.user.status === 'disabled' || req.user.status === 'blocked') {
+        res.status(403);
+        throw new Error('Account has been disabled. Please contact support.');
       }
       return next();
     } catch (error) {

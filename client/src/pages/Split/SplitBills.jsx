@@ -71,7 +71,7 @@ export default function SplitBills() {
     if (user && !paidBy) {
       setPaidBy(user.email);
     }
-  }, [user, showCreate]);
+  }, [user, showCreate, paidBy]);
 
   // Normalize backend splits
   const safeSplits = useMemo(() => {
@@ -223,7 +223,7 @@ export default function SplitBills() {
       });
       setManualShares(shares);
     }
-  }, [splitMethod, participants, equalShares]);
+  }, [splitMethod, participants, equalShares, manualShares]);
 
   // Smart Helpers
   const handleResetSplit = () => {
