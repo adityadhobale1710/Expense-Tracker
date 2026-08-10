@@ -23,10 +23,10 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
   if (totalIncome === 0 && totalExpense === 0) {
     return (
       <ChartCard title="Financial Comparison" subtitle="Income vs Expense">
-        <AnalyticsEmptyState 
-          icon={Scale} 
-          title="No Data to Compare" 
-          message="Log income and expenses to view your financial ratio." 
+        <AnalyticsEmptyState
+          icon={Scale}
+          title="No Data to Compare"
+          message="Log income and expenses to view your financial ratio."
         />
       </ChartCard>
     );
@@ -39,7 +39,7 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
       infoText="A direct comparison of total cash income versus expenses, highlighting your overall savings rate."
     >
       <div className="flex flex-col h-full justify-center px-2 py-4 space-y-8">
-        
+
         {/* Income Bar */}
         <div className="space-y-3 group">
           <div className="flex justify-between items-end">
@@ -49,10 +49,10 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
             </span>
           </div>
           <div className="h-4 w-full bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50">
-            <div 
+            <div
               className="h-full rounded-full transition-all duration-1000 ease-out relative"
-              style={{ 
-                width: isLoaded ? '100%' : '0%', 
+              style={{
+                width: isLoaded ? '100%' : '0%',
                 backgroundColor: CHART_COLORS.income,
                 boxShadow: `0 0 10px ${CHART_COLORS.income}40`
               }}
@@ -71,10 +71,10 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
             </span>
           </div>
           <div className="h-4 w-full bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50">
-            <div 
+            <div
               className="h-full rounded-full transition-all duration-1000 ease-out delay-150 relative"
-              style={{ 
-                width: isLoaded ? `${Math.min(expenseRate, 100)}%` : '0%', 
+              style={{
+                width: isLoaded ? `${Math.min(expenseRate, 100)}%` : '0%',
                 backgroundColor: CHART_COLORS.expense,
                 boxShadow: `0 0 10px ${CHART_COLORS.expense}40`
               }}
