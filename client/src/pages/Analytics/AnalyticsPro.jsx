@@ -55,7 +55,7 @@ const localDateKey = (date) => {
 };
 
 export default function AnalyticsPro() {
-  const { summary, incomes, expenses, dataRevision, fetchIncomes, fetchExpenses, fetchSummary } = useExpense();
+  const { dataRevision } = useExpense();
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'earnings' | 'expenses' | 'savings'
   const [timeRange, setTimeRange] = useState('6m'); // '1m' | '3m' | '6m'
@@ -63,6 +63,10 @@ export default function AnalyticsPro() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
   const [incomeAnalyticsData, setIncomeAnalyticsData] = useState(null);
+
+  const [scopedSummary, setScopedSummary] = useState(null);
+  const [scopedIncomes, setScopedIncomes] = useState([]);
+  const [scopedExpenses, setScopedExpenses] = useState([]);
 
   // API response states for specific charts
   const [cashflowData, setCashflowData] = useState([]);
@@ -111,16 +115,16 @@ export default function AnalyticsPro() {
       // CanceledError which is caught and silently ignored below.
       const axiosOpts = signal ? { signal } : {};
 
-      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, trendRes, prevTrendRes] = await Promise.all([
+      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, trendRes, prevTrendRes, summaryRes, incomesRes, expensesRes] = await Promise.all([
         api.get('/reports/monthly', axiosOpts),
         api.get('/reports/by-category', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/income', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/cashflow', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/trend', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/trend', { params: { startDate: prevStartISO, endDate: prevEndISO }, ...axiosOpts }),
-        fetchSummary({ startDate: startISO, endDate: endISO }),
-        fetchIncomes({ limit: 1000, startDate: startISO, endDate: endISO }),
-        fetchExpenses({ limit: 1000, startDate: startISO, endDate: endISO }),
+        api.get('/reports/summary', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/income', { params: { limit: 1000, startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/expenses', { params: { limit: 1000, startDate: startISO, endDate: endISO }, ...axiosOpts }),
       ]);
 
       // Defensive access — never crash if server returned unexpected shape
@@ -129,6 +133,9 @@ export default function AnalyticsPro() {
       setCashflowData(Array.isArray(cashflowRes.data?.data) ? cashflowRes.data.data : []);
       setTrendData(Array.isArray(trendRes.data?.data) ? trendRes.data.data : []);
       setPrevTrendData(Array.isArray(prevTrendRes.data?.data) ? prevTrendRes.data.data : []);
+      setScopedSummary(summaryRes.data?.data || null);
+      setScopedIncomes(Array.isArray(incomesRes.data?.data?.incomes) ? incomesRes.data.data.incomes : []);
+      setScopedExpenses(Array.isArray(expensesRes.data?.data?.expenses) ? expensesRes.data.data.expenses : []);
 
       // Format monthly report
       const { incomes: incList = [], expenses: expList = [] } = mRes.data?.data || {};
@@ -223,12 +230,12 @@ export default function AnalyticsPro() {
       }));
     }
 
-    if (!incomes || incomes.length === 0) {
+    if (!scopedIncomes || scopedIncomes.length === 0) {
       return [];
     }
 
     const map = {};
-    incomes.forEach((inc) => {
+    scopedIncomes.forEach((inc) => {
       const categoryVal = typeof inc.category === 'object' ? inc.category?.name : inc.category;
       const key = categoryVal?.trim() || "Uncategorized";
       map[key] = (map[key] || 0) + (inc.amount || 0);
@@ -242,12 +249,12 @@ export default function AnalyticsPro() {
         color: INCOME_COLORS[idx % INCOME_COLORS.length]
       }))
       .sort((a, b) => b.value - a.value);
-  }, [incomes, incomeAnalyticsData]);
+  }, [scopedIncomes, incomeAnalyticsData]);
 
   const totalEarnedVal = useMemo(() => {
-    if (summary?.totalIncome !== undefined) return summary.totalIncome;
+    if (scopedSummary?.totalIncome !== undefined) return scopedSummary.totalIncome;
     return incomePieData.reduce((acc, item) => acc + item.value, 0);
-  }, [summary, incomePieData]);
+  }, [scopedSummary, incomePieData]);
 
   // Aggregate Expenses by category for Expense Pie/Donut Chart.
   // Pure derived data: the server category breakdown (if present) wins, otherwise
@@ -263,12 +270,12 @@ export default function AnalyticsPro() {
       }));
     }
 
-    if (!expenses || expenses.length === 0) {
+    if (!scopedExpenses || scopedExpenses.length === 0) {
       return [];
     }
 
     const map = {};
-    expenses.forEach((exp) => {
+    scopedExpenses.forEach((exp) => {
       const catName = exp.category?.name || exp.category || 'Other';
       const icon = exp.category?.icon || '📁';
       if (!map[catName]) {
@@ -284,12 +291,12 @@ export default function AnalyticsPro() {
         color: EXPENSE_COLORS[idx % EXPENSE_COLORS.length]
       }))
       .sort((a, b) => b.value - a.value);
-  }, [categoryData, expenses]);
+  }, [categoryData, scopedExpenses]);
 
   const totalSpentVal = useMemo(() => {
-    if (summary?.totalExpense !== undefined) return summary.totalExpense;
+    if (scopedSummary?.totalExpense !== undefined) return scopedSummary.totalExpense;
     return expensePieData.reduce((acc, item) => acc + item.value, 0);
-  }, [summary, expensePieData]);
+  }, [scopedSummary, expensePieData]);
 
   const netSavingsVal = Math.max(0, totalEarnedVal - totalSpentVal);
   const savingsRateVal = totalEarnedVal > 0 ? Math.round((netSavingsVal / totalEarnedVal) * 100) : 0;
@@ -337,8 +344,8 @@ export default function AnalyticsPro() {
         return acc;
       }, 0);
 
-    const currentIncome = sumToDate(incomes);
-    const currentExpense = sumToDate(expenses);
+    const currentIncome = sumToDate(scopedIncomes);
+    const currentExpense = sumToDate(scopedExpenses);
 
     const currentPoint = {
       name: MONTH_NAMES[now.getMonth()],
@@ -359,7 +366,7 @@ export default function AnalyticsPro() {
     }));
 
     return [...historical, currentPoint];
-  }, [mappedMonthlyData, incomes, expenses]);
+  }, [mappedMonthlyData, scopedIncomes, scopedExpenses]);
 
   if (loading) {
     return (
@@ -790,11 +797,11 @@ export default function AnalyticsPro() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
-            <TransactionChannelSplitsChart rawIncomes={incomes} />
+            <TransactionChannelSplitsChart rawIncomes={scopedIncomes} />
           </div>
           <div className="lg:col-span-2">
             <MonthlyHeatmap
-              transactions={incomes}
+              transactions={scopedIncomes}
               title="Monthly Income Heatmap"
               subtitle="Daily earning intensity for the selected month"
               type="income"
@@ -809,7 +816,7 @@ export default function AnalyticsPro() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TopCategoriesChart categoryData={expensePieData} />
-            <PaymentMethodsChart rawExpenses={expenses} />
+            <PaymentMethodsChart rawExpenses={scopedExpenses} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
@@ -817,7 +824,7 @@ export default function AnalyticsPro() {
           </div>
           <div className="lg:col-span-2">
             <MonthlyHeatmap
-              transactions={expenses}
+              transactions={scopedExpenses}
               title="Monthly Spending Heatmap"
               subtitle="Daily outflow intensity for the selected month"
               type="spending"

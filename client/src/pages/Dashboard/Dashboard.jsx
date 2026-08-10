@@ -47,7 +47,8 @@ export default function Dashboard() {
     addExpense, addIncome,
     deleteExpense, deleteIncome,
     fetchDashboardData,
-    loading
+    loading,
+    dataRevision
   } = useExpense();
   const { user } = useAuth();
 
@@ -170,7 +171,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
-  }, [loadDashboard]);
+  }, [loadDashboard, dataRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (categories.length > 0 && !txForm.category) {

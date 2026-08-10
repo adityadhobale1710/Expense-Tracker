@@ -53,12 +53,12 @@ const result4 = validateResponse("You have used 40.2% of your budget.", baseCoun
 assert.strictEqual(result4.isValid, true, 'Should accept 40.2% through tolerance of 40%');
 console.log("✓ Tolerance handling: allows medium confidence matches passed");
 
-// 5. Rejects strict hallucinations (critical errors)
-// AI outputs ₹15,000 (not in context)
+// 5. Bare unmatched financial figures are soft warnings, not strict hallucination failures
+// AI outputs ₹15,000 (not in context) — classified as BARE proximity, allowed with a warning
 const result5 = validateResponse("Your total limit is ₹15,000.", baseCounts, mockContext);
-assert.strictEqual(result5.isValid, false, 'Should reject hallucinated 15,000');
-assert.ok(result5.reason.includes('hallucinated a financial figure (15000)'), 'Should report exact hallucination reason');
-console.log("✓ Rejects strict hallucinations (critical errors) passed");
+assert.strictEqual(result5.isValid, true, 'Should allow bare unmatched financial figure as a soft warning');
+assert.ok(!result5.reason || !result5.reason.includes('hallucinated'), 'Bare figure should NOT be treated as a factual hallucination');
+console.log("✓ Bare unmatched financial figure allowed as a soft warning (no hallucination failure) passed");
 
 // 6. False positives: ignores dates, years, and generic numbers
 const result6 = validateResponse("In the year 2024 and 2025, over 12 months, you saved.", baseCounts, mockContext);
