@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Income from '../models/Income.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // @desc  Get all incomes
 // @route GET /api/income
@@ -9,7 +10,9 @@ export const getIncomes = asyncHandler(async (req, res) => {
   const { startDate, endDate, category } = req.query;
   // B3 fix: parseInt to prevent NaN
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  // Analytics requests limit: 1000 — allow it so
+  // historical income beyond the first 100 rows is not silently truncated.
+  const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const filter = { user: req.user._id };
   if (startDate || endDate) {
     filter.date = {};
@@ -33,6 +36,9 @@ export const addIncome = asyncHandler(async (req, res) => {
   const { walletId, ...rest } = req.body;
   const payload = { ...rest, user: req.user._id };
 
+  // Normalize: empty/missing paymentMethod falls back to the model default ('other')
+  if (!payload.paymentMethod) delete payload.paymentMethod;
+
   // Link to wallet and update balance
   if (walletId) {
     const wallet = await Wallet.findOne({ _id: walletId, user: req.user._id });
@@ -47,6 +53,7 @@ export const addIncome = asyncHandler(async (req, res) => {
 
   const income = await Income.create(payload);
 
+  await invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 201, 'Income added', income);
 });
 
@@ -122,9 +129,12 @@ export const updateIncome = asyncHandler(async (req, res) => {
   }
 
   // B4 fix: whitelist allowed update fields
-  const allowedFields = ['title', 'amount', 'date', 'category', 'source', 'description', 'wallet'];
+  const allowedFields = ['title', 'amount', 'date', 'category', 'source', 'paymentMethod', 'description', 'wallet'];
   const updateData = {};
   allowedFields.forEach((f) => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
+  // Legacy incomes may have no paymentMethod. An empty value means "unchanged / not set"
+  // and must NOT silently become 'other' — only an explicit user choice is stored.
+  if (updateData.paymentMethod === '') delete updateData.paymentMethod;
 
   const income = await Income.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
@@ -132,8 +142,10 @@ export const updateIncome = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   );
 
+  await invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 200, 'Income updated', income);
 });
+
 
 // @desc  Delete income
 // @route DELETE /api/income/:id
@@ -151,5 +163,6 @@ export const deleteIncome = asyncHandler(async (req, res) => {
     }
   }
 
+  await invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
   sendSuccess(res, 200, 'Income deleted');
 });

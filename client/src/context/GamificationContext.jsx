@@ -216,7 +216,7 @@ function gamificationReducer(state, action) {
 }
 
 // ─── CONTEXT ─────────────────────────────────────────────────────────────────
-const GamificationContext = createContext(null);
+import GamificationContext from './GamificationContextStore';
 
 const getUserId = () => {
   try {

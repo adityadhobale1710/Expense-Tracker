@@ -76,7 +76,7 @@ export default function GoalTracker({
                       strokeLinecap="round"
                     />
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-slate-105">
+                  <div className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-slate-100">
                     {pct}%
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export default function GoalTracker({
           })
         ) : (
           <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-800 rounded-2xl text-center space-y-2 mt-4">
-            <Award size={22} className="text-slate-655" />
+            <Award size={22} className="text-slate-600" />
             <p className="text-[11px] font-bold text-slate-400">No Solvency Targets Configured</p>
             <p className="text-[9px] text-slate-500">Create financial milestones (e.g. Vacation, Emergency Fund) to track goals.</p>
           </div>

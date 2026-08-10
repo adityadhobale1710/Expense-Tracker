@@ -38,8 +38,7 @@ export const CHALLENGE_POOL = [
   { id: 'ch_net_positive',     title: 'Keep today\'s net balance positive', description: 'Make sure income ≥ expenses logged today.',          xp: 70,  coins: 14, icon: '✅', category: 'Health',   actionId: 'NET_POSITIVE_MONTH'  },
   { id: 'ch_emergency_check',  title: 'Check your emergency fund',          description: 'Verify your emergency fund goal is on track.',       xp: 50,  coins: 10, icon: '🛡️', category: 'Health',   actionId: null                  },
 
-  // AI & Insights
-  { id: 'ch_ai_tip',           title: 'Read today\'s AI insight',           description: 'Open AI Insights and read one financial tip.',       xp: 30,  coins: 6,  icon: '🤖', category: 'AI',       actionId: null                  },
+  // AI
   { id: 'ch_ai_chat',          title: 'Ask the AI assistant a question',    description: 'Chat with your AI financial assistant.',             xp: 40,  coins: 8,  icon: '💬', category: 'AI',       actionId: null                  },
 
   // Streak & Engagement

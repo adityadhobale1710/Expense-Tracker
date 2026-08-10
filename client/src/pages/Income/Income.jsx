@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Search, Filter, X, Plus, Edit3, Trash2,
   ChevronLeft, ChevronRight, RotateCcw, Calendar,
-  CreditCard, Banknote, Wallet, Tag, SlidersHorizontal,
+  Banknote, Wallet, Tag, SlidersHorizontal,
   BarChart3, PieChart as PieChartIcon, CheckCircle2, Clock, Zap,
   Receipt, Briefcase, DollarSign,
 } from 'lucide-react';
@@ -27,6 +27,9 @@ import { DataTable } from '../../components/ui/DataTable';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CHART_COLORS = ['#10b981', '#6366f1', '#f59e0b', '#3b82f6', '#a855f7', '#06b6d4', '#ec4899', '#f43f5e'];
+const PAYMENT_METHODS = ['cash', 'card', 'upi', 'bank', 'other'];
+const PM_LABELS = { cash: 'Cash', card: 'Card', upi: 'UPI', bank: 'Bank', other: 'Other' };
+const PM_COLORS = { cash: '#10b981', card: '#3b82f6', upi: '#8b5cf6', bank: '#f59e0b', other: '#64748b' };
 const SORT_OPTIONS = [
   { value: 'date_desc', label: 'Newest First' },
   { value: 'date_asc', label: 'Oldest First' },
@@ -50,7 +53,7 @@ const getLocalTimeString = () => {
   return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 };
 const EMPTY_FORM = {
-  title: '', amount: '', category: '', source: '',
+  title: '', amount: '', category: '', source: '', paymentMethod: 'other',
   date: getLocalTodayString(), time: getLocalTimeString(), description: '',
 };
 
@@ -130,6 +133,18 @@ const SourceBadge = memo(({ source }) => {
     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
       <Briefcase size={9} />
       {source}
+    </span>
+  );
+});
+
+// ─── Payment Method Badge ─────────────────────────────────────────────────────
+const PMBadge = memo(({ method }) => {
+  const key = PAYMENT_METHODS.includes(method) ? method : '';
+  if (!key) return <span className="text-slate-500 text-xs italic">Not Set</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-700/40 text-slate-300 border border-slate-600/40">
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: PM_COLORS[key] }} />
+      {PM_LABELS[key]}
     </span>
   );
 });
@@ -281,6 +296,9 @@ export default function Income() {
     const d = new Date(item.date);
     setForm({
       ...item,
+      // Legacy records have no paymentMethod → keep as '' so the form shows "Not Set"
+      // and nothing is saved as 'other' without the user explicitly choosing it.
+      paymentMethod: (PAYMENT_METHODS.includes(item.paymentMethod) ? item.paymentMethod : ''),
       date: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
       time: `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`,
     });
@@ -549,6 +567,7 @@ export default function Income() {
                     <th>Transaction</th>
                     <th>Category</th>
                     <th>Source</th>
+                    <th>Payment Method</th>
                     <th>Date & Time</th>
                     <th className="text-right">Amount</th>
                     <th className="text-center">Actions</th>
@@ -577,6 +596,7 @@ export default function Income() {
                         </td>
                         <td><CategoryBadge category={item.category} /></td>
                         <td><SourceBadge source={item.source} /></td>
+                        <td><PMBadge method={item.paymentMethod} /></td>
                         <td>
                           <div>
                             <p className="text-slate-300 text-sm">{new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
@@ -620,9 +640,10 @@ export default function Income() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-slate-100 font-semibold text-sm truncate">{item.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <CategoryBadge category={item.category} />
                       {item.source && <SourceBadge source={item.source} />}
+                      <PMBadge method={item.paymentMethod} />
                     </div>
                     <p className="text-slate-500 text-[11px] mt-0.5">{new Date(item.date).toLocaleDateString('en-IN')}</p>
                   </div>
@@ -713,7 +734,7 @@ export default function Income() {
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <span className="w-4 h-0.5 bg-emerald-500 rounded" /> Details
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="form-group">
                 <label className="label">Date *</label>
                 <input type="date" className="input" value={form.date}
@@ -732,6 +753,14 @@ export default function Income() {
                 <datalist id="income-sources">
                   {SOURCE_SUGGESTIONS.map(s => <option key={s} value={s} />)}
                 </datalist>
+              </div>
+              <div className="form-group">
+                <label className="label">Payment Method</label>
+                <select className="select" value={form.paymentMethod}
+                  onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}>
+                  <option value="">Not Set</option>
+                  {PAYMENT_METHODS.map(m => <option key={m} value={m}>{PM_LABELS[m]}</option>)}
+                </select>
               </div>
             </div>
           </div>

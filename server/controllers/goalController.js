@@ -7,6 +7,7 @@ import Notification from '../models/Notification.js';
 import Expense from '../models/Expense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // Predefined Goal Templates
 const GOAL_TEMPLATES = [
@@ -280,6 +281,7 @@ export const createGoal = asyncHandler(async (req, res) => {
   // Achievements
   await updateSavingsAchievements(req.user._id);
 
+  await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 201, 'Goal created successfully', goal);
 });
 
@@ -326,6 +328,7 @@ export const updateGoal = asyncHandler(async (req, res) => {
   await goal.save();
   await updateSavingsAchievements(req.user._id);
 
+  await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 200, 'Goal updated successfully', goal);
 });
 
@@ -378,6 +381,7 @@ export const deleteGoal = asyncHandler(async (req, res) => {
   });
 
   await goal.save();
+  await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 200, 'Goal deleted successfully');
 });
 
@@ -503,12 +507,14 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
   // Update achievements
   await updateSavingsAchievements(req.user._id);
 
+  await invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
   sendSuccess(res, 200, 'Contribution saved successfully', {
     goal,
     contribution,
     differenceReturned: amount - actualContribution // return cap residue if any
   });
 });
+
 
 // @desc    Get AI Insights for a Goal
 // @route   GET /api/goals/:id/insights
@@ -853,6 +859,7 @@ export const deleteContribution = asyncHandler(async (req, res) => {
   await goal.save();
   await updateSavingsAchievements(req.user._id);
 
+  await invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
   sendSuccess(res, 200, 'Contribution removed successfully', goal);
 });
 

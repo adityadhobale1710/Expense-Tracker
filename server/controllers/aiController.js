@@ -1,16 +1,35 @@
+/**
+ * aiController.js
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Thin orchestrator for the AI Assistant pipeline.
+ *
+ * Flow:
+ *   1. Detect intent   → IntentDetector
+ *   2. Build context   → ContextBuilder   (per-module cache + selective DB queries)
+ *   3. Build prompt    → PromptBuilder    (system instruction + security rules)
+ *   4. Call Gemini     → GeminiService    (retry + backoff)
+ *   5. Save + respond
+ *
+ * This controller imports NO Mongoose models directly.
+ * All business logic lives in the dedicated service layer.
+ */
+
 import asyncHandler from 'express-async-handler';
 import AIChat from '../models/AIChat.js';
-import Expense from '../models/Expense.js';
-import Income from '../models/Income.js';
-import Budget from '../models/Budget.js';
-import Wallet from '../models/Wallet.js';
-import Goal from '../models/Goal.js';
-import Loan from '../models/Loan.js';
-import Subscription from '../models/Subscription.js';
-import Category from '../models/Category.js'; // Ensure Category schema is loaded for population
+import { detectIntents } from '../services/ai/IntentDetector.js';
+import { buildContext } from '../services/ai/ContextBuilder.js';
+import { buildPrompt, estimateTokens } from '../services/ai/PromptBuilder.js';
 import { generateAIResponse } from '../services/ai/GeminiService.js';
+import { routeFact } from '../services/ai/FactRouter.js';
+import { validateResponse, getFallbackFactualResponse } from '../services/ai/ResponseValidator.js';
+import { updateMemoryAsynchronously } from '../services/ai/MemoryService.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
+import crypto from 'crypto';
+
+
+
+// ─── GET CHAT HISTORY ─────────────────────────────────────────────────────────
 
 // @desc    Get AI Chat History
 // @route   GET /api/ai/history
@@ -28,202 +47,263 @@ export const getChatHistory = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Chat history retrieved', returnedMessages);
 });
 
+// ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
+
 // @desc    Send Message to AI assistant
 // @route   POST /api/ai/chat
 export const sendMessage = asyncHandler(async (req, res) => {
   const { message } = req.body;
-  
-  // Trim message and reject empty/whitespace-only input
+
+  // Validate
   const trimmedMessage = typeof message === 'string' ? message.trim() : '';
   if (!trimmedMessage) {
     res.status(400);
     throw new Error('Message is required');
   }
 
-  const userId = req.user._id;
+  // M6: Reject messages that exceed the character limit before any expensive processing
+  if (trimmedMessage.length > 2000) {
+    res.status(400);
+    throw new Error('Message is too long. Please keep your message under 2000 characters.');
+  }
 
-  // 1. Retrieve or initialize the chat session
+  const userId = req.user._id;
+  const requestStart = Date.now();
+
+  // ── 1. Check Fact Router (Simple Fact Router - Phase 6) ───────────────────
+  const factReply = await routeFact(userId, trimmedMessage);
+  if (factReply) {
+    // Load or initialise the chat session to save history
+    let chat = await AIChat.findOne({ user: userId });
+    if (!chat) {
+      chat = await AIChat.create({ user: userId, messages: [] });
+    }
+    
+    const userMsg = { role: 'user', content: trimmedMessage };
+    const assistantMsg = { role: 'assistant', content: factReply };
+    
+    const updatedChat = await AIChat.findByIdAndUpdate(
+      chat._id,
+      { $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } } },
+      { new: true }
+    );
+
+    const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+    return sendSuccess(res, 200, 'Reply sent', {
+      userMessage: updatedChat.messages[updatedChat.messages.length - 2],
+      aiMessage: updatedChat.messages[updatedChat.messages.length - 1],
+      meta: { model: resolvedModel + ' (Deterministic Fact Router)' },
+    });
+  }
+
+  // ── 2. Load or initialise the chat session ────────────────────────────────
   let chat = await AIChat.findOne({ user: userId });
   if (!chat) {
     chat = await AIChat.create({ user: userId, messages: [] });
   }
 
-  // 2. Context caching: only rebuild if it is empty or older than 5 minutes
-  const cacheDurationMs = 5 * 60 * 1000;
-  const isCacheValid = chat.contextUpdatedAt && 
-                       (Date.now() - new Date(chat.contextUpdatedAt).getTime() < cacheDurationMs) && 
-                       chat.financialContext;
+  // ── 3. Detect intent ──────────────────────────────────────────────────────
+  const detectedIntents = detectIntents(trimmedMessage);
+  const primaryIntent = detectedIntents[0]?.intent || 'unknown';
+  const topConfidence = detectedIntents[0]?.confidence || 0;
 
-  let financialContextText = '';
 
-  if (isCacheValid) {
-    financialContextText = chat.financialContext;
-    logger.info(`[AI Controller] Using cached financial context for user: ${userId}`);
-  } else {
-    logger.info(`[AI Controller] Cache invalid/expired. Recomputing financial context for user: ${userId}`);
 
-    // Retrieve User Context for smart, context-aware responses (limit range to last 30 days for totals)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  logger.info(
+    `[AI Controller] User: ${userId} | Primary intent: "${primaryIntent}" (${topConfidence}) | ` +
+    `All intents: [${detectedIntents.map((d) => `${d.intent}:${d.confidence}`).join(', ')}]`
+  );
 
-    const [
-      wallets,
-      budgets,
-      recentExpenses,
-      recentIncomes,
-      monthlyExpensesDocs,
-      monthlyIncomesDocs,
-      goals,
-      loans,
-      subscriptions
-    ] = await Promise.all([
-      Wallet.find({ user: userId, isArchived: false }),
-      Budget.find({ user: userId }).populate('category'),
-      Expense.find({ user: userId }).sort({ date: -1 }).limit(10).populate('category'),
-      Income.find({ user: userId }).sort({ date: -1 }).limit(10),
-      Expense.find({ user: userId, date: { $gte: thirtyDaysAgo } }).populate('category'),
-      Income.find({ user: userId, date: { $gte: thirtyDaysAgo } }),
-      Goal.find({ user: userId, isDeleted: false }),
-      Loan.find({ user: userId }),
-      Subscription.find({ user: userId })
-    ]);
+  // ── 4. Build context (intent-driven, per-module cache) ────────────────────
+  const contextResult = await buildContext(userId, detectedIntents, chat, trimmedMessage);
+  const counts = contextResult.counts || { wallets: 0, budgets: 0, expenses: 0, incomes: 0, goals: 0, loans: 0, subscriptions: 0, transactions: 0 };
 
-    // Calculate totals and metrics
-    const currentBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
-    const monthlyExpenses = monthlyExpensesDocs.reduce((sum, e) => sum + e.amount, 0);
-    const monthlyIncome = monthlyIncomesDocs.reduce((sum, i) => sum + i.amount, 0);
-    const savings = Math.max(0, monthlyIncome - monthlyExpenses);
+  logger.info(
+    `[AI Controller] Context built. ` +
+    `Modules fetched: [${contextResult.modulesFetched.join(', ') || 'none'}]. ` +
+    `DB queries: ${contextResult.queryCount}. ` +
+    `Cache hits: [${contextResult.cacheHits.join(', ') || 'none'}]. ` +
+    `Cache misses: [${contextResult.cacheMisses.join(', ') || 'none'}].`
+  );
 
-    // Wallet balances summary list
-    const walletSummary = wallets
-      .map(w => `- ${w.name} (${w.type}): ${w.balance.toLocaleString('en-IN')} ${w.currency}`)
-      .join('\n') || '- None';
 
-    // Budget status summary list
-    const budgetSummary = budgets
-      .map(b => {
-        const categoryName = b.category ? b.category.name : 'Unknown';
-        const percent = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
-        return `- ${categoryName}: Spent ₹${b.spent.toLocaleString('en-IN')} of ₹${b.limit.toLocaleString('en-IN')} limit (${percent}%)`;
-      })
-      .join('\n') || '- None';
-
-    // Goal progress summary list
-    const goalSummary = goals
-      .map(g => `- ${g.title}: Saved ₹${g.savedAmount.toLocaleString('en-IN')} of ₹${g.targetAmount.toLocaleString('en-IN')} (${g.progressPct}%, status: ${g.status})`)
-      .join('\n') || '- None';
-
-    // Loan summary list
-    const loanSummary = loans
-      .map(l => `- ${l.name} (${l.type}): Principal ₹${l.amount.toLocaleString('en-IN')}, Remaining ₹${l.remainingBalance.toLocaleString('en-IN')}, EMI ₹${l.emiAmount.toLocaleString('en-IN')}/mo`)
-      .join('\n') || '- None';
-
-    // Subscription summary list
-    const subscriptionSummary = subscriptions
-      .map(s => `- ${s.name}: ₹${s.cost.toLocaleString('en-IN')} / ${s.billingCycle}`)
-      .join('\n') || '- None';
-
-    // Top spending categories in the last 30 days
-    const categoryTotals = {};
-    monthlyExpensesDocs.forEach(e => {
-      const catName = e.category ? e.category.name : 'Uncategorized';
-      categoryTotals[catName] = (categoryTotals[catName] || 0) + e.amount;
-    });
-    const topCategories = Object.entries(categoryTotals)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([cat, total]) => `- ${cat}: ₹${total.toLocaleString('en-IN')}`)
-      .join('\n') || '- None';
-
-    // Combined recent transactions list (5 expenses, 5 incomes)
-    const recentTx = [];
-    recentExpenses.slice(0, 5).forEach(e => {
-      recentTx.push({
-        type: 'Expense',
-        title: e.title,
-        amount: e.amount,
-        category: e.category ? e.category.name : 'Uncategorized',
-        date: e.date
-      });
-    });
-    recentIncomes.slice(0, 5).forEach(i => {
-      recentTx.push({
-        type: 'Income',
-        title: i.title,
-        amount: i.amount,
-        category: i.category || 'Other',
-        date: i.date
-      });
-    });
-    recentTx.sort((a, b) => b.date - a.date);
-    const transactionSummary = recentTx
-      .map(tx => `- [${tx.type}] ${tx.title} (${tx.category}): ₹${tx.amount.toLocaleString('en-IN')} on ${new Date(tx.date).toLocaleDateString('en-IN')}`)
-      .join('\n') || '- None';
-
-    // Trends & volume summary
-    const trendsSummary = `- Last 30 Days logged: ${monthlyExpensesDocs.length} expenses, ${monthlyIncomesDocs.length} incomes
-- Monthly Savings Rate: ${monthlyIncome > 0 ? Math.round((savings / monthlyIncome) * 100) : 0}% of total income`;
-
-    // Compile full context
-    financialContextText = `Wallet Balance:
-- Total Liquid Assets: ₹${currentBalance.toLocaleString('en-IN')}
-${walletSummary}
-
-Monthly Summary (Last 30 Days):
-- Monthly Income: ₹${monthlyIncome.toLocaleString('en-IN')}
-- Monthly Expenses: ₹${monthlyExpenses.toLocaleString('en-IN')}
-- Savings: ₹${savings.toLocaleString('en-IN')}
-
-Budget Status:
-${budgetSummary}
-
-Top Spending Categories (Last 30 Days):
-${topCategories}
-
-Recent Transactions:
-${transactionSummary}
-
-Goal Progress:
-${goalSummary}
-
-Loans / Liabilities:
-${loanSummary}
-
-Active Subscriptions:
-${subscriptionSummary}
-
-Trends & Volume:
-${trendsSummary}`;
-
-    // Update fields in the document object to persist on save
-    chat.financialContext = financialContextText;
-    chat.contextUpdatedAt = new Date();
-  }
-
-  // 3. Load only the most recent 15 messages for Gemini call context
+  // ── 5. Build prompt ───────────────────────────────────────────────────────
+  // Use last 15 messages for conversation context
   const recentMessages = chat.messages.slice(-15);
+  const promptPayload = buildPrompt(contextResult, recentMessages, trimmedMessage, chat.structuredMemory);
 
-  // 4. Generate response using Gemini Service
+  // Log estimated token usage for observability
+  const tokenEstimate = estimateTokens(promptPayload);
+  logger.info(
+    `[AI Controller] Prompt built. ` +
+    `Estimated tokens — System: ${tokenEstimate.systemTokens}, ` +
+    `Contents: ${tokenEstimate.contentsTokens}, ` +
+    `Total: ${tokenEstimate.totalTokens}.`
+  );
+
+
+  // ── Phase 4: Lightweight Response Cache ─────────────────────────────────────
+  const CACHE_VERSION = 1;
+  // Hash the authoritative data summary and context sections to detect changes
+  const contextSummaryHash = crypto.createHash('md5')
+    .update(JSON.stringify({ v: CACHE_VERSION, counts, sections: contextResult.contextSections }))
+    .digest('hex');
+  const cacheKey = `${primaryIntent}_${trimmedMessage.toLowerCase().replace(/[^a-z0-9]/g, '')}_${contextSummaryHash}`;
+  const now = Date.now();
+  const cacheTTL = parseInt(process.env.AI_CACHE_TTL || '120000', 10);
+
   let reply;
-  try {
-    reply = await generateAIResponse(recentMessages, trimmedMessage, financialContextText);
-  } catch (error) {
-    res.status(500);
-    throw new Error(error.message);
+  let cacheHit = false;
+
+  if (chat.responseCache && chat.responseCache[cacheKey]) {
+    const cached = chat.responseCache[cacheKey];
+    if (now - cached.timestamp < cacheTTL) {
+      logger.info(`[Cache] Cache hit for key: ${cacheKey}. Skipping Gemini.`);
+      reply = cached.data;
+      cacheHit = true;
+    }
   }
 
-  // 5. Save both the user prompt and AI response back to MongoDB chat logs
-  chat.messages.push({ role: 'user', content: trimmedMessage });
-  chat.messages.push({ role: 'assistant', content: reply });
+  if (!cacheHit) {
+    // ── Check Daily Quota (Without Incrementing) ─────────────────────────────
+    const limit = parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '100', 10);
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (chat.dailyUsage?.date === today && chat.dailyUsage?.count >= limit) {
+      // Calculate reset at midnight UTC
+      const tomorrow = new Date();
+      tomorrow.setUTCHours(24, 0, 0, 0);
+      const secondsUntilMidnight = Math.floor((tomorrow.getTime() - now) / 1000);
+      
+      res.setHeader('Retry-After', secondsUntilMidnight);
+      // Respond with JSON body for frontend detection
+      res.status(429).json({ success: false, message: 'Daily AI limit reached', resetAt: tomorrow.toISOString() });
+      return;
+    }
+
+    // ── 6. Call Gemini ────────────────────────────────────────────────────────
+    try {
+      reply = await generateAIResponse(promptPayload);
+    } catch (error) {
+      // Quota is not consumed until success, so no refund is necessary.
+      const status = error.status || 500;
+      res.status(status);
+      throw new Error(error.message);
+    }
+
+    // Phase 5: Response Validation (Internal retry)
+    const validationResult = validateResponse(reply, counts, contextResult.validationContext, 'v2');
+    
+    if (!validationResult.isValid) {
+      logger.warn(`[ResponseValidator] AI Response failed validation: ${validationResult.reason}`);
+      
+      // Attempt single regeneration with strict correction prompt
+      try {
+        logger.info('[ResponseValidator] Attempting prompt correction and regeneration...');
+        const correctionPayload = {
+          systemInstruction: promptPayload.systemInstruction + `\n\nCRITICAL CORRECTION:\nYour previous response was factually incorrect: ${validationResult.reason}. Please make absolutely sure you output correct amounts and counts matching the AUTHORITATIVE DATA SUMMARY exactly.`,
+          contents: promptPayload.contents,
+        };
+
+        reply = await generateAIResponse(correctionPayload);
+        
+        // Validate again
+        const reValidation = validateResponse(reply, counts, contextResult.validationContext, 'v2');
+
+        if (!reValidation.isValid) {
+          logger.warn(`[ResponseValidator] Regenerated AI Response also failed validation: ${reValidation.reason}`);
+          reply = getFallbackFactualResponse(counts);
+        } else {
+          logger.info('[ResponseValidator] Prompt correction successful. Regenerated response passed validation.');
+        }
+      } catch (regenError) {
+        logger.warn(`[ResponseValidator] Regeneration failed: ${regenError.message}. Using deterministic fallback.`);
+        reply = getFallbackFactualResponse(counts);
+      }
+    }
+    
+    // Prune cache occasionally to keep doc size reasonable
+    const freshChat = await AIChat.findById(chat._id).select('responseCache').lean();
+    if (freshChat?.responseCache && Object.keys(freshChat.responseCache).length > 20) {
+      const prunedCache = {};
+      for (const [key, val] of Object.entries(freshChat.responseCache)) {
+        if (now - val.timestamp < cacheTTL) prunedCache[key] = val;
+      }
+      await AIChat.findByIdAndUpdate(chat._id, { $set: { responseCache: prunedCache } });
+    }
+
+    await AIChat.findByIdAndUpdate(chat._id, {
+      $set: { [`responseCache.${cacheKey}`]: { data: reply, timestamp: now } }
+    });
+  }
+
+  // ── 7. Persist conversation & Update Quota ───────────────────────────────
+  const userMsg = { role: 'user', content: trimmedMessage };
+  const assistantMsg = { role: 'assistant', content: reply };
   
-  if (chat.messages.length > 50) {
-    chat.messages = chat.messages.slice(-50);
-  }
-  await chat.save();
+  let updatedChat;
+  
+  if (!cacheHit) {
+    const today = new Date().toISOString().split('T')[0];
+    const limit = parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '100', 10);
+    
+    // Increment quota and push messages atomically
+    updatedChat = await AIChat.findOneAndUpdate(
+      { _id: chat._id, 'dailyUsage.date': today },
+      { 
+        $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } },
+        $inc: { 'dailyUsage.count': 1 }
+      },
+      { new: true }
+    );
 
-  // 6. Send success response back with the saved messages matching original API contract
+    // If date rolled over, set count to 1
+    if (!updatedChat) {
+      updatedChat = await AIChat.findOneAndUpdate(
+        { _id: chat._id },
+        { 
+          $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } },
+          $set: { dailyUsage: { date: today, count: 1 } }
+        },
+        { new: true }
+      );
+    }
+    
+    logger.info(`[Quota] user ${userId}: ${updatedChat.dailyUsage.count}/${limit}, reason: successful-response`);
+  } else {
+    // Cache hit: Persist messages without consuming quota
+    updatedChat = await AIChat.findByIdAndUpdate(
+      chat._id,
+      { $push: { messages: { $each: [userMsg, assistantMsg], $slice: -50 } } },
+      { new: true }
+    );
+  }
+
+  const totalDuration = Date.now() - requestStart;
+  logger.info(`[AI Controller] Request completed in ${totalDuration}ms.`);
+
+  // L5: return the resolved model name so the frontend can display it accurately
+  const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+
+  // ── 8. Asynchronously Update Long-Term Memory (Fire and Forget) ───────────
+  // We pass the last few messages and the user's latest message to extract non-financial context.
+  updateMemoryAsynchronously(chat._id, trimmedMessage, recentMessages).catch(err => {
+    logger.error(`[Memory Update Failed] ${err.message}`);
+  });
+
+  // ── 9. Return response (with optional metadata) ─────────────────────────────
   sendSuccess(res, 200, 'Reply sent', {
-    userMessage: chat.messages[chat.messages.length - 2],
-    aiMessage: chat.messages[chat.messages.length - 1],
+    userMessage: updatedChat.messages[updatedChat.messages.length - 2],
+    aiMessage: updatedChat.messages[updatedChat.messages.length - 1],
+    meta: { 
+      model: resolvedModel,
+      quota: {
+        used: updatedChat.dailyUsage?.count || 0,
+        limit: parseInt(process.env.AI_DAILY_MESSAGE_LIMIT || '100', 10)
+      }
+    },
   });
 });
+
+
+

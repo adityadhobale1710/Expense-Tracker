@@ -1,4 +1,18 @@
 import winston from 'winston';
+import fs from 'fs';
+
+if (process.env.NODE_ENV === 'development' && process.env.AI_TRACE === 'true') {
+  const logFile = 'trace.log';
+  if (fs.existsSync(logFile) && fs.statSync(logFile).size > 10 * 1024 * 1024) {
+    fs.truncateSync(logFile, 0);
+  }
+  const traceStream = fs.createWriteStream(logFile, { flags: 'a' });
+  const originalLog = console.log;
+  console.log = function(...args) {
+    originalLog.apply(console, args);
+    traceStream.write(args.join(' ') + '\n');
+  };
+}
 
 const { combine, timestamp, json, colorize, printf, errors } = winston.format;
 

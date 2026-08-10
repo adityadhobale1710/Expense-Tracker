@@ -272,7 +272,7 @@ export default function Reports() {
               { label: 'Total Inflow', value: summary?.totalIncome, color: 'text-emerald-400', icon: '💰', trend: '+12% month-on-month', up: true },
               { label: 'Total Outflow', value: summary?.totalExpense, color: 'text-rose-400', icon: '💸', trend: '-3% from projection', up: false },
               { label: 'Net Balance', value: summary?.balance, color: 'text-primary-400', icon: '🏦', trend: 'Keep savings rates high', up: true },
-              { label: 'Savings Rate', value: `${summary?.savingsRate || 0}%`, color: 'text-amber-450', icon: '📈', raw: true, trend: 'Target minimum 30%', up: true },
+              { label: 'Savings Rate', value: `${summary?.savingsRate || 0}%`, color: 'text-amber-400', icon: '📈', raw: true, trend: 'Target minimum 30%', up: true },
             ].map(({ label, value, color, icon, raw, trend, up }) => (
               <div key={label} className="card hover:border-slate-600 transition-all duration-300 flex flex-col justify-between">
                 <div>

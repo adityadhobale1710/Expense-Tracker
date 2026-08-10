@@ -11,7 +11,7 @@ export default function TopCategoriesChart({ categoryData }) {
 
   // Take top 10 categories ranked by total spent
   const topTenData = [...categoryData]
-    .sort((a, b) => b.total - a.total)
+    .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
   return (
@@ -57,7 +57,7 @@ export default function TopCategoriesChart({ categoryData }) {
               formatter={(val) => `₹${val.toLocaleString('en-IN')}`}
             />
             
-            <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={16}>
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={16}>
               {topTenData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color || '#6366f1'} />
               ))}

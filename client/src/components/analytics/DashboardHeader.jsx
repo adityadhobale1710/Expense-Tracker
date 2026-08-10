@@ -88,7 +88,7 @@ export default function DashboardHeader({
           {/* AI Assistant Link Button */}
           <Link
             to="/ai-assistant"
-            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-primary-600/25 to-indigo-600/25 hover:from-primary-600/45 hover:to-indigo-600/45 border border-primary-500/40 text-primary-350 hover:text-primary-200 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-primary-600/25 to-indigo-600/25 hover:from-primary-600/45 hover:to-indigo-600/45 border border-primary-500/40 text-primary-300 hover:text-primary-200 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
           >
             <Sparkle size={14} className="text-primary-400" />
             <span>AI Assistant</span>
@@ -98,7 +98,7 @@ export default function DashboardHeader({
           <div className="relative">
             <button
               onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="p-2.5 bg-dark-800 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-355 hover:text-white transition-all cursor-pointer shadow-sm relative"
+              className="p-2.5 bg-dark-800 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm relative"
             >
               <Bell size={15} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-dark-800" />
@@ -113,10 +113,10 @@ export default function DashboardHeader({
                 >
                   <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Alerts Center</h4>
                   <div className="space-y-2 text-[11px]">
-                    <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-350">
+                    <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
                       <strong>Budget Warning:</strong> Food & Dining spending has reached 82% of its limits.
                     </div>
-                    <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-355">
+                    <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
                       <strong>Loan EMI Reminder:</strong> Home Loan EMI is due in 3 days.
                     </div>
                   </div>

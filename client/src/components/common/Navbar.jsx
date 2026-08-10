@@ -12,7 +12,6 @@ const PAGE_TITLES = {
   '/budget':        { title: 'Budget',    subtitle: 'Set spending limits' },
   '/reports':       { title: 'Reports',   subtitle: 'Analyze your finances' },
   '/calendar':      { title: 'Bill Calendar', subtitle: 'Track upcoming obligations' },
-  '/ai-insights':   { title: 'AI Insights', subtitle: 'Smart savings recommendations' },
   '/achievements':  { title: 'Achievements', subtitle: 'Earn XP, level up, and unlock rewards' },
   '/profile':       { title: 'Profile',   subtitle: 'Manage your account' },
   '/loans':         { title: 'Loans & EMIs', subtitle: 'Audit credit and debt balance' },
@@ -79,17 +78,30 @@ export default function Navbar({ onMenuToggle }) {
   }, [showDropdown, showThemeDropdown]);
 
   const fetchNotifications = async () => {
-    if (!user) return;
+    if (!user || document.hidden) return;
     try {
       const { data } = await api.get('/notifications');
       setNotifications(data.data || []);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch notifications', err);
+    }
   };
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
   const markAllRead = async () => {

@@ -22,7 +22,7 @@ export default function CashFlowChart({ cashflowData }) {
     <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-4">
       <div>
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Cumulative Net Cash Flow</h3>
-        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Running balance overlaying income inflows and expense outflows</p>
+        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Running balance overlaying income and expense</p>
       </div>
 
       <div className="h-72 w-full">
@@ -66,8 +66,8 @@ export default function CashFlowChart({ cashflowData }) {
             />
             <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} iconType="circle" />
 
-            <Area type="monotone" dataKey="income" fill="url(#flowIncome)" stroke="#10b981" strokeWidth={1.5} name="Income Inflow" />
-            <Area type="monotone" dataKey="expense" fill="url(#flowExpense)" stroke="#ef4444" strokeWidth={1.5} name="Expense Outflow" />
+            <Area type="monotone" dataKey="income" fill="url(#flowIncome)" stroke="#10b981" strokeWidth={1.5} name="Income" />
+            <Area type="monotone" dataKey="expense" fill="url(#flowExpense)" stroke="#ef4444" strokeWidth={1.5} name="Expense" />
             <Line type="monotone" dataKey="runningBalance" stroke="#3b82f6" strokeWidth={3} dot={false} name="Running Balance" />
           </ComposedChart>
         </ResponsiveContainer>

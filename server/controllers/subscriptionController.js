@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Subscription from '../models/Subscription.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // @desc    Get all subscriptions
 // @route   GET /api/subscriptions
@@ -45,6 +46,7 @@ export const createSubscription = asyncHandler(async (req, res) => {
     renewalDate,
     reminder: typeof reminder === 'boolean' ? reminder : false,
   });
+  await invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
   sendSuccess(res, 201, 'Subscription created successfully', subscription);
 });
 
@@ -77,6 +79,7 @@ export const updateSubscription = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Subscription not found');
   }
+  await invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
   sendSuccess(res, 200, 'Subscription updated successfully', subscription);
 });
 
@@ -88,5 +91,6 @@ export const deleteSubscription = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Subscription not found');
   }
+  await invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
   sendSuccess(res, 200, 'Subscription deleted successfully');
 });
