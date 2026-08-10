@@ -28,7 +28,7 @@ export default function SpendingInsights({ summary, categoryData, trendData }) {
     if (categoryData && categoryData.length > 0) {
       const highestCat = categoryData[0];
       list.push({
-        text: `Your largest expense category is ${highestCat.name} at ₹${highestCat.total.toLocaleString('en-IN')} (${highestCat.percentage.toFixed(0)}% of total outflows).`,
+        text: `Your largest expense category is ${highestCat.name} at ₹${highestCat.total.toLocaleString('en-IN')} (${highestCat.percentage.toFixed(0)}% of total expenses).`,
         type: 'info',
         icon: <Award className="text-primary-500" size={16} />
       });

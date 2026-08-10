@@ -76,16 +76,16 @@ export default function SplitBills() {
   // Normalize backend splits
   const safeSplits = useMemo(() => {
     if (!Array.isArray(splits)) return [];
-    return splits.map((s) => ({
-      _id: s._id || Math.random().toString(),
+    return splits.map((s, index) => ({
+      _id: s._id || `split-${index}-${s.title || 'untitled'}`,
       title: s.title || 'Untitled Split',
       amount: Number(s.amount ?? 0),
       groupName: s.groupName || 'Restaurant',
       status: s.status || 'pending',
       creator: s.creator || { name: 'Unknown Creator', email: '' },
       members: Array.isArray(s.members)
-        ? s.members.map((m) => ({
-            _id: m._id || Math.random().toString(),
+        ? s.members.map((m, mIndex) => ({
+            _id: m._id || `member-${index}-${mIndex}-${m.userEmail || 'unknown'}`,
             userEmail: m.userEmail || '',
             share: Number(m.share ?? 0),
             paid: !!m.paid,

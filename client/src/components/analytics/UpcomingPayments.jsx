@@ -111,7 +111,7 @@ export default function UpcomingPayments({
                   <span className="font-black text-slate-100 font-mono">
                     {currencySymbol}{item.amount.toLocaleString('en-IN')}
                   </span>
-                  <span className="px-2 py-0.5 text-[8px] font-extrabold uppercase bg-dark-900 border border-slate-800 text-primary-450 rounded-lg">
+                  <span className="px-2 py-0.5 text-[8px] font-extrabold uppercase bg-dark-900 border border-slate-800 text-primary-400 rounded-lg">
                     {getDaysRemainingLabel(item.date)}
                   </span>
                 </div>
@@ -121,7 +121,7 @@ export default function UpcomingPayments({
           ))
         ) : (
           <div className="flex flex-col items-center justify-center p-8 bg-dark-900/40 border border-slate-800 rounded-3xl text-center space-y-2 mt-4">
-            <Bell size={24} className="text-slate-655" />
+            <Bell size={24} className="text-slate-600" />
             <p className="text-[11px] font-bold text-slate-400">No Impending Expenses</p>
             <p className="text-[9px] text-slate-500">Active subscriptions and loans will populate reminder intervals automatically.</p>
           </div>

@@ -31,7 +31,6 @@ const Budget = lazy(() => import('./pages/Budget/Budget'));
 const Reports = lazy(() => import('./pages/Reports/Reports'));
 const Profile = lazy(() => import('./pages/Profile/Profile'));
 const BillCalendar = lazy(() => import('./pages/Calendar/BillCalendar'));
-const AIInsights = lazy(() => import('./pages/AIInsights/AIInsights'));
 const AIAssistant = lazy(() => import('./pages/AIAssistant/AIAssistant'));
 const Achievements = lazy(() => import('./pages/Achievements/Achievements'));
 const Loans = lazy(() => import('./pages/Loans/Loans'));
@@ -81,7 +80,6 @@ const AppRoutes = () => (
         <Route path="reports" element={<Reports />} />
         <Route path="profile" element={<Profile />} />
         <Route path="calendar" element={<BillCalendar />} />
-        <Route path="ai-insights" element={<AIInsights />} />
         <Route path="ai-assistant" element={<AIAssistant />} />
         <Route path="achievements" element={<Achievements />} />
         <Route path="loans" element={<Loans />} />

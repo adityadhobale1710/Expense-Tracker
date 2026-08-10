@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Sector
 } from 'recharts';
 import { useExpense } from '../../context/ExpenseContext';
+import ExpandableLegend from '../../components/charts/ExpandableLegend';
 import api from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -21,23 +22,40 @@ import { DataTable } from '../../components/ui/DataTable';
 
 // Import newly integrated chart components
 import CashFlowChart from '../../components/charts/CashFlowChart';
-import DonutChart from '../../components/charts/DonutChart';
-import TreemapChart from '../../components/charts/TreemapChart';
-import SankeyDiagram from '../../components/charts/SankeyDiagram';
-import WaterfallChart from '../../components/charts/WaterfallChart';
+import CountUp from 'react-countup';
+import InsightCard from '../../components/charts/InsightCard';
+import AnalyticsSectionTitle from '../../components/charts/AnalyticsSectionTitle';
+import ChartInsight from '../../components/charts/ChartInsight';
+
+import IncomeTrendChart from '../../components/charts/IncomeTrendChart';
+import IncomeComparisonCard from '../../components/charts/IncomeComparisonCard';
+import ExpenseComparisonCard from '../../components/charts/ExpenseComparisonCard';
+import TopIncomeSourcesChart from '../../components/charts/TopIncomeSourcesChart';
+import IncomeExpenseRatioChart from '../../components/charts/IncomeExpenseRatioChart';
+import SavingsProgressChart from '../../components/charts/SavingsProgressChart';
+
 import MonthlySpendingTrend from '../../components/charts/MonthlySpendingTrend';
 import PaymentMethodsChart from '../../components/charts/PaymentMethodsChart';
 import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
-import DailySpendingHeatmap from '../../components/charts/DailySpendingHeatmap';
-import IncomeExpenseAreaChart from '../../components/charts/IncomeExpenseAreaChart';
+import MonthlyHeatmap from '../../components/charts/MonthlyHeatmap';
 import MonthlyComparisonChart from '../../components/charts/MonthlyComparisonChart';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const INCOME_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 const EXPENSE_COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#06b6d4', '#6366f1', '#a855f7', '#ec4899'];
 
+// Local calendar "YYYY-MM-DD" key for a transaction date, matching the MonthlyHeatmap convention.
+const localDateKey = (date) => {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 export default function AnalyticsPro() {
-  const { summary, incomes, expenses, fetchIncomes, fetchExpenses, fetchSummary } = useExpense();
+  const { dataRevision } = useExpense();
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'earnings' | 'expenses' | 'savings'
   const [timeRange, setTimeRange] = useState('6m'); // '1m' | '3m' | '6m'
@@ -45,15 +63,18 @@ export default function AnalyticsPro() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
   const [incomeAnalyticsData, setIncomeAnalyticsData] = useState(null);
+  const [incomeComparison, setIncomeComparison] = useState({ currentMonth: 0, previousMonth: 0 });
+  const [expenseComparison, setExpenseComparison] = useState({ currentMonth: 0, previousMonth: 0 });
+  const [expenseComparisonMonthlyData, setExpenseComparisonMonthlyData] = useState([]);
+
+  const [scopedSummary, setScopedSummary] = useState(null);
+  const [scopedIncomes, setScopedIncomes] = useState([]);
+  const [scopedExpenses, setScopedExpenses] = useState([]);
 
   // API response states for specific charts
   const [cashflowData, setCashflowData] = useState([]);
-  const [heatmapData, setHeatmapData] = useState([]);
-  const [trendData, setTrendData] = useState([]);
-  const [prevTrendData, setPrevTrendData] = useState([]);
 
   // Active indices for interactive hover on pie charts
-  const [selectedDonutCategory, setSelectedDonutCategory] = useState(null);
   const [error, setError] = useState(null);
 
   // Guard against React 18 StrictMode double-invoke. Holds the active AbortController
@@ -84,41 +105,75 @@ export default function AnalyticsPro() {
       const startISO = startDate.toISOString();
       const endISO = endDate.toISOString();
 
-      // Calculate previous range for trend comparison
-      const duration = endDate.getTime() - startDate.getTime();
-      const prevEndDate = new Date(startDate.getTime() - 1);
-      const prevStartDate = new Date(startDate.getTime() - duration - 1);
-      const prevStartISO = prevStartDate.toISOString();
-      const prevEndISO = prevEndDate.toISOString();
-
       // Axios passes the AbortController signal — any cancelled request throws
       // CanceledError which is caught and silently ignored below.
       const axiosOpts = signal ? { signal } : {};
 
-      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, heatmapRes, trendRes, prevTrendRes] = await Promise.all([
+      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, summaryRes, incomesRes, expensesRes] = await Promise.all([
         api.get('/reports/monthly', axiosOpts),
         api.get('/reports/by-category', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/income', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/cashflow', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
-        api.get('/analytics/heatmap', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
-        api.get('/analytics/trend', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
-        api.get('/analytics/trend', { params: { startDate: prevStartISO, endDate: prevEndISO }, ...axiosOpts }),
-        fetchSummary({ startDate: startISO, endDate: endISO }),
-        fetchIncomes({ limit: 1000, startDate: startISO, endDate: endISO }),
-        fetchExpenses({ limit: 1000, startDate: startISO, endDate: endISO }),
+        api.get('/reports/summary', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/income', { params: { limit: 1000, startDate: startISO, endDate: endISO }, ...axiosOpts }),
+        api.get('/expenses', { params: { limit: 1000, startDate: startISO, endDate: endISO }, ...axiosOpts }),
       ]);
 
       // Defensive access — never crash if server returned unexpected shape
       setIncomeAnalyticsData(incomeAnalyticsRes.data?.data || null);
       setCategoryData(Array.isArray(cRes.data?.data) ? cRes.data.data : []);
       setCashflowData(Array.isArray(cashflowRes.data?.data) ? cashflowRes.data.data : []);
-      setHeatmapData(Array.isArray(heatmapRes.data?.data) ? heatmapRes.data.data : []);
-      setTrendData(Array.isArray(trendRes.data?.data) ? trendRes.data.data : []);
-      setPrevTrendData(Array.isArray(prevTrendRes.data?.data) ? prevTrendRes.data.data : []);
+      setScopedSummary(summaryRes.data?.data || null);
+      setScopedIncomes(Array.isArray(incomesRes.data?.data?.incomes) ? incomesRes.data.data.incomes : []);
+      setScopedExpenses(Array.isArray(expensesRes.data?.data?.expenses) ? expensesRes.data.data.expenses : []);
 
       // Format monthly report
       const { incomes: incList = [], expenses: expList = [] } = mRes.data?.data || {};
       const now = new Date();
+
+      const currentM = now.getMonth() + 1;
+      const currentY = now.getFullYear();
+      let prevM = currentM - 1;
+      let prevY = currentY;
+      if (prevM === 0) {
+        prevM = 12;
+        prevY = currentY - 1;
+      }
+      
+      const currentMonthIncome = incList
+        .filter(x => x._id?.month === currentM && x._id?.year === currentY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      const previousMonthIncome = incList
+        .filter(x => x._id?.month === prevM && x._id?.year === prevY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      setIncomeComparison({ currentMonth: currentMonthIncome, previousMonth: previousMonthIncome });
+
+      const currentMonthExpense = expList
+        .filter(x => x._id?.month === currentM && x._id?.year === currentY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      const previousMonthExpense = expList
+        .filter(x => x._id?.month === prevM && x._id?.year === prevY)
+        .reduce((sum, x) => sum + (x.total || 0), 0);
+        
+      setExpenseComparison({ currentMonth: currentMonthExpense, previousMonth: previousMonthExpense });
+
+      // Build consistent 6-month historical data for the Expense chart
+      // We start from 5 months ago up to the current month.
+      const expense6Months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+        const m = d.getMonth() + 1;
+        const y = d.getFullYear();
+        const expMatch = expList.find((x) => x._id?.month === m && x._id?.year === y);
+        return {
+          name: MONTH_NAMES[d.getMonth()],
+          expense: expMatch?.total || 0
+        };
+      });
+      setExpenseComparisonMonthlyData(expense6Months);
+
       const count = timeRange === '1m' ? 1 : timeRange === '3m' ? 3 : 6;
 
       const formattedMonths = Array.from({ length: count }, (_, i) => {
@@ -131,7 +186,7 @@ export default function AnalyticsPro() {
 
         const incVal = incMatch?.total || 0;
         const expVal = expMatch?.total || 0;
-        const savingsVal = Math.max(0, incVal - expVal);
+        const savingsVal = incVal - expVal;
         const savingsRateVal = incVal > 0 ? Math.round((savingsVal / incVal) * 100) : 0;
 
         return {
@@ -181,19 +236,12 @@ export default function AnalyticsPro() {
       // Cleanup: abort on unmount or before the next effect run
       controller.abort();
     };
-  }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [timeRange, dataRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Aggregate Incomes by source for the Earnings Pie Chart
+  // Aggregate Incomes by source for the Earnings Pie Chart.
+  // Pure derived data: the server breakdown (if present) wins, otherwise we
+  // derive from the real loaded incomes. NO fabricated fallback values.
   const incomePieData = useMemo(() => {
-    if (!incomes || incomes.length === 0) {
-      return [
-        { name: 'Salary', value: 65000, icon: '💼', color: '#10b981' },
-        { name: 'Freelancing', value: 18000, icon: '💻', color: '#3b82f6' },
-        { name: 'Investments', value: 12000, icon: '📈', color: '#8b5cf6' },
-        { name: 'Others', value: 5000, icon: '🎁', color: '#f59e0b' }
-      ];
-    }
-
     const iconMap = {
       Salary: '💼',
       Freelance: '💻',
@@ -207,7 +255,7 @@ export default function AnalyticsPro() {
       Uncategorized: '💰'
     };
 
-    if (incomeAnalyticsData && incomeAnalyticsData.sources) {
+    if (incomeAnalyticsData && incomeAnalyticsData.sources && incomeAnalyticsData.sources.length > 0) {
       return incomeAnalyticsData.sources.map((s, idx) => ({
         name: s.source,
         value: s.amount,
@@ -216,8 +264,12 @@ export default function AnalyticsPro() {
       }));
     }
 
+    if (!scopedIncomes || scopedIncomes.length === 0) {
+      return [];
+    }
+
     const map = {};
-    incomes.forEach((inc) => {
+    scopedIncomes.forEach((inc) => {
       const categoryVal = typeof inc.category === 'object' ? inc.category?.name : inc.category;
       const key = categoryVal?.trim() || "Uncategorized";
       map[key] = (map[key] || 0) + (inc.amount || 0);
@@ -231,14 +283,16 @@ export default function AnalyticsPro() {
         color: INCOME_COLORS[idx % INCOME_COLORS.length]
       }))
       .sort((a, b) => b.value - a.value);
-  }, [incomes, incomeAnalyticsData]);
+  }, [scopedIncomes, incomeAnalyticsData]);
 
   const totalEarnedVal = useMemo(() => {
-    if (summary?.totalIncome !== undefined) return summary.totalIncome;
+    if (scopedSummary?.totalIncome !== undefined) return scopedSummary.totalIncome;
     return incomePieData.reduce((acc, item) => acc + item.value, 0);
-  }, [summary, incomePieData]);
+  }, [scopedSummary, incomePieData]);
 
-  // Aggregate Expenses by category for Expense Pie/Donut Chart
+  // Aggregate Expenses by category for Expense Pie/Donut Chart.
+  // Pure derived data: the server category breakdown (if present) wins, otherwise
+  // we derive from the real loaded expenses. NO fabricated fallback values.
   const expensePieData = useMemo(() => {
     if (categoryData && categoryData.length > 0) {
       return categoryData.map((cat, idx) => ({
@@ -250,17 +304,12 @@ export default function AnalyticsPro() {
       }));
     }
 
-    if (!expenses || expenses.length === 0) {
-      return [
-        { name: 'Food & Dining', value: 12000, count: 14, icon: '🍔', color: '#ef4444' },
-        { name: 'Shopping', value: 8500, count: 6, icon: '🛍️', color: '#f97316' },
-        { name: 'Bills & Utilities', value: 6200, count: 4, icon: '💡', color: '#eab308' },
-        { name: 'Entertainment', value: 3400, count: 5, icon: '🎬', color: '#06b6d4' }
-      ];
+    if (!scopedExpenses || scopedExpenses.length === 0) {
+      return [];
     }
 
     const map = {};
-    expenses.forEach((exp) => {
+    scopedExpenses.forEach((exp) => {
       const catName = exp.category?.name || exp.category || 'Other';
       const icon = exp.category?.icon || '📁';
       if (!map[catName]) {
@@ -276,12 +325,12 @@ export default function AnalyticsPro() {
         color: EXPENSE_COLORS[idx % EXPENSE_COLORS.length]
       }))
       .sort((a, b) => b.value - a.value);
-  }, [categoryData, expenses]);
+  }, [categoryData, scopedExpenses]);
 
   const totalSpentVal = useMemo(() => {
-    if (summary?.totalExpense !== undefined) return summary.totalExpense;
+    if (scopedSummary?.totalExpense !== undefined) return scopedSummary.totalExpense;
     return expensePieData.reduce((acc, item) => acc + item.value, 0);
-  }, [summary, expensePieData]);
+  }, [scopedSummary, expensePieData]);
 
   const netSavingsVal = Math.max(0, totalEarnedVal - totalSpentVal);
   const savingsRateVal = totalEarnedVal > 0 ? Math.round((netSavingsVal / totalEarnedVal) * 100) : 0;
@@ -305,36 +354,63 @@ export default function AnalyticsPro() {
     }));
   }, [incomePieData]);
 
-  const needsWantsSavingsData = useMemo(() => {
-    let needs = 0;
-    let wants = 0;
-    const savingsVal = netSavingsVal;
-    
-    expenses.forEach(exp => {
-      const catName = (exp.category?.name || exp.category || '').toLowerCase();
-      if (['bills', 'utilities', 'rent', 'groceries', 'education', 'health', 'insurance', 'loans', 'emi', 'tax', 'household'].some(keyword => catName.includes(keyword))) {
-        needs += exp.amount || 0;
-      } else {
-        wants += exp.amount || 0;
-      }
-    });
+  const highestExpenseCat = expensePieData[0];
+  const highestIncomeCat = incomePieData[0];
+  const bestSavingsMonth = mappedMonthlyData.length > 0 ? [...mappedMonthlyData].sort((a, b) => b.savings - a.savings)[0] : null;
 
-    return [
-      { name: 'Needs & Bills', value: needs, color: '#f59e0b', icon: '💡' },
-      { name: 'Wants & Leisure', value: wants, color: '#ec4899', icon: '🎬' },
-      { name: 'Savings & Investments', value: savingsVal, color: '#10b981', icon: '📈' }
-    ];
-  }, [expenses, netSavingsVal]);
+  // Savings Progress dataset — historical full-month savings (from the monthly report)
+  // plus the CURRENT month computed as a real running balance through today only.
+  // mappedMonthlyData's last element is always the current month (its full-month API
+  // value is already filtered by endDate=now); we replace it with a precise running
+  // total computed from the already-loaded transaction arrays so future-dated
+  // transactions can never leak in and the current month is never duplicated.
+  const savingsProgressData = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const firstKey = `${year}-${String(month).padStart(2, '0')}-01`;
+    const todayKey = localDateKey(now);
+
+    const sumToDate = (list = []) =>
+      list.reduce((acc, tx) => {
+        const key = localDateKey(tx.date);
+        if (key && key >= firstKey && key <= todayKey) acc += Number(tx.amount) || 0;
+        return acc;
+      }, 0);
+
+    const currentIncome = sumToDate(scopedIncomes);
+    const currentExpense = sumToDate(scopedExpenses);
+
+    const currentPoint = {
+      name: MONTH_NAMES[now.getMonth()],
+      income: currentIncome,
+      expense: currentExpense,
+      savings: currentIncome - currentExpense,
+      isCurrent: true,
+    };
+
+    // Completed months only — drop the trailing current-month entry from the report
+    // so we have exactly ONE data point for the current month.
+    const historical = mappedMonthlyData.slice(0, -1).map((d) => ({
+      name: d.name,
+      income: d.income,
+      expense: d.expense,
+      savings: d.income - d.expense,
+      isCurrent: false,
+    }));
+
+    return [...historical, currentPoint];
+  }, [mappedMonthlyData, scopedIncomes, scopedExpenses]);
 
   if (loading) {
     return (
-      <div className="space-y-6 pb-20 animate-fade-in">
+      <div className="space-y-6 pb-20 animate-fade-in analytics-page">
         {/* Header skeleton */}
         <div className="flex justify-between items-center pb-5 border-b border-slate-800/40">
           <Skeleton className="h-10 w-48 rounded-xl" />
           <Skeleton className="h-10 w-32 rounded-xl" />
         </div>
-        
+
         {/* Charts grid skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Skeleton.Chart />
@@ -348,7 +424,7 @@ export default function AnalyticsPro() {
 
   if (error) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 max-w-md mx-auto text-center px-4">
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 max-w-md mx-auto text-center px-4 analytics-page">
         <div className="p-4 bg-red-500/10 border border-red-500/25 text-red-400 rounded-3xl text-sm font-medium">
           <p className="font-bold mb-1">Failed to load analytics</p>
           <p className="text-xs text-red-300/80">{error}</p>
@@ -367,7 +443,7 @@ export default function AnalyticsPro() {
 
   if (isEmptyState) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4">
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4 analytics-page">
         <div className="w-16 h-16 rounded-3xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 text-2xl shadow-lg">
           📊
         </div>
@@ -388,7 +464,7 @@ export default function AnalyticsPro() {
   }
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in">
+    <div className="space-y-6 pb-12 animate-fade-in analytics-page">
       {/* Top Header & Breadcrumb Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-800/60 border border-slate-700/40 p-5 rounded-3xl backdrop-blur-xl shadow-xl">
         <div className="flex items-center gap-3">
@@ -424,18 +500,17 @@ export default function AnalyticsPro() {
             <button
               key={id}
               onClick={() => setTimeRange(id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                timeRange === id
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${timeRange === id
                   ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               {label}
             </button>
           ))}
           <button
             onClick={handleRetry}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all ml-1"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all ml-1"
             title="Refresh Data"
           >
             <RefreshCcw size={14} className={loading ? 'animate-spin text-primary-400' : ''} />
@@ -456,13 +531,12 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              ₹{Number(totalEarnedVal).toLocaleString('en-IN')}
+              ₹<CountUp end={Number(totalEarnedVal)} duration={1} separator="," />
             </h3>
             <div className="flex items-center gap-1.5 mt-2">
               <span className="badge bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
                 +{incomePieData.length} Income Streams
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">Recorded inflows</span>
             </div>
           </div>
         </div>
@@ -478,13 +552,12 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              ₹{Number(totalSpentVal).toLocaleString('en-IN')}
+              ₹<CountUp end={Number(totalSpentVal)} duration={1} separator="," />
             </h3>
             <div className="flex items-center gap-1.5 mt-2">
               <span className="badge bg-rose-500/20 text-rose-300 text-[10px] font-bold">
                 {expensePieData.length} Spending Categories
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">Outflow logs</span>
             </div>
           </div>
         </div>
@@ -500,16 +573,15 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              ₹{Number(netSavingsVal).toLocaleString('en-IN')}
+              ₹<CountUp end={Number(netSavingsVal)} duration={1} separator="," />
             </h3>
             <div className="flex items-center gap-1.5 mt-2">
-              <span className={`badge text-[10px] font-bold ${
-                savingsRateVal >= 30
+              <span className={`badge text-[10px] font-bold ${savingsRateVal >= 30
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                   : savingsRateVal >= 15
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-              }`}>
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                }`}>
                 {savingsRateVal}% Savings Rate
               </span>
               <span className="text-[10px] text-slate-400 font-medium">Net liquidity</span>
@@ -528,21 +600,62 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-xl font-extrabold text-amber-300 tracking-tight">
-              {savingsRateVal >= 30 ? '🌟 Excellent Saver' : savingsRateVal >= 15 ? '⚖️ Balanced Flow' : '⚠️ Alert: High Outflows'}
+              {savingsRateVal >= 30 ? '🌟 Excellent Saver' : savingsRateVal >= 15 ? '⚖️ Balanced Flow' : '⚠️ Alert: High Spending'}
             </h3>
             <p className="text-[11px] text-slate-400 mt-2 line-clamp-1 font-medium">
               {savingsRateVal >= 30
                 ? 'You save over 30% of earnings consistently!'
                 : savingsRateVal >= 15
-                ? 'Healthy cash balance, maintain expense speed.'
-                : 'Consider optimizing high-cost expense categories.'}
+                  ? 'Healthy cash balance, maintain expense speed.'
+                  : 'Consider optimizing high-cost expense categories.'}
             </p>
           </div>
         </div>
       </div>
 
+      {/* Insight Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {highestExpenseCat && (
+          <InsightCard
+            title="Highest Spending Category"
+            value={highestExpenseCat.name}
+            subtitle={`₹${highestExpenseCat.value.toLocaleString('en-IN')} total`}
+            icon={TrendingDown}
+          />
+        )}
+        {highestIncomeCat && (
+          <InsightCard
+            title="Largest Income Source"
+            value={highestIncomeCat.name}
+            subtitle={`${((highestIncomeCat.value / (totalEarnedVal || 1)) * 100).toFixed(0)}% of income`}
+            icon={TrendingUp}
+          />
+        )}
+        {bestSavingsMonth && (
+          <InsightCard
+            title="Best Savings Month"
+            value={bestSavingsMonth.name}
+            subtitle={`₹${bestSavingsMonth.savings.toLocaleString('en-IN')} saved`}
+            icon={PiggyBank}
+          />
+        )}
+      </div>
+
+      <AnalyticsSectionTitle
+        title={
+          activeTab === 'overview' ? 'Complete Overview' :
+            activeTab === 'earnings' ? 'Income Analytics' :
+              activeTab === 'expenses' ? 'Expense Analytics' : 'Financial Breakdown'
+        }
+        subtitle={
+          activeTab === 'overview' ? 'A complete snapshot of your financial performance.' :
+            activeTab === 'earnings' ? 'Track earnings, income sources, and monthly growth.' :
+              activeTab === 'expenses' ? 'Understand spending patterns and category distribution.' : ''
+        }
+      />
+
       {/* Tabs Navigation Switcher */}
-      <div className="flex items-center gap-2 border-b border-slate-700/40 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-700/40 pb-2 mb-6">
         {[
           { id: 'overview', label: '📊 Complete Overview', icon: Layers },
           { id: 'earnings', label: '💼 How I Earn (Incomes)', icon: TrendingUp },
@@ -551,11 +664,10 @@ export default function AnalyticsPro() {
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === id
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === id
                 ? 'bg-slate-800 text-slate-100 border border-slate-600 shadow-md'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
+              }`}
           >
             <span>{label}</span>
           </button>
@@ -610,50 +722,33 @@ export default function AnalyticsPro() {
                   </div>
                 </div>
 
-                {/* Simple Legend */}
-                <div className="flex-1 space-y-3 w-full sm:w-auto">
-                  {incomePieData.map(item => {
-                    const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
-                    return (
-                      <div key={item.name} className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
-                          <span className="text-slate-200 font-medium">{item.name}</span>
-                        </div>
-                        <span className="text-slate-300 font-mono">{percent}%</span>
-                      </div>
-                    );
-                  })}
+                {/* Unified Legend details using ExpandableLegend */}
+                <div className="flex-1 w-full sm:w-auto pl-0 sm:pl-4">
+                  <ExpandableLegend
+                    data={incomePieData.map(item => ({
+                      ...item,
+                      percentage: totalEarnedVal > 0 ? (item.value / totalEarnedVal) * 100 : 0
+                    }))}
+                    currencySymbol="₹"
+                  />
                 </div>
               </div>
-
-              {/* Bottom part: Detailed List */}
-              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
-                {incomePieData.map(item => {
-                  const percent = totalEarnedVal > 0 ? ((item.value / totalEarnedVal) * 100).toFixed(2) : 0;
-                  return (
-                    <div key={item.name} className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
-                            {item.icon}
-                          </div>
-                          <div>
-                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
-                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
-                          </div>
-                        </div>
-                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
+            {highestIncomeCat && (
+              <ChartInsight
+                message={`${highestIncomeCat.name} represents ${((highestIncomeCat.value / (totalEarnedVal || 1)) * 100).toFixed(0)}% of your total earnings.`}
+              />
+            )}
           </div>
+        )}
+
+        {/* Income This Month vs Last Month (Only on Earnings Tab) */}
+        {activeTab === 'earnings' && (
+          <IncomeComparisonCard 
+            currentMonthIncome={incomeComparison.currentMonth}
+            previousMonthIncome={incomeComparison.previousMonth}
+            mappedMonthlyData={mappedMonthlyData}
+          />
         )}
 
         {/* Expenses Category Pie / Donut Chart (How Much I Spend) */}
@@ -667,7 +762,7 @@ export default function AnalyticsPro() {
                     How Much I Spend (Category Allocation)
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Distribution of total outflows across expenditure buckets
+                    Distribution of total expenses across expenditure buckets
                   </p>
                 </div>
                 <span className="badge bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-mono font-bold">
@@ -702,76 +797,66 @@ export default function AnalyticsPro() {
                   </div>
                 </div>
 
-                {/* Simple Legend */}
-                <div className="flex-1 space-y-3 w-full sm:w-auto">
-                  {expensePieData.map(item => {
-                    const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
-                    return (
-                      <div key={item.name} className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full border border-slate-700" style={{ backgroundColor: item.color }}></span>
-                          <span className="text-slate-200 font-medium">{item.name}</span>
-                        </div>
-                        <span className="text-slate-300 font-mono">{percent}%</span>
-                      </div>
-                    );
-                  })}
+                {/* Unified Legend details using ExpandableLegend */}
+                <div className="flex-1 w-full sm:w-auto pl-0 sm:pl-4">
+                  <ExpandableLegend
+                    data={expensePieData.map(item => ({
+                      ...item,
+                      percentage: totalSpentVal > 0 ? (item.value / totalSpentVal) * 100 : 0
+                    }))}
+                    currencySymbol="₹"
+                  />
                 </div>
               </div>
-
-              {/* Bottom part: Detailed List */}
-              <div className="mt-6 space-y-5 flex-1 overflow-y-auto">
-                {expensePieData.map(item => {
-                  const percent = totalSpentVal > 0 ? ((item.value / totalSpentVal) * 100).toFixed(2) : 0;
-                  return (
-                    <div key={item.name} className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm" style={{ backgroundColor: `${item.color}`, color: '#fff' }}>
-                            {item.icon}
-                          </div>
-                          <div>
-                            <span className="text-slate-100 font-semibold text-sm">{item.name}</span>
-                            <span className="text-slate-400 ml-2 text-xs font-mono">{percent}%</span>
-                          </div>
-                        </div>
-                        <span className="text-slate-100 text-sm font-mono font-medium">{Number(item.value).toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden ml-14 max-w-[calc(100%-3.5rem)]">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: item.color }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
+            {highestExpenseCat && (
+              <ChartInsight
+                message={`${highestExpenseCat.name} represents ${((highestExpenseCat.value / (totalSpentVal || 1)) * 100).toFixed(0)}% of your monthly expenses.`}
+              />
+            )}
           </div>
+        )}
+
+        {/* Expense This Month vs Last Month (Only on Expenses Tab) */}
+        {activeTab === 'expenses' && (
+          <ExpenseComparisonCard 
+            currentMonthExpense={expenseComparison.currentMonth}
+            previousMonthExpense={expenseComparison.previousMonth}
+            expenseComparisonMonthlyData={expenseComparisonMonthlyData}
+          />
         )}
       </div>
 
       {/* Overview Tab Charts */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          <CashFlowChart cashflowData={cashflowData} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SankeyDiagram summary={summary || { totalIncome: totalEarnedVal, totalExpense: totalSpentVal, savings: netSavingsVal }} categoryData={expensePieData} />
-            <WaterfallChart summary={{ totalIncome: totalEarnedVal, balance: netSavingsVal }} categoryData={expensePieData} />
-          </div>
-          <div className="grid grid-cols-1 gap-6">
-            <CashFlowChart cashflowData={cashflowData} />
+            <SavingsProgressChart data={savingsProgressData} />
+            <IncomeExpenseRatioChart summary={{ totalIncome: totalEarnedVal, totalExpense: totalSpentVal }} />
           </div>
         </div>
       )}
 
       {/* Earnings Tab Charts */}
       {activeTab === 'earnings' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DonutChart
-            categoryData={incomeCategoryData}
-            rawExpenses={incomes}
-            selectedCategory={selectedDonutCategory}
-            onSelectCategory={setSelectedDonutCategory}
-          />
-          <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TopIncomeSourcesChart categoryData={incomeCategoryData} />
+            <IncomeTrendChart monthlyData={mappedMonthlyData} />
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
+          </div>
+          <div className="lg:col-span-2">
+            <MonthlyHeatmap
+              transactions={scopedIncomes}
+              title="Monthly Income Heatmap"
+              subtitle="Daily earning intensity for the selected month"
+              type="income"
+              currencySymbol="₹"
+            />
+          </div>
         </div>
       )}
 
@@ -779,30 +864,26 @@ export default function AnalyticsPro() {
       {activeTab === 'expenses' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DonutChart
-              categoryData={expensePieData}
-              rawExpenses={expenses}
-              selectedCategory={selectedDonutCategory}
-              onSelectCategory={setSelectedDonutCategory}
-            />
             <TopCategoriesChart categoryData={expensePieData} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TreemapChart rawExpenses={expenses} />
-            <PaymentMethodsChart rawExpenses={expenses} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
-            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
+            <PaymentMethodsChart rawExpenses={scopedExpenses} />
           </div>
           <div className="grid grid-cols-1 gap-6">
-            <DailySpendingHeatmap heatmapData={heatmapData} />
+            <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
+          </div>
+          <div className="lg:col-span-2">
+            <MonthlyHeatmap
+              transactions={scopedExpenses}
+              title="Monthly Spending Heatmap"
+              subtitle="Daily spending intensity for the selected month"
+              type="spending"
+              currencySymbol="₹"
+            />
           </div>
         </div>
       )}
 
       {/* Section 4: Detailed Breakdown & Financial Recommendations */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="p-5 bg-dark-800/80 border border-slate-700/60 rounded-3xl space-y-2 shadow-lg">
           <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
             <TrendingUp size={16} />
@@ -811,17 +892,6 @@ export default function AnalyticsPro() {
           <h4 className="text-sm font-extrabold text-slate-100">Diversification Score</h4>
           <p className="text-xs text-slate-400 leading-relaxed">
             You currently log {incomePieData.length} active income stream(s). Expanding secondary passive or freelance streams increases financial stability.
-          </p>
-        </div>
-
-        <div className="p-5 bg-dark-800/80 border border-slate-700/60 rounded-3xl space-y-2 shadow-lg">
-          <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-wider">
-            <TrendingDown size={16} />
-            Outflow Audit
-          </div>
-          <h4 className="text-sm font-extrabold text-slate-100">Top Outflow Bucket</h4>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {expensePieData[0]?.name || 'Top category'} takes the largest share of your budget. Setting a strict monthly ceiling will boost your net savings rate.
           </p>
         </div>
 

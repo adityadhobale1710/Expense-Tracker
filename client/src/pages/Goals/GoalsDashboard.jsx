@@ -291,7 +291,7 @@ export default function GoalsDashboard() {
                     className="p-3 bg-dark-900 border border-slate-700/40 rounded-xl hover:border-primary-500/50 hover:bg-dark-800 transition-all flex items-center justify-between text-left font-semibold"
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="text-lg w-8 h-8 rounded-lg bg-dark-850 flex items-center justify-center border border-slate-700/30">{t.icon}</span>
+                      <span className="text-lg w-8 h-8 rounded-lg bg-dark-800 flex items-center justify-center border border-slate-700/30">{t.icon}</span>
                       <div>
                         <h4 className="text-xs font-bold text-slate-200">{t.name}</h4>
                         <span className="text-[9px] text-slate-500">Category: {t.category}</span>

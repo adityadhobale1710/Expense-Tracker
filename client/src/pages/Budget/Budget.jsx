@@ -1579,7 +1579,7 @@ export default function Budget() {
                   setSelectedDetailsId(null);
                   toast.success('Switched back to allocations dashboard.');
                 }}
-                className="flex-1 btn bg-slate-800 hover:bg-slate-700 text-slate-355 font-bold py-2.5 rounded-xl text-xs"
+                className="flex-1 btn bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs"
               >
                 Close View
               </button>

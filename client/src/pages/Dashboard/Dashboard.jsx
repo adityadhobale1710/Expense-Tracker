@@ -47,7 +47,8 @@ export default function Dashboard() {
     addExpense, addIncome,
     deleteExpense, deleteIncome,
     fetchDashboardData,
-    loading
+    loading,
+    dataRevision
   } = useExpense();
   const { user } = useAuth();
 
@@ -81,6 +82,15 @@ export default function Dashboard() {
   const [goals, setGoals] = useState([]);
   const [dashWallets, setDashWallets] = useState([]);
 
+  // AI Financial Advisor states (dynamic fallback)
+  const [healthScore, setHealthScore] = useState(82);
+  const [healthGrade, setHealthGrade] = useState('Excellent');
+  const [financialHealth, setFinancialHealth] = useState(null);
+  const [tipOfTheDay, setTipOfTheDay] = useState({
+    title: 'Cut unused streaming services',
+    text: 'Canceling Spotify could save you ₹1,428/year. Redirecting it to gold funds yields better CAGR.'
+  });
+
   const loadDashboard = useCallback(async () => {
     try {
       const payload = await fetchDashboardData();
@@ -96,9 +106,22 @@ export default function Dashboard() {
         setGoals(payload.goals || []);
         setDashWallets(payload.wallets || []);
         setRecentNotifications(payload.recentNotifications || []);
+        if (payload.healthScore !== undefined && payload.healthScore !== null) {
+          setHealthScore(payload.healthScore);
+        }
+        if (payload.grade !== undefined && payload.grade !== null) {
+          setHealthGrade(payload.grade);
+        }
+        if (payload.financialHealth !== undefined && payload.financialHealth !== null) {
+          setFinancialHealth(payload.financialHealth);
+        }
+        if (payload.tipOfTheDay !== undefined && payload.tipOfTheDay !== null) {
+          setTipOfTheDay(payload.tipOfTheDay);
+        }
       }
     } catch {}
   }, [fetchDashboardData]);
+
 
   // Widgets list
   const widgets = [
@@ -148,7 +171,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
-  }, [loadDashboard]);
+  }, [loadDashboard, dataRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (categories.length > 0 && !txForm.category) {
@@ -393,8 +416,12 @@ export default function Dashboard() {
                         <td>
                           {item.category ? (
                             <span className="flex items-center gap-1.5 text-xs">
-                              <span>{item.category.icon}</span>
-                              <span className="text-slate-300">{item.category.name}</span>
+                              {typeof item.category !== 'string' && item.category.icon && (
+                                <span>{item.category.icon}</span>
+                              )}
+                              <span className="text-slate-300">
+                                {typeof item.category === 'string' ? item.category : item.category.name}
+                              </span>
                             </span>
                           ) : (
                             <span className="text-slate-500">—</span>
@@ -451,10 +478,10 @@ export default function Dashboard() {
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300 group">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-450">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
                       <BarChart2 size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Weekly Spending</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Weekly Spending</h3>
                   </div>
                 </div>
                 <div className="pt-3 pb-1">
@@ -479,7 +506,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                       <TrendingUp size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Monthly Spending</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Monthly Spending</h3>
                   </div>
                 </div>
                 <div className="pt-3 pb-1">
@@ -521,7 +548,7 @@ export default function Dashboard() {
                   <div className="mt-2.5">
                     <div className="w-full bg-slate-700/30 h-2 rounded-full overflow-hidden">
                       <div 
-                        className="bg-indigo-550 h-full rounded-full transition-all duration-500" 
+                        className="bg-indigo-500 h-full rounded-full transition-all duration-500" 
                         style={{ width: `${budgetProgressPct}%` }}
                       ></div>
                     </div>
@@ -550,7 +577,7 @@ export default function Dashboard() {
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-450">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
                       <Wallet size={16} />
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Wallet Summary</h3>
@@ -619,7 +646,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                       <Award size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Goals Progress</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Goals Progress</h3>
                   </div>
                   <Link to="/goals" className="text-[10px] font-bold text-primary-400 hover:underline flex items-center gap-0.5">
                     View All <ChevronRight size={10} />
@@ -653,7 +680,7 @@ export default function Dashboard() {
                       </div>
                       <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl">
                         <span className="text-slate-500 block text-[8px] font-bold uppercase">Deadline</span>
-                        <span className="text-amber-450 font-bold block">{daysLeft > 0 ? `${daysLeft}d left` : 'Expired'}</span>
+                        <span className="text-amber-400 font-bold block">{daysLeft > 0 ? `${daysLeft}d left` : 'Expired'}</span>
                       </div>
                     </div>
 
@@ -691,7 +718,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-450">
                       <ArrowUpRight size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Largest Expense</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Largest Expense</h3>
                   </div>
                   <Link to="/expenses" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     View Details <ChevronRight size={10} />
@@ -767,7 +794,7 @@ export default function Dashboard() {
                       <span className="text-[#5B4CF0] font-black">{categoryShare}% spent</span>
                     </div>
                     <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-indigo-550 h-full rounded-full" style={{ width: `${categoryShare}%` }} />
+                      <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${categoryShare}%` }} />
                     </div>
                   </div>
 
@@ -790,7 +817,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                       <Activity size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Health Score</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Health Score</h3>
                   </div>
                   <Link to="/reports" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     View Details <ChevronRight size={10} />
@@ -801,11 +828,11 @@ export default function Dashboard() {
                     <div className="relative w-20 h-20 flex items-center justify-center">
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="40" className="stroke-slate-800" strokeWidth="8" fill="transparent" />
-                        <circle cx="50" cy="50" r="40" className="stroke-indigo-500" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * 82) / 100} strokeLinecap="round" />
+                        <circle cx="50" cy="50" r="40" className="stroke-indigo-500" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * healthScore) / 100} strokeLinecap="round" />
                       </svg>
                       <div className="absolute flex flex-col items-center">
-                        <span className="text-lg font-black text-slate-100">82</span>
-                        <span className="text-[7px] text-emerald-400 font-bold uppercase tracking-wider">Excellent</span>
+                        <span className="text-lg font-black text-slate-100">{healthScore}</span>
+                        <span className="text-[7px] text-emerald-400 font-bold uppercase tracking-wider">{healthGrade}</span>
                       </div>
                     </div>
                   </div>
@@ -813,21 +840,38 @@ export default function Dashboard() {
                   <div className="col-span-7 space-y-1.5 text-[10px] font-bold">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Savings Index:</span>
-                      <span className="text-slate-200">75%</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.metrics?.savingsRate !== undefined
+                          ? `${Math.round(financialHealth.metricBreakdown.metrics.savingsRate)}%`
+                          : '75%'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Budget Score:</span>
-                      <span className="text-slate-200">88%</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.budgetComplianceScore !== undefined
+                          ? `${Math.round((financialHealth.metricBreakdown.budgetComplianceScore / 25) * 100)}%`
+                          : '88%'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Debt Score:</span>
-                      <span className="text-slate-200">90%</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.debtScore !== undefined
+                          ? `${Math.round((financialHealth.metricBreakdown.debtScore / 20) * 100)}%`
+                          : '90%'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Investment:</span>
-                      <span className="text-slate-200">80%</span>
+                      <span className="text-slate-400">Emergency Fund:</span>
+                      <span className="text-slate-200">
+                        {financialHealth?.metricBreakdown?.emergencyFundScore !== undefined
+                          ? `${Math.round((financialHealth.metricBreakdown.emergencyFundScore / 5) * 100)}%`
+                          : '80%'}
+                      </span>
                     </div>
                   </div>
+
                 </div>
               </div>
             );
@@ -866,7 +910,7 @@ export default function Dashboard() {
               <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-450">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
                       <Clock size={16} />
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Upcoming Obligations</h3>
@@ -913,7 +957,7 @@ export default function Dashboard() {
                     <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-450">
                       <Bell size={16} />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-355">Recent Notifications</h3>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Recent Notifications</h3>
                   </div>
                 </div>
                 <div className="pt-2.5 pb-1 space-y-1.5">
@@ -942,15 +986,16 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="pt-2.5 pb-1 space-y-3">
-                  <div className="p-2.5 bg-indigo-550/5 border border-indigo-500/10 rounded-xl flex gap-3">
+                  <div className="p-2.5 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex gap-3">
                     <span className="text-xl flex-shrink-0">💡</span>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200">Cut unused streaming services</h4>
+                      <h4 className="text-xs font-bold text-slate-200">{tipOfTheDay?.title}</h4>
                       <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
-                        Canceling Spotify could save you ₹1,428/year. Redirecting it to gold funds yields better CAGR.
+                        {tipOfTheDay?.text}
                       </p>
                     </div>
                   </div>
+
                 </div>
               </div>
             );

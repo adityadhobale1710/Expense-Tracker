@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Budget from '../models/Budget.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 export const getBudgets = asyncHandler(async (req, res) => {
   const budgets = await Budget.find({ user: req.user._id }).populate('category', 'name icon color');
@@ -27,6 +28,7 @@ export const createBudget = asyncHandler(async (req, res) => {
     alertThreshold,
   });
   await budget.populate('category', 'name icon color');
+  await invalidateAICache(req.user._id, CACHE_MODULES.BUDGETS);
   sendSuccess(res, 201, 'Budget created', budget);
 });
 
@@ -48,11 +50,13 @@ export const updateBudget = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   ).populate('category', 'name icon color');
   if (!budget) { res.status(404); throw new Error('Budget not found'); }
+  await invalidateAICache(req.user._id, CACHE_MODULES.BUDGETS);
   sendSuccess(res, 200, 'Budget updated', budget);
 });
 
 export const deleteBudget = asyncHandler(async (req, res) => {
   const budget = await Budget.findOneAndDelete({ _id: req.params.id, user: req.user._id });
   if (!budget) { res.status(404); throw new Error('Budget not found'); }
+  await invalidateAICache(req.user._id, CACHE_MODULES.BUDGETS);
   sendSuccess(res, 200, 'Budget deleted');
 });

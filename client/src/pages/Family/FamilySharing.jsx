@@ -570,7 +570,7 @@ export default function FamilySharing() {
                           </div>
                           <div>
                             <h4 className="text-xs font-black text-slate-200 truncate">{goal.title}</h4>
-                            <p className="text-[10px] text-slate-505 mt-0.5">Target: ₹{goal.targetAmount.toLocaleString('en-IN')}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Target: ₹{goal.targetAmount.toLocaleString('en-IN')}</p>
                           </div>
 
                           <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
@@ -770,7 +770,7 @@ export default function FamilySharing() {
                     <th className="px-4 py-3">Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-855/50">
+                <tbody className="divide-y divide-slate-800/50">
                   {paginatedExpenses.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-4 py-8 text-center text-slate-500 font-semibold">

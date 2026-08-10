@@ -71,39 +71,18 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true; // Retry only once
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('gam_cache')) {
-              localStorage.removeItem(key);
-            }
-          });
-          if (!isRedirecting) {
-            isRedirecting = true;
-            window.location.replace('/login');
-          }
-          throw new Error('No refresh token available');
-        }
-
         // Serialize all concurrent refresh attempts — only one call to /refresh-token
         if (!refreshingPromise) {
           refreshingPromise = axios
-            .post(`${API_URL}/auth/refresh-token`, { refreshToken })
+            .post(`${API_URL}/auth/refresh-token`, {}, { withCredentials: true })
             .then((res) => res.data.data)
             .finally(() => { refreshingPromise = null; });
         }
 
         const tokens = await refreshingPromise;
         const newAccessToken = tokens.accessToken;
-        const newRefreshToken = tokens.refreshToken;
 
         localStorage.setItem('accessToken', newAccessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
 
         // Retry the original request
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -113,7 +92,6 @@ api.interceptors.response.use(
         // requests that are waiting on the old promise do not enter an inconsistent state.
         refreshingPromise = null;
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         Object.keys(localStorage).forEach(key => {
           if (key.startsWith('gam_cache')) {

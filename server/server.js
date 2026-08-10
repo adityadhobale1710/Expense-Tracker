@@ -42,7 +42,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import gamificationRoutes from './routes/gamificationRoutes.js';
 import billRoutes from './routes/billRoutes.js';
 
-connectDB();
+await connectDB();
 
 
 const app = express();
@@ -58,24 +58,27 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    // Standardize client URL (remove trailing slash)
-    const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+    // Support multiple comma-separated CLIENT_URLs
+    const clientUrls = (process.env.CLIENT_URL || '')
+      .split(',')
+      .map(url => url.trim().replace(/\/$/, ''));
 
-    const isAllowed = (origin === clientUrl) ||
+    // Fallback URLs to ensure the deployed frontend is always allowed
+    const fallbackUrls = ['https://expense-tracker-five-virid-19.vercel.app'];
+    const allowedUrls = [...clientUrls, ...fallbackUrls];
+
+    const isAllowed = allowedUrls.includes(origin) ||
       (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
 
     if (isAllowed) {
       return callback(null, true);
     }
 
-    // Issue #7 fix: strict Vercel preview domain check.
-    // The old coarse prefix match (startsWith projectPrefix) allowed any origin whose
-    // hostname started with the same prefix — e.g. "my-app-evil.vercel.app" would pass
-    // for a project named "my-app". The fix uses a stricter regex that requires the
-    // hostname to be exactly <projectSlug>-<hash>.vercel.app (Vercel's actual format).
-    if (clientUrl && clientUrl.includes('vercel.app')) {
+    // Strict Vercel preview domain check.
+    if (clientUrls.some(url => url.includes('vercel.app'))) {
       try {
-        const prodHost = new URL(clientUrl).hostname;
+        const prodClientUrl = clientUrls.find(url => url.includes('vercel.app')) || fallbackUrls[0];
+        const prodHost = new URL(prodClientUrl).hostname;
         // Extract the canonical project slug (everything before the first dash-separated hash segment)
         const projectSlug = prodHost.replace(/\.vercel\.app$/, '').split('-').slice(0, -1).join('-') ||
           prodHost.replace(/\.vercel\.app$/, '');
@@ -150,6 +153,21 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
+// Financial/personal API responses must never be stored in browser or CDN caches
+// — a cached stale snapshot is exactly the stale-data bug class this audit fixes.
+app.use('/api/', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to the Expense Tracker API! 🚀',
+    status: 'Running smoothly'
+  });
+});
+
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
@@ -193,11 +211,15 @@ app.listen(PORT, () => {
 // logs, then exit(1) so the process manager (PM2 / Render / Railway) can restart.
 
 process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled Promise Rejection:', reason);
+  if (reason instanceof Error) {
+    logger.error(reason.message, { stack: reason.stack, name: reason.name });
+  } else {
+    logger.error(String(reason));
+  }
   process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception:', err);
+  logger.error(err.message || String(err), { stack: err.stack, name: err.name });
   process.exit(1);
 });

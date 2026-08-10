@@ -3,6 +3,7 @@ import Loan from '../models/Loan.js';
 import Expense from '../models/Expense.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // @desc    Get all loans
 // @route   GET /api/loans
@@ -61,6 +62,7 @@ export const createLoan = asyncHandler(async (req, res) => {
     remainingBalance: remainingBalance !== undefined ? Number(remainingBalance) : numAmount,
     nextEmiDate: nextEmiDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
   });
+  await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
   sendSuccess(res, 201, 'Loan logged successfully', loan);
 });
 
@@ -92,6 +94,7 @@ export const updateLoan = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Loan not found');
   }
+  await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
   sendSuccess(res, 200, 'Loan terms updated successfully', loan);
 });
 
@@ -103,6 +106,7 @@ export const deleteLoan = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Loan not found');
   }
+  await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
   sendSuccess(res, 200, 'Loan log deleted successfully');
 });
 
