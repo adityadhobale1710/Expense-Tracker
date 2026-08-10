@@ -51,7 +51,7 @@ export default function PaymentMethodsChart({ rawExpenses = [], currencySymbol =
 
   if (paymentData.length === 0) {
     return (
-      <ChartCard title="Payment Method Splits" subtitle="Outflow channels comparison">
+      <ChartCard title="Payment Method Splits" subtitle="Transaction channels comparison">
         <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs">
           Record transaction payment methods to view this split.
         </div>
@@ -62,7 +62,7 @@ export default function PaymentMethodsChart({ rawExpenses = [], currencySymbol =
   return (
     <ChartCard
       title="Transaction Channel splits"
-      subtitle="Outflow volumes grouped by payment methods (UPI, Cash, Card, Wallet, Net Banking)"
+      subtitle="Transaction volumes grouped by payment methods (UPI, Cash, Card, Wallet, Net Banking)"
       infoText="Tracks settlement velocity. Grouping expenses by payment instrument helps isolate which channels (e.g. UPI vs Credit Cards) generate the highest spending velocity."
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center h-full">

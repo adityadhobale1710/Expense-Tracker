@@ -36,7 +36,7 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
     <ChartCard
       title="Financial Comparison"
       subtitle="Income vs Expense Breakdown"
-      infoText="A direct comparison of total cash inflow versus outflow, highlighting your overall savings rate."
+      infoText="A direct comparison of total cash income versus expenses, highlighting your overall savings rate."
     >
       <div className="flex flex-col h-full justify-center px-2 py-4 space-y-8">
         
