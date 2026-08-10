@@ -45,7 +45,7 @@ export default function RadarChartComparison({
     <ChartCard
       title="Solvency Comparison radar"
       subtitle="Multi-axis comparative overview matching actual performance against budget targets"
-      infoText="A radar profile comparison. Evaluates multi-dimensional financial targets (purple) against your real inflows/outflows (green). A larger green area indicates healthy budget compliance."
+      infoText="A radar profile comparison. Evaluates multi-dimensional financial targets (purple) against your real income/expenses (green). A larger green area indicates healthy budget compliance."
     >
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" radius="70%" data={radarData}>

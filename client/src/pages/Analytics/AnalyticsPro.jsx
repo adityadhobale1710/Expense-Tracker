@@ -36,9 +36,7 @@ import MonthlySpendingTrend from '../../components/charts/MonthlySpendingTrend';
 import PaymentMethodsChart from '../../components/charts/PaymentMethodsChart';
 import TopCategoriesChart from '../../components/charts/TopCategoriesChart';
 import MonthlyHeatmap from '../../components/charts/MonthlyHeatmap';
-import IncomeExpenseAreaChart from '../../components/charts/IncomeExpenseAreaChart';
 import MonthlyComparisonChart from '../../components/charts/MonthlyComparisonChart';
-import TransactionChannelSplitsChart from '../../components/charts/TransactionChannelSplitsChart';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const INCOME_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
@@ -70,8 +68,6 @@ export default function AnalyticsPro() {
 
   // API response states for specific charts
   const [cashflowData, setCashflowData] = useState([]);
-  const [trendData, setTrendData] = useState([]);
-  const [prevTrendData, setPrevTrendData] = useState([]);
 
   // Active indices for interactive hover on pie charts
   const [error, setError] = useState(null);
@@ -104,24 +100,15 @@ export default function AnalyticsPro() {
       const startISO = startDate.toISOString();
       const endISO = endDate.toISOString();
 
-      // Calculate previous range for trend comparison
-      const duration = endDate.getTime() - startDate.getTime();
-      const prevEndDate = new Date(startDate.getTime() - 1);
-      const prevStartDate = new Date(startDate.getTime() - duration - 1);
-      const prevStartISO = prevStartDate.toISOString();
-      const prevEndISO = prevEndDate.toISOString();
-
       // Axios passes the AbortController signal — any cancelled request throws
       // CanceledError which is caught and silently ignored below.
       const axiosOpts = signal ? { signal } : {};
 
-      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, trendRes, prevTrendRes, summaryRes, incomesRes, expensesRes] = await Promise.all([
+      const [mRes, cRes, incomeAnalyticsRes, cashflowRes, summaryRes, incomesRes, expensesRes] = await Promise.all([
         api.get('/reports/monthly', axiosOpts),
         api.get('/reports/by-category', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/income', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/analytics/cashflow', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
-        api.get('/analytics/trend', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
-        api.get('/analytics/trend', { params: { startDate: prevStartISO, endDate: prevEndISO }, ...axiosOpts }),
         api.get('/reports/summary', { params: { startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/income', { params: { limit: 1000, startDate: startISO, endDate: endISO }, ...axiosOpts }),
         api.get('/expenses', { params: { limit: 1000, startDate: startISO, endDate: endISO }, ...axiosOpts }),
@@ -131,8 +118,6 @@ export default function AnalyticsPro() {
       setIncomeAnalyticsData(incomeAnalyticsRes.data?.data || null);
       setCategoryData(Array.isArray(cRes.data?.data) ? cRes.data.data : []);
       setCashflowData(Array.isArray(cashflowRes.data?.data) ? cashflowRes.data.data : []);
-      setTrendData(Array.isArray(trendRes.data?.data) ? trendRes.data.data : []);
-      setPrevTrendData(Array.isArray(prevTrendRes.data?.data) ? prevTrendRes.data.data : []);
       setScopedSummary(summaryRes.data?.data || null);
       setScopedIncomes(Array.isArray(incomesRes.data?.data?.incomes) ? incomesRes.data.data.incomes : []);
       setScopedExpenses(Array.isArray(expensesRes.data?.data?.expenses) ? expensesRes.data.data.expenses : []);
@@ -503,7 +488,6 @@ export default function AnalyticsPro() {
               <span className="badge bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
                 +{incomePieData.length} Income Streams
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">Recorded inflows</span>
             </div>
           </div>
         </div>
@@ -525,7 +509,6 @@ export default function AnalyticsPro() {
               <span className="badge bg-rose-500/20 text-rose-300 text-[10px] font-bold">
                 {expensePieData.length} Spending Categories
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">Outflow logs</span>
             </div>
           </div>
         </div>
@@ -568,7 +551,7 @@ export default function AnalyticsPro() {
           </div>
           <div className="mt-3">
             <h3 className="text-xl font-extrabold text-amber-300 tracking-tight">
-              {savingsRateVal >= 30 ? '🌟 Excellent Saver' : savingsRateVal >= 15 ? '⚖️ Balanced Flow' : '⚠️ Alert: High Outflows'}
+              {savingsRateVal >= 30 ? '🌟 Excellent Saver' : savingsRateVal >= 15 ? '⚖️ Balanced Flow' : '⚠️ Alert: High Spending'}
             </h3>
             <p className="text-[11px] text-slate-400 mt-2 line-clamp-1 font-medium">
               {savingsRateVal >= 30
@@ -721,7 +704,7 @@ export default function AnalyticsPro() {
                     How Much I Spend (Category Allocation)
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Distribution of total outflows across expenditure buckets
+                    Distribution of total expenses across expenditure buckets
                   </p>
                 </div>
                 <span className="badge bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-mono font-bold">
@@ -795,9 +778,8 @@ export default function AnalyticsPro() {
             <TopIncomeSourcesChart categoryData={incomeCategoryData} />
             <IncomeTrendChart monthlyData={mappedMonthlyData} />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <MonthlyComparisonChart monthlyData={mappedMonthlyData} />
-            <TransactionChannelSplitsChart rawIncomes={scopedIncomes} />
           </div>
           <div className="lg:col-span-2">
             <MonthlyHeatmap
@@ -818,15 +800,14 @@ export default function AnalyticsPro() {
             <TopCategoriesChart categoryData={expensePieData} />
             <PaymentMethodsChart rawExpenses={scopedExpenses} />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <MonthlySpendingTrend monthlyData={mappedMonthlyData} />
-            <IncomeExpenseAreaChart trendData={trendData} prevTrendData={prevTrendData} />
           </div>
           <div className="lg:col-span-2">
             <MonthlyHeatmap
               transactions={scopedExpenses}
               title="Monthly Spending Heatmap"
-              subtitle="Daily outflow intensity for the selected month"
+              subtitle="Daily spending intensity for the selected month"
               type="spending"
               currencySymbol="₹"
             />
@@ -835,7 +816,7 @@ export default function AnalyticsPro() {
       )}
 
       {/* Section 4: Detailed Breakdown & Financial Recommendations */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="p-5 bg-dark-800/80 border border-slate-700/60 rounded-3xl space-y-2 shadow-lg">
           <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
             <TrendingUp size={16} />
@@ -844,17 +825,6 @@ export default function AnalyticsPro() {
           <h4 className="text-sm font-extrabold text-slate-100">Diversification Score</h4>
           <p className="text-xs text-slate-400 leading-relaxed">
             You currently log {incomePieData.length} active income stream(s). Expanding secondary passive or freelance streams increases financial stability.
-          </p>
-        </div>
-
-        <div className="p-5 bg-dark-800/80 border border-slate-700/60 rounded-3xl space-y-2 shadow-lg">
-          <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-wider">
-            <TrendingDown size={16} />
-            Outflow Audit
-          </div>
-          <h4 className="text-sm font-extrabold text-slate-100">Top Outflow Bucket</h4>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {expensePieData[0]?.name || 'Top category'} takes the largest share of your budget. Setting a strict monthly ceiling will boost your net savings rate.
           </p>
         </div>
 
