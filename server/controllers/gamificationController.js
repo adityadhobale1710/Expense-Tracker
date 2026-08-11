@@ -125,11 +125,42 @@ export const getGamificationStats = asyncHandler(async (req, res) => {
   // Streak trend last 7 days (simplified — uses xpHistory timestamps)
   const streakTrend = [];
   for (let i = 6; i >= 0; i--) {
-    const day = new Date(now); day.setDate(day.getDate() - i);
+    const day = new Date(now); day.setUTCDate(day.getUTCDate() - i);
     const dayStr = day.toISOString().slice(0, 10);
     const hasActivity = history.some(h => h.timestamp && h.timestamp.toISOString?.()?.startsWith(dayStr));
     streakTrend.push(hasActivity ? 1 : 0);
   }
+
+  // ── Real 49-day activity heatmap ────────────────────────────────────────────
+  // Build a Set of YYYY-MM-DD strings from xpHistory for O(1) daily lookup.
+  // Read-only: no writes to the User document. Derived purely from stored
+  // xpHistory entries — existing data is never mutated.
+  const activeDays = new Set();
+  for (const entry of history) {
+    if (entry.timestamp) {
+      const ts = entry.timestamp instanceof Date
+        ? entry.timestamp
+        : new Date(entry.timestamp);
+      if (!isNaN(ts.getTime())) {
+        activeDays.add(ts.toISOString().slice(0, 10));
+      }
+    }
+  }
+
+  const todayStr = now.toISOString().slice(0, 10);
+  const HEATMAP_DAYS = 49; // 7 weeks × 7 days
+  const activityHeatmap = [];
+  for (let i = HEATMAP_DAYS - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setUTCDate(d.getUTCDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    activityHeatmap.push({
+      date: dateStr,
+      active: activeDays.has(dateStr),
+      today: dateStr === todayStr,
+    });
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   sendSuccess(res, 200, 'Gamification stats fetched', {
     xpThisWeek,
@@ -145,6 +176,7 @@ export const getGamificationStats = asyncHandler(async (req, res) => {
     badgesUnlocked: unlocked,
     totalBadges: achievements.length,
     coinsEarned: user.coins,
+    activityHeatmap,
   });
 });
 
