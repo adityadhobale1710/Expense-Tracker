@@ -19,6 +19,7 @@ export default function Profile() {
   const navigate = useNavigate();
 
   const [activeSection, setActiveSection] = useState('profile');
+  const [activeProfileSection, setActiveProfileSection] = useState('personal');
 
   // Form states
   const [profileForm, setProfileForm] = useState({
@@ -200,7 +201,6 @@ export default function Profile() {
         name: profileForm.name,
         phone: profileForm.phone,
         company: profileForm.company,
-        currency: profileForm.currency,
         twoFactorEnabled
       });
       updateUser(data.data);
@@ -208,12 +208,6 @@ export default function Profile() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update profile');
     } finally {
-      setProfileForm({
-        name: user?.name || '',
-        phone: user?.phone || '',
-        company: user?.company || '',
-        currency: user?.currency || 'INR'
-      });
       setSavingProfile(false);
     }
   };
@@ -355,300 +349,371 @@ export default function Profile() {
         {/* Right Side Settings Contents */}
         <div className="xl:col-span-3 card">
           {activeSection === 'profile' && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-fade-in">
               <div className="pb-4 border-b border-slate-700/50">
-                <h3 className="text-base font-bold text-slate-100">Edit Profile</h3>
-                <p className="text-xs text-slate-400 mt-1">Configure your personal public account profile parameters.</p>
+                <h3 className="text-base font-bold text-slate-100">Profile Setup</h3>
+                <p className="text-xs text-slate-400 mt-1">Manage your personal information, account details, gamification, and financial overview.</p>
               </div>
-              <form onSubmit={handleProfileSave} className="space-y-6 text-xs">
-                
-                {/* 1. PERSONAL INFORMATION */}
-                <div className="space-y-4">
-                  <div className="pt-2 pb-1 border-b border-slate-700/50">
-                    <h4 className="text-xs font-bold text-slate-300">Personal Information</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="form-group">
-                      <label className="label">Full Name</label>
-                      <input
-                        type="text"
-                        className="input"
-                        value={profileForm.name}
-                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Email Address</label>
-                      <input
-                        type="email"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={user?.email || ''}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="form-group">
-                      <label className="label">Phone Number</label>
-                      <input
-                        type="tel"
-                        className="input"
-                        placeholder="+91 9876543210"
-                        value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Company / Workspace</label>
-                      <input
-                        type="text"
-                        className="input"
-                        placeholder="Developer Inc."
-                        value={profileForm.company}
-                        onChange={(e) => setProfileForm({ ...profileForm, company: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                {/* 2. EMAIL VERIFICATION */}
-                <div className="space-y-4">
-                  <div className="pt-2 pb-1 border-b border-slate-700/50">
-                    <h4 className="text-xs font-bold text-slate-300">Email Verification</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="form-group">
-                      <label className="label">Email Address</label>
-                      <input
-                        type="email"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={user?.email || ''}
-                        disabled
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Verification Status</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={user?.isEmailVerified ? 'Verified ✓' : 'Unverified ✗'}
-                        disabled
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Account Role</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={user?.role ? user.role.toUpperCase() : 'USER'}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="form-group">
-                      <label className="label">Account Created</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
-                        disabled
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Last Updated</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
-                        disabled
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">2FA Configured Status</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={twoFactorEnabled ? 'Enabled ✓' : 'Disabled ✗'}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. GAMIFICATION PARAMETERS */}
-                <div className="space-y-4">
-                  <div className="pt-2 pb-1 border-b border-slate-700/50">
-                    <h4 className="text-xs font-bold text-slate-300">Gamification Parameters</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="form-group">
-                      <label className="label">Level & Rank</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={`Level ${user?.level || 1} — ${user?.rank || 'Bronze'}`}
-                        disabled
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">XP Balance</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={`${user?.xp || 0} XP (Lifetime: ${user?.lifetimeXP || 0} XP)`}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="form-group">
-                      <label className="label">Streak Records</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={`${user?.streak || 0} days (Longest: ${user?.longestStreak || 0} days)`}
-                        disabled
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Available Coins</label>
-                      <input
-                        type="text"
-                        className="input opacity-50 cursor-not-allowed"
-                        value={`${user?.coins || 0} 🪙`}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. FINANCIAL SUMMARY */}
-                <div className="space-y-4">
-                  <div className="pt-2 pb-1 border-b border-slate-700/50">
-                    <h4 className="text-xs font-bold text-slate-300">Financial Summary</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="form-group">
-                      <label className="label">Total Income</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${user?.currency || 'INR'} ${(profileStats.totalIncome || 0).toLocaleString()}` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Total Expenses</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${user?.currency || 'INR'} ${(profileStats.totalExpense || 0).toLocaleString()}` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Transaction Count</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${profileStats.transactionCount || 0} total` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="form-group">
-                      <label className="label">Wallets Registered</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${profileStats.walletsCount || 0} active` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Budgets Created</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${profileStats.budgetsCount || 0} active` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Goals Created</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${profileStats.goalsCount || 0} active` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="form-group">
-                      <label className="label">Active Subscriptions</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${profileStats.subscriptionsCount || 0} active` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Unpaid Bills</label>
-                      {loadingStats ? (
-                        <Skeleton className="h-[44px] w-full" />
-                      ) : (
-                        <input
-                          type="text"
-                          className="input opacity-50 cursor-not-allowed"
-                          value={profileStats ? `${profileStats.billsCount || 0} active` : '-'}
-                          disabled
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <button type="submit" className="btn-primary py-2.5 px-6" disabled={savingProfile}>
-                    {savingProfile ? 'Saving Changes...' : 'Save Profile'}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Secondary navigation */}
+                <div className="lg:col-span-1 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveProfileSection('personal')}
+                    className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex flex-col gap-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 ${
+                      activeProfileSection === 'personal'
+                        ? 'bg-primary-600/20 text-primary-400 border border-primary-500/20 shadow-md font-semibold'
+                        : 'bg-dark-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 border border-transparent font-medium'
+                    }`}
+                  >
+                    <span className="text-sm flex items-center gap-2">👤 Personal Information</span>
+                    <span className="text-[10px] text-slate-500 font-normal pl-6">Your profile details</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveProfileSection('account')}
+                    className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex flex-col gap-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 ${
+                      activeProfileSection === 'account'
+                        ? 'bg-primary-600/20 text-primary-400 border border-primary-500/20 shadow-md font-semibold'
+                        : 'bg-dark-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 border border-transparent font-medium'
+                    }`}
+                  >
+                    <span className="text-sm flex items-center gap-2">✉ Email & Account</span>
+                    <span className="text-[10px] text-slate-500 font-normal pl-6">Account and security</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveProfileSection('gamification')}
+                    className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex flex-col gap-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 ${
+                      activeProfileSection === 'gamification'
+                        ? 'bg-primary-600/20 text-primary-400 border border-primary-500/20 shadow-md font-semibold'
+                        : 'bg-dark-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 border border-transparent font-medium'
+                    }`}
+                  >
+                    <span className="text-sm flex items-center gap-2">🎮 Gamification</span>
+                    <span className="text-[10px] text-slate-500 font-normal pl-6">XP and progress</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveProfileSection('financial')}
+                    className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex flex-col gap-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 ${
+                      activeProfileSection === 'financial'
+                        ? 'bg-primary-600/20 text-primary-400 border border-primary-500/20 shadow-md font-semibold'
+                        : 'bg-dark-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 border border-transparent font-medium'
+                    }`}
+                  >
+                    <span className="text-sm flex items-center gap-2">💰 Financial Summary</span>
+                    <span className="text-[10px] text-slate-500 font-normal pl-6">Your financial overview</span>
                   </button>
                 </div>
-              </form>
+
+                {/* Selected section content */}
+                <div className="lg:col-span-3">
+                  {activeProfileSection === 'personal' && (
+                    <div className="space-y-6">
+                      <div className="pb-4 border-b border-slate-700/50">
+                        <h4 className="text-sm font-semibold text-slate-200">Personal Information</h4>
+                        <p className="text-xs text-slate-400 mt-1">Update your basic profile details.</p>
+                      </div>
+                      <form onSubmit={handleProfileSave} className="space-y-6 text-xs">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="form-group">
+                            <label className="label">Full Name</label>
+                            <input
+                              type="text"
+                              className="input"
+                              value={profileForm.name}
+                              onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="label">Email Address</label>
+                            <input
+                              type="email"
+                              className="input opacity-50 cursor-not-allowed"
+                              value={user?.email || ''}
+                              disabled
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="form-group">
+                            <label className="label">Phone Number</label>
+                            <input
+                              type="tel"
+                              className="input"
+                              placeholder="+91 9876543210"
+                              value={profileForm.phone}
+                              onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="label">Company / Workspace</label>
+                            <input
+                              type="text"
+                              className="input"
+                              placeholder="Developer Inc."
+                              value={profileForm.company}
+                              onChange={(e) => setProfileForm({ ...profileForm, company: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="pt-2">
+                          <button type="submit" className="btn-primary py-2.5 px-6" disabled={savingProfile}>
+                            {savingProfile ? 'Saving Changes...' : 'Save Profile'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
+                  {activeProfileSection === 'account' && (
+                    <div className="space-y-6">
+                      <div className="pb-4 border-b border-slate-700/50">
+                        <h4 className="text-sm font-semibold text-slate-200">Email & Account</h4>
+                        <p className="text-xs text-slate-400 mt-1">Manage account and verification information.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                        <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Email Address</span>
+                          <span className="text-sm font-medium text-slate-200 truncate">{user?.email || '-'}</span>
+                        </div>
+                        <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Verification Status</span>
+                          <div>
+                            {user?.isEmailVerified ? (
+                              <span className="badge-green">Verified ✓</span>
+                            ) : (
+                              <span className="badge-red">Unverified ✗</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Account Role</span>
+                          <div>
+                            {user?.role === 'premium' ? (
+                              <span className="badge-purple">Premium</span>
+                            ) : user?.role === 'admin' ? (
+                              <span className="badge-blue">Admin</span>
+                            ) : (
+                              <span className="badge bg-slate-700/30 text-slate-300">User</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Member Since</span>
+                          <span className="text-sm font-medium text-slate-200">
+                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
+                          </span>
+                        </div>
+                        <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Last Updated</span>
+                          <span className="text-sm font-medium text-slate-200">
+                            {user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
+                          </span>
+                        </div>
+                        <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Two-Factor Authentication</span>
+                          <div>
+                            {user?.twoFactorEnabled ? (
+                              <span className="badge-green">Enabled ✓</span>
+                            ) : (
+                              <span className="badge-red">Disabled ✗</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeProfileSection === 'gamification' && (
+                    <div className="space-y-6">
+                      <div className="pb-4 border-b border-slate-700/50">
+                        <h4 className="text-sm font-semibold text-slate-200">Gamification</h4>
+                        <p className="text-xs text-slate-400 mt-1">View your current progress and rewards.</p>
+                      </div>
+
+                      <div className="space-y-6 text-xs animate-fade-in">
+                        {/* PROGRESS */}
+                        <div className="space-y-3">
+                          <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Progress</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Level</span>
+                              <span className="text-base font-bold text-slate-200">{user?.level ?? 1}</span>
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Rank</span>
+                              <span className="text-base font-bold text-slate-200">{user?.rank ?? '-'}</span>
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current XP</span>
+                              <span className="text-base font-bold text-slate-200">{user?.xp ?? 0}</span>
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Lifetime XP</span>
+                              <span className="text-base font-bold text-slate-200">{user?.lifetimeXP ?? 0}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* STREAK */}
+                        <div className="space-y-3">
+                          <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Streak</h5>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current Streak</span>
+                              <span className="text-base font-bold text-slate-200">{user?.streak ?? 0} days</span>
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Longest Streak</span>
+                              <span className="text-base font-bold text-slate-200">{user?.longestStreak ?? 0} days</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* REWARDS */}
+                        <div className="space-y-3">
+                          <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rewards</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Available Coins</span>
+                              <span className="text-base font-bold text-slate-200">{user?.coins ?? 0} 🪙</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeProfileSection === 'financial' && (
+                    <div className="space-y-6">
+                      {/* 4. FINANCIAL SUMMARY */}
+                      <div className="pb-4 border-b border-slate-700/50">
+                        <h4 className="text-sm font-semibold text-slate-200">Financial Summary</h4>
+                        <p className="text-xs text-slate-400 mt-1">Overview of your financial activity.</p>
+                      </div>
+
+                      <div className="space-y-6 text-xs animate-fade-in">
+                        {/* PRIMARY STATS */}
+                        <div className="space-y-3">
+                          <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Primary Statistics</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                              <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Total Income</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[24px] w-1/2" />
+                              ) : (
+                                <span className="text-lg font-extrabold text-emerald-400">
+                                  {profileStats !== null ? `${user?.currency || 'INR'} ${(profileStats.totalIncome ?? 0).toLocaleString()}` : '-'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
+                              <span className="text-[10px] text-rose-400 uppercase tracking-wider font-bold">Total Expenses</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[24px] w-1/2" />
+                              ) : (
+                                <span className="text-lg font-extrabold text-rose-400">
+                                  {profileStats !== null ? `${user?.currency || 'INR'} ${(profileStats.totalExpense ?? 0).toLocaleString()}` : '-'}
+                                </span>
+                              )}
+                            </div>
+                            {(() => {
+                              const net = profileStats !== null ? (profileStats.totalIncome ?? 0) - (profileStats.totalExpense ?? 0) : 0;
+                              const isPositive = net >= 0;
+                              return (
+                                <div className={`${isPositive ? 'bg-primary-500/10 border-primary-500/20' : 'bg-rose-500/10 border-rose-500/20'} border rounded-xl p-4 flex flex-col gap-1.5 shadow-sm`}>
+                                  <span className={`text-[10px] ${isPositive ? 'text-primary-400' : 'text-rose-400'} uppercase tracking-wider font-bold`}>Net Balance</span>
+                                  {loadingStats ? (
+                                    <Skeleton className="h-[24px] w-1/2" />
+                                  ) : (
+                                    <span className={`text-lg font-extrabold ${isPositive ? 'text-primary-400' : 'text-rose-400'}`}>
+                                      {profileStats !== null ? `${user?.currency || 'INR'} ${net.toLocaleString()}` : '-'}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* SECONDARY STATS */}
+                        <div className="space-y-3">
+                          <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Secondary Statistics</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Transactions</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[20px] w-1/2" />
+                              ) : (
+                                <span className="text-base font-bold text-slate-200">
+                                  {profileStats !== null ? `${profileStats.transactionCount ?? 0} total` : '-'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Wallets</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[20px] w-1/2" />
+                              ) : (
+                                <span className="text-base font-bold text-slate-200">
+                                  {profileStats !== null ? `${profileStats.walletsCount ?? 0} active` : '-'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Budgets</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[20px] w-1/2" />
+                              ) : (
+                                <span className="text-base font-bold text-slate-200">
+                                  {profileStats !== null ? `${profileStats.budgetsCount ?? 0} active` : '-'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Goals</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[20px] w-1/2" />
+                              ) : (
+                                <span className="text-base font-bold text-slate-200">
+                                  {profileStats !== null ? `${profileStats.goalsCount ?? 0} active` : '-'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Subscriptions</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[20px] w-1/2" />
+                              ) : (
+                                <span className="text-base font-bold text-slate-200">
+                                  {profileStats !== null ? `${profileStats.subscriptionsCount ?? 0} active` : '-'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Bills</span>
+                              {loadingStats ? (
+                                <Skeleton className="h-[20px] w-1/2" />
+                              ) : (
+                                <span className="text-base font-bold text-slate-200">
+                                  {profileStats !== null ? `${profileStats.billsCount ?? 0} unpaid` : '-'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
