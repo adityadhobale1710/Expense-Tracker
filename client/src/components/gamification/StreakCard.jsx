@@ -1,19 +1,16 @@
+import { useState, useEffect } from 'react';
 import { useGamification } from '../../context/GamificationContext';
+import api from '../../services/api';
 
-// Generate a 7-week heatmap of activity days (based on xpHistory if available, else streak approximation)
-function generateHeatmap(streak, longestStreak) {
+// Build a 49-cell (7×7) empty heatmap for the error/loading fallback
+// — all cells inactive, no fabricated data.
+function emptyHeatmap() {
   const today = new Date();
-  const weeks = 7;
-  const days = weeks * 7;
   const grid = [];
-
-  for (let i = days - 1; i >= 0; i--) {
+  for (let i = 48; i >= 0; i--) {
     const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    // Simulate: recent streak days are active
-    const isActive = i < streak;
-    const isToday = i === 0;
-    grid.push({ date: d, active: isActive, today: isToday });
+    d.setUTCDate(d.getUTCDate() - i);
+    grid.push({ date: d.toISOString().slice(0, 10), active: false, today: i === 0 });
   }
   return grid;
 }
@@ -22,12 +19,37 @@ const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function StreakCard() {
   const { streak, longestStreak } = useGamification();
-  const heatmap = generateHeatmap(streak, longestStreak);
 
-  const weeks = [];
-  for (let w = 0; w < 7; w++) {
-    weeks.push(heatmap.slice(w * 7, w * 7 + 7));
-  }
+  const [heatmap, setHeatmap] = useState(null); // null = loading
+  const [fetchError, setFetchError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { data } = await api.get('/gamification/stats');
+        if (cancelled) return;
+        if (data.success && Array.isArray(data.data?.activityHeatmap)) {
+          setHeatmap(data.data.activityHeatmap);
+        } else {
+          setHeatmap(emptyHeatmap());
+          setFetchError(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setHeatmap(emptyHeatmap());
+          setFetchError(true);
+        }
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Chunk flat 49-item array into 7 columns of 7
+  const weeks = heatmap
+    ? Array.from({ length: 7 }, (_, w) => heatmap.slice(w * 7, w * 7 + 7))
+    : [];
 
   const milestones = [7, 14, 30, 60, 100];
   const nextMilestone = milestones.find(m => m > streak) || milestones[milestones.length - 1];
@@ -86,48 +108,67 @@ export default function StreakCard() {
       </div>
 
       {/* GitHub-style heatmap */}
-      <div>
+      <div className="min-h-[120px]">
         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">7-Week Activity</p>
-        <div className="flex gap-1">
-          {/* Day labels column */}
-          <div className="flex flex-col gap-1 pr-1">
-            {WEEKDAY_LABELS.map((label, i) => (
-              <span key={i} className="text-[8px] text-slate-600 font-bold h-3 flex items-center">{label}</span>
-            ))}
-          </div>
 
-          {/* Heatmap grid */}
-          <div className="flex gap-1 flex-1 overflow-x-auto">
-            {weeks.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-1">
-                {week.map((day, di) => (
-                  <div
-                    key={di}
-                    title={`${day.date.toLocaleDateString('en-IN')}: ${day.active ? 'Active' : 'No activity'}`}
-                    className={`w-3 h-3 rounded-sm transition-all ${
-                      day.today
-                        ? 'bg-indigo-500 ring-1 ring-indigo-400 ring-offset-1 ring-offset-slate-900'
-                        : day.active
-                        ? 'bg-emerald-500/80 hover:bg-emerald-400'
-                        : 'bg-slate-800 hover:bg-slate-700'
-                    }`}
-                  />
+        {/* Loading spinner */}
+        {heatmap === null && (
+          <div className="flex justify-center items-center h-[52px]">
+            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* Heatmap grid (shown once loaded — real data or empty-on-error) */}
+        {heatmap !== null && (
+          <>
+            <div className="flex gap-1">
+              {/* Day labels column */}
+              <div className="flex flex-col gap-1 pr-1">
+                {WEEKDAY_LABELS.map((label, i) => (
+                  <span key={i} className="text-[8px] text-slate-600 font-bold h-3 flex items-center">{label}</span>
                 ))}
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-2 mt-2 justify-end">
-          <span className="text-[9px] text-slate-600">Less</span>
-          <div className="flex gap-0.5">
-            {['bg-slate-800', 'bg-emerald-900', 'bg-emerald-700', 'bg-emerald-500', 'bg-emerald-400'].map((c, i) => (
-              <div key={i} className={`w-2.5 h-2.5 rounded-sm ${c}`} />
-            ))}
-          </div>
-          <span className="text-[9px] text-slate-600">More</span>
-        </div>
+              {/* Heatmap grid */}
+              <div className="flex gap-1 flex-1 overflow-x-auto">
+                {weeks.map((week, wi) => (
+                  <div key={wi} className="flex flex-col gap-1">
+                    {week.map((day, di) => (
+                      <div
+                        key={di}
+                        title={`${day.date}: ${day.active ? 'Active' : 'No activity'}`}
+                        className={`w-3 h-3 rounded-sm transition-all ${
+                          day.today
+                            ? 'bg-indigo-500 ring-1 ring-indigo-400 ring-offset-1 ring-offset-slate-900'
+                            : day.active
+                            ? 'bg-emerald-500/80 hover:bg-emerald-400'
+                            : 'bg-slate-800 hover:bg-slate-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-2 mt-2 justify-end">
+              <span className="text-[9px] text-slate-600">Less</span>
+              <div className="flex gap-0.5">
+                {['bg-slate-800', 'bg-emerald-900', 'bg-emerald-700', 'bg-emerald-500', 'bg-emerald-400'].map((c, i) => (
+                  <div key={i} className={`w-2.5 h-2.5 rounded-sm ${c}`} />
+                ))}
+              </div>
+              <span className="text-[9px] text-slate-600">More</span>
+            </div>
+
+            {fetchError && (
+              <p className="text-[9px] text-slate-500 text-center mt-1">
+                Activity data unavailable — connect to sync your real history.
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       {/* Milestone badges */}
