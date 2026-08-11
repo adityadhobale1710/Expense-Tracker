@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
@@ -47,11 +49,68 @@ export default function Profile() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled || false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [liveCurrencySync, setLiveCurrencySync] = useState(true);
-  const [alerts, setAlerts] = useState({ bills: true, budgets: true, weekly: false });
-  const [deviceSessions, setDeviceSessions] = useState([
-    { id: 1, name: 'Windows 11 PC (Chrome browser) - Current', ip: '192.168.1.42', time: 'Active Session' },
-    { id: 2, name: 'OnePlus 11 Smartphone (Mobile App)', ip: '103.54.21.90', time: 'Yesterday, 9:24 PM' }
-  ]);
+  const [alerts, setAlerts] = useState(user?.alertSettings || { bills: true, budgets: true, weekly: false });
+  const [deviceSessions, setDeviceSessions] = useState([]);
+  const [profileStats, setProfileStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const fetchStats = async () => {
+    setLoadingStats(true);
+    try {
+      const { data } = await api.get('/users/me/stats');
+      if (data.success && data.data) {
+        setProfileStats(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile stats:', err);
+      toast.error('Failed to load profile statistics');
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const [loadingSessions, setLoadingSessions] = useState(false);
+
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const { data } = await api.get('/sessions');
+      if (data.success && data.data) {
+        setDeviceSessions(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sessions:', err);
+      toast.error('Failed to load device sessions');
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSection === 'profile') {
+      fetchStats();
+    } else if (activeSection === 'security') {
+      fetchSessions();
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (user) {
+      if (user.alertSettings) {
+        setAlerts(user.alertSettings);
+      }
+      if (user.twoFactorEnabled !== undefined) {
+        setTwoFactorEnabled(user.twoFactorEnabled);
+      }
+      setProfileForm({
+        name: user.name || '',
+        phone: user.phone || '',
+        company: user.company || '',
+        currency: user.currency || 'INR'
+      });
+      setFromCurr(user.currency || 'INR');
+    }
+  }, [user]);
 
   // Interactive Currency Converter states
   const [convAmount, setConvAmount] = useState('1');
@@ -183,9 +242,17 @@ export default function Profile() {
     }
   };
 
-  const revokeSession = (id) => {
-    setDeviceSessions(prev => prev.filter(s => s.id !== id));
-    toast.success('Device session revoked successfully.');
+  const revokeSession = async (id) => {
+    try {
+      const { data } = await api.delete(`/sessions/${id}`);
+      if (data.success) {
+        toast.success('Device session revoked successfully.');
+        fetchSessions();
+      }
+    } catch (err) {
+      console.error('Failed to revoke session:', err);
+      toast.error(err.response?.data?.message || 'Failed to revoke device session');
+    }
   };
 
   return (
@@ -327,6 +394,224 @@ export default function Profile() {
                   </div>
                 </div>
 
+                <div className="pt-2 pb-1 border-b border-slate-700/50">
+                  <h4 className="text-xs font-bold text-slate-300">Account Details</h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="label">Email Verification Status</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={user?.isEmailVerified ? 'Verified ✓' : 'Unverified ✗'}
+                      disabled
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Account Role</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={user?.role ? user.role.toUpperCase() : 'USER'}
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="form-group">
+                    <label className="label">Member Since</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                      disabled
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Last Updated</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                      disabled
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="label">2FA Configured Status</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={twoFactorEnabled ? 'Enabled ✓' : 'Disabled ✗'}
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 pb-1 border-b border-slate-700/50">
+                  <h4 className="text-xs font-bold text-slate-300">Gamification Parameters</h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="label">Level & Rank</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={`Level ${user?.level || 1} — ${user?.rank || 'Bronze'}`}
+                      disabled
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="label">XP Balance</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={`${user?.xp || 0} XP (Lifetime: ${user?.lifetimeXP || 0} XP)`}
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="label">Streak Records</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={`${user?.streak || 0} days (Longest: ${user?.longestStreak || 0} days)`}
+                      disabled
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Available Coins</label>
+                    <input
+                      type="text"
+                      className="input opacity-50 cursor-not-allowed"
+                      value={`${user?.coins || 0} 🪙`}
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 pb-1 border-b border-slate-700/50">
+                  <h4 className="text-xs font-bold text-slate-300">Financial Summary</h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="form-group">
+                    <label className="label">Total Income</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${user?.currency || 'INR'} ${profileStats.totalIncome.toLocaleString()}` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Total Expenses</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${user?.currency || 'INR'} ${profileStats.totalExpense.toLocaleString()}` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Transaction Count</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${profileStats.transactionCount} total` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="form-group">
+                    <label className="label">Wallets Registered</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${profileStats.walletsCount} active` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Active Budgets</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${profileStats.budgetsCount} active` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Savings Goals</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${profileStats.goalsCount} active` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="label">Subscriptions Count</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${profileStats.subscriptionsCount} active` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="label">Unpaid / Upcoming Bills</label>
+                    {loadingStats ? (
+                      <Skeleton className="h-[44px] w-full" />
+                    ) : (
+                      <input
+                        type="text"
+                        className="input opacity-50 cursor-not-allowed"
+                        value={profileStats ? `${profileStats.billsCount} active` : '-'}
+                        disabled
+                      />
+                    )}
+                  </div>
+                </div>
+
                 <button type="submit" className="btn-primary py-2.5 px-6" disabled={savingProfile}>
                   {savingProfile ? 'Saving Changes...' : 'Save Profile'}
                 </button>
@@ -398,10 +683,20 @@ export default function Profile() {
                     <select
                       className="select"
                       value={profileForm.currency}
-                      onChange={(e) => {
-                        setProfileForm({ ...profileForm, currency: e.target.value });
-                        setFromCurr(e.target.value);
-                        toast.success(`Base currency updated to ${e.target.value}`);
+                      onChange={async (e) => {
+                        const newCurrency = e.target.value;
+                        setProfileForm({ ...profileForm, currency: newCurrency });
+                        setFromCurr(newCurrency);
+                        try {
+                          const { data } = await api.put('/users/me', {
+                            currency: newCurrency
+                          });
+                          updateUser(data.data);
+                          toast.success(`Base currency updated to ${newCurrency}`);
+                        } catch (err) {
+                          console.error('Failed to update base currency:', err);
+                          toast.error('Failed to save currency preference');
+                        }
                       }}
                     >
                       {CURRENCIES.map(c => (
@@ -557,39 +852,57 @@ export default function Profile() {
 
                 <div className="space-y-2">
                   <h4 className="font-bold text-slate-400">Active Device Sessions</h4>
-                  <div className="table-container">
-                    <table className="table text-[11px]">
-                      <thead>
-                        <tr>
-                          <th>Device</th>
-                          <th>IP Address</th>
-                          <th>Status</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {deviceSessions.map(session => (
-                          <tr key={session.id}>
-                            <td className="font-medium text-slate-200">{session.name}</td>
-                            <td className="font-mono text-slate-400">{session.ip}</td>
-                            <td className="text-slate-400 font-semibold">{session.time}</td>
-                            <td>
-                              {session.id === 1 ? (
-                                <span className="text-emerald-400 font-bold">Current</span>
-                              ) : (
-                                <button
-                                  onClick={() => revokeSession(session.id)}
-                                  className="text-red-400 hover:text-red-300 font-semibold underline"
-                                >
-                                  Revoke
-                                </button>
-                              )}
-                            </td>
+                  {loadingSessions ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  ) : deviceSessions.length === 0 ? (
+                    <EmptyState
+                      title="No active sessions"
+                      description="You are currently not logged in on any other devices."
+                    />
+                  ) : (
+                    <div className="table-container">
+                      <table className="table text-[11px]">
+                        <thead>
+                          <tr>
+                            <th>Device</th>
+                            <th>IP Address</th>
+                            <th>Status</th>
+                            <th>Action</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {deviceSessions.map(session => (
+                            <tr key={session._id}>
+                              <td className="font-medium text-slate-200">{session.deviceName || 'Unknown Device'}</td>
+                              <td className="font-mono text-slate-400">{session.ipAddress || '127.0.0.1'}</td>
+                              <td className="text-slate-400 font-semibold">
+                                {session.isCurrent ? (
+                                  <span className="text-emerald-400 font-bold">Active Now</span>
+                                ) : (
+                                  session.lastActive ? new Date(session.lastActive).toLocaleString() : 'Inactive'
+                                )}
+                              </td>
+                              <td>
+                                {session.isCurrent ? (
+                                  <span className="text-emerald-400 font-bold">Current</span>
+                                ) : (
+                                  <button
+                                    onClick={() => revokeSession(session._id)}
+                                    className="text-red-400 hover:text-red-300 font-semibold underline"
+                                  >
+                                    Revoke
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -616,9 +929,19 @@ export default function Profile() {
                     <input
                       type="checkbox"
                       checked={alerts[item.key]}
-                      onChange={(e) => {
-                        setAlerts({ ...alerts, [item.key]: e.target.checked });
-                        toast.success('Alert settings saved.');
+                      onChange={async (e) => {
+                        const updatedAlerts = { ...alerts, [item.key]: e.target.checked };
+                        setAlerts(updatedAlerts);
+                        try {
+                          const { data } = await api.put('/users/me', {
+                            alertSettings: updatedAlerts
+                          });
+                          updateUser(data.data);
+                          toast.success('Notification settings saved.');
+                        } catch (err) {
+                          console.error('Failed to update alert settings:', err);
+                          toast.error('Failed to save alert settings');
+                        }
                       }}
                       className="rounded border-slate-700 bg-dark-900 text-primary-500 focus:ring-primary-500"
                     />
