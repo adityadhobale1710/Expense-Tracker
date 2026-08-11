@@ -225,3 +225,6 @@ process.on('uncaughtException', (err) => {
   logger.error(err.message || String(err), { stack: err.stack, name: err.name });
   process.exit(1);
 });
+
+// Trigger nodemon restart after port is freed
+

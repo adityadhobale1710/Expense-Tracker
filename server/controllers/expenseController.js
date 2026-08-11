@@ -14,21 +14,9 @@ import { awardBusinessXP } from '../services/gamificationService.js';
 // incomplete documents missing required fields like `limit`).
 // ---------------------------------------------------------------------------
 const recalcBudgetSpent = async (userId, categoryId) => {
-  if (!categoryId) return;
-  // categoryId may be a raw ObjectId or a populated sub-document — normalise.
-  const catId = categoryId._id ?? categoryId;
-
-  const [result] = await Expense.aggregate([
-    { $match: { user: userId, category: catId } },
-    { $group: { _id: null, total: { $sum: '$amount' } } },
-  ]);
-
-  const spent = result ? result.total : 0;
-
-  await Budget.updateOne(
-    { user: userId, category: catId },
-    { $set: { spent } }
-  );
+  // DEPRECATED: Budget spent is now dynamically aggregated based on active periods.
+  // We no longer update a static `spent` field in the database.
+  return;
 };
 
 // @desc  Get all expenses

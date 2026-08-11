@@ -238,6 +238,10 @@ export default function Budget() {
   const [wallets, setWallets] = useState([]);
   const [selectedDetailsId, setSelectedDetailsId] = useState(null);
   const [activeChartTab, setActiveChartTab] = useState('comparison');
+  
+  const [globalAnalytics, setGlobalAnalytics] = useState({ monthlyTrendData: [], weeklySpendingData: [] });
+  const [localAnalytics, setLocalAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_BUDGET);
   const [submitting, setSubmitting] = useState(false);
@@ -268,6 +272,11 @@ export default function Budget() {
       fetchExpenses();
       const { data } = await api.get('/wallets');
       setWallets(data.data || []);
+
+      const analyticsRes = await api.get('/budgets/analytics/global');
+      if (analyticsRes.data && analyticsRes.data.data) {
+        setGlobalAnalytics(analyticsRes.data.data);
+      }
     } catch (e) {
       console.error('Error fetching dependency records', e);
     }
@@ -275,7 +284,23 @@ export default function Budget() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
+
+  useEffect(() => {
+    if (selectedDetailsId) {
+      setAnalyticsLoading(true);
+      api.get(`/budgets/${selectedDetailsId}/analytics`)
+        .then(res => setLocalAnalytics(res.data.data))
+        .catch(err => {
+          console.error(err);
+          toast.error("Failed to load budget analytics");
+          setLocalAnalytics(null);
+        })
+        .finally(() => setAnalyticsLoading(false));
+    } else {
+      setLocalAnalytics(null);
+    }
+  }, [selectedDetailsId]);
 
   // Sync Extended properties from localStorage
   const syncExtendedProps = useCallback(() => {
@@ -713,40 +738,12 @@ export default function Budget() {
   }, [filteredBudgets]);
 
   const monthlyTrendData = useMemo(() => {
-    // Generate actual spending data dynamically from Expenses if possible
-    if (!expenses || expenses.length === 0) {
-      return [
-        { name: 'Feb', Limit: 45000, Spent: 38000 },
-        { name: 'Mar', Limit: 45000, Spent: 41000 },
-        { name: 'Apr', Limit: 45000, Spent: 49000 },
-        { name: 'May', Limit: 50000, Spent: 42000 },
-        { name: 'Jun', Limit: 50000, Spent: 47000 },
-        { name: 'Jul', Limit: totalBudgeted || 50000, Spent: totalSpent || 35000 }
-      ];
-    }
-    
-    // Fallback/Simulated trend representing last 6 months
-    const trend = [];
-    const months = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    months.forEach((m, idx) => {
-      const factor = 0.8 + (idx * 0.05);
-      trend.push({
-        name: m,
-        Limit: totalBudgeted || 40000,
-        Spent: Math.round((totalSpent || 30000) * factor)
-      });
-    });
-    return trend;
-  }, [expenses, totalBudgeted, totalSpent]);
+    return globalAnalytics?.monthlyTrendData || [];
+  }, [globalAnalytics]);
 
   const weeklySpendingData = useMemo(() => {
-    return [
-      { name: 'Week 1', Spent: Math.round(totalSpent * 0.22) },
-      { name: 'Week 2', Spent: Math.round(totalSpent * 0.35) },
-      { name: 'Week 3', Spent: Math.round(totalSpent * 0.28) },
-      { name: 'Week 4', Spent: Math.round(totalSpent * 0.15) }
-    ];
-  }, [totalSpent]);
+    return globalAnalytics?.weeklySpendingData || [];
+  }, [globalAnalytics]);
 
   // Selected Budget details helper
   const selectedBudgetDetails = useMemo(() => {
@@ -756,11 +753,8 @@ export default function Budget() {
 
   // Filter transactions specific to the selected budget details
   const selectedBudgetTransactions = useMemo(() => {
-    if (!selectedBudgetDetails || !expenses) return [];
-    return expenses
-      .filter(e => e.category?._id === selectedBudgetDetails.category?._id)
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [selectedBudgetDetails, expenses]);
+    return localAnalytics?.spendingHistory || [];
+  }, [localAnalytics]);
 
   // Sparkline coordinates calculator helper using real transaction date differences
   const getSparklineDataForCategory = (catId) => {
@@ -1454,7 +1448,7 @@ export default function Budget() {
                 <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Utilization</span>
                   <span className="text-xl font-black text-slate-200 mt-2">
-                    {Math.min(100, Math.round((selectedBudgetDetails.spent / selectedBudgetDetails.limit) * 100))}%
+                    {parseFloat(((selectedBudgetDetails.spent / selectedBudgetDetails.limit) * 100).toFixed(1))}%
                   </span>
                   <div className="progress-bar h-1.5 bg-slate-800 mt-2 rounded-full overflow-hidden">
                     <div
@@ -1481,18 +1475,26 @@ export default function Budget() {
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Zap size={11} className="text-indigo-400" /> Forecasting Engine
                 </h4>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 font-semibold">Active Run Rate</span>
-                    <span className="text-slate-200 font-bold">₹{(selectedBudgetDetails.spent / 30).toFixed(0)}/day</span>
+                {analyticsLoading ? (
+                  <div className="text-xs text-slate-500">Calculating...</div>
+                ) : localAnalytics ? (
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 font-semibold">Active Run Rate</span>
+                      <span className="text-slate-200 font-bold">₹{Math.round(localAnalytics.activeRunRate || 0)}/day</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 font-semibold">Projected Burn Date</span>
+                      <span className="text-rose-400 font-bold">
+                        {localAnalytics.projectedBurnDate 
+                          ? new Date(localAnalytics.projectedBurnDate).toLocaleDateString()
+                          : (localAnalytics.remaining <= 0 ? 'Breached' : 'Within Safety')}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 font-semibold">Projected Burn Date</span>
-                    <span className="text-rose-400 font-bold">
-                      {selectedBudgetDetails.limit - selectedBudgetDetails.spent <= 0 ? 'Breached' : 'Within Safety'}
-                    </span>
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-xs text-slate-500">Failed to load forecast data.</div>
+                )}
               </div>
 
               {/* Recharts Local Trend Chart */}
