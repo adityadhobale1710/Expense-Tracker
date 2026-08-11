@@ -125,15 +125,28 @@ export const sendEmail = async ({ to, subject, html, text }) => {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // C1 fix: cap SMTP handshake/send timeouts so a slow or dead SMTP server
+      // can never hang the request past the client's axios timeout (15s).
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 8000,
     });
 
-    const info = await transporter.sendMail({
-      from: `"${process.env.SMTP_FROM_NAME || 'My Expense Pro'}" <${process.env.SMTP_FROM || 'noreply@expensetracker.com'}>`,
-      to,
-      subject,
-      text,
-      html,
-    });
+    // Overall deadline guard — guarantees sendEmail resolves well under the
+    // client's 15s axios timeout even if nodemailer stalls.
+    const MAIL_DEADLINE_MS = 10000;
+    const info = await Promise.race([
+      transporter.sendMail({
+        from: `"${process.env.SMTP_FROM_NAME || 'My Expense Pro'}" <${process.env.SMTP_FROM || 'noreply@expensetracker.com'}>`,
+        to,
+        subject,
+        text,
+        html,
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('SMTP send timed out')), MAIL_DEADLINE_MS)
+      ),
+    ]);
 
     logger.info(`🚀 [SMTP Success] Email dispatched successfully: ${info.messageId}`);
     return { success: true, messageId: info.messageId };

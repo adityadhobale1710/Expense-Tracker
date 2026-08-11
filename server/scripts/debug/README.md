@@ -3,7 +3,6 @@
 This directory contains scripts and tests for diagnosing issues in the FinMate AI Assistant pipeline.
 
 ## Contents
-- `run_trace.mjs`: Script to trace the AI execution path.
 - `test_intents.js`: Script to test the `IntentDetector` output for various user messages.
 - `test_validator.js`: Script to test `ResponseValidator.js` hallucination checks and proximity.
 

@@ -95,8 +95,10 @@ export const register = asyncHandler(async (req, res) => {
   // Brand new user registration path
   const session = await mongoose.startSession();
   session.startTransaction();
+  let user;
+  let otp;
   try {
-    const [user] = await User.create([{ name, email, password, phone: phone || '', isEmailVerified: false }], { session });
+    [user] = await User.create([{ name, email, password, phone: phone || '', isEmailVerified: false }], { session });
 
     // Seed default categories
     const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
@@ -114,42 +116,53 @@ export const register = asyncHandler(async (req, res) => {
       isPrimary: true,
     }], { session });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.registrationOtp = otp;
     user.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save({ session });
 
     await session.commitTransaction();
-    session.endSession();
-
-    const emailHtml = getHtmlTemplate({
-      title: 'Email Verification',
-      greeting: `Welcome, ${user.name}`,
-      body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
-      code: otp,
-      footerText: 'If you did not initiate this registration, you can safely ignore this email.',
-    });
-
-    // A1 fix: propagate SMTP failures
-    const emailResult = await sendEmail({
-      to: user.email,
-      subject: 'Your verification code',
-      html: emailHtml,
-      text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
-    });
-
-    if (!emailResult.success && !emailResult.mocked) {
-      logger.error(`[register] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
-      res.status(502);
-      throw new Error('Failed to send verification email. Please try again later.');
-    }
-
-    return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email });
   } catch (error) {
-    await session.abortTransaction();
+    // C1 fix: never call abortTransaction() on a session whose transaction has
+    // already been committed/ended — that throws MongoTransactionError and
+    // masks the real failure with a leaked 502 stack trace.
+    try {
+      if (session.inTransaction()) await session.abortTransaction();
+    } catch (abortErr) {
+      logger.error(`[register] Failed to abort transaction: ${abortErr.message}`);
+    }
     session.endSession();
     throw error;
   }
+  session.endSession();
+
+  // ── Email is delivered AFTER commit (user record already persisted) ────────
+  const emailHtml = getHtmlTemplate({
+    title: 'Email Verification',
+    greeting: `Welcome, ${user.name}`,
+    body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
+    code: otp,
+    footerText: 'If you did not initiate this registration, you can safely ignore this email.',
+  });
+
+  const emailResult = await sendEmail({
+    to: user.email,
+    subject: 'Your verification code',
+    html: emailHtml,
+    text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
+  });
+
+  if (!emailResult.success && !emailResult.mocked) {
+    // C1 fix: the account already exists in the DB — a 502 here only confuses the
+    // client into showing "Network Error" and leaves an unverified account with no
+    // actionable path. Respond 201 and direct the user to the resend-OTP flow.
+    logger.error(`[register] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
+    return sendSuccess(res, 201,
+      'Account created. We could not send the verification email right now — please use "Resend verification code".',
+      { email: user.email, emailDelivered: false });
+  }
+
+  return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email, emailDelivered: true });
 });
 
 // @desc  Login user

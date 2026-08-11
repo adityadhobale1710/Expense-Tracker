@@ -18,6 +18,15 @@
 
 import logger from '../../utils/logger.js';
 
+// M5 hardening: cap long-term memory fields before they are re-injected into the
+// system prompt. These strings are LLM-extracted from prior conversations, so an
+// attacker could plant a large payload / instruction block through them.
+const MEMORY_FIELD_LIMIT = 400;
+const truncateMemoryField = (value) => {
+  if (!value || typeof value !== 'string') return 'None';
+  return value.length > MEMORY_FIELD_LIMIT ? `${value.slice(0, MEMORY_FIELD_LIMIT)}… (truncated)` : value;
+};
+
 // ─── SYSTEM PROMPT TEMPLATE ───────────────────────────────────────────────────
 
 const INSTRUCTIONS = `
@@ -79,12 +88,12 @@ These numeric values are authoritative. Never recalculate them. Never infer or e
     if (structuredMemory && Object.keys(structuredMemory).length > 0) {
       memoryBlock = `
 ─── LONG-TERM MEMORY (CONVERSATIONAL CONTEXT) ───
-User Preferences: ${structuredMemory.user_preferences || 'None'}
-Communication Preferences: ${structuredMemory.communication_preferences || 'None'}
-Ongoing Topics: ${structuredMemory.ongoing_topics || 'None'}
-Long Term Goals: ${structuredMemory.long_term_goals || 'None'}
-Conversation Summary: ${structuredMemory.conversation_summary || 'None'}
-Pending Followups: ${structuredMemory.pending_followups || 'None'}
+User Preferences: ${truncateMemoryField(structuredMemory.user_preferences)}
+Communication Preferences: ${truncateMemoryField(structuredMemory.communication_preferences)}
+Ongoing Topics: ${truncateMemoryField(structuredMemory.ongoing_topics)}
+Long Term Goals: ${truncateMemoryField(structuredMemory.long_term_goals)}
+Conversation Summary: ${truncateMemoryField(structuredMemory.conversation_summary)}
+Pending Followups: ${truncateMemoryField(structuredMemory.pending_followups)}
 ─────────────────────────────────────────────────
 `;
     }
