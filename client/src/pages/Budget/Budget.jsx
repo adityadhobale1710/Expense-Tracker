@@ -1224,9 +1224,9 @@ export default function Budget() {
                       <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
                       <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                        itemStyle={{ fontSize: '11px', color: '#cbd5e1' }}
-                        labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: '#f1f5f9' }}
+                        contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '12px' }}
+                        itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                        labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
                       />
                       <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
                       <Bar dataKey="Limit" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -1260,8 +1260,9 @@ export default function Budget() {
                               ))}
                             </Pie>
                             <Tooltip
-                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                              itemStyle={{ fontSize: '11px', color: '#cbd5e1' }}
+                              contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '12px' }}
+                              itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                              labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
@@ -1297,8 +1298,9 @@ export default function Budget() {
                       <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
                       <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                        itemStyle={{ fontSize: '11px', color: '#cbd5e1' }}
+                        contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '12px' }}
+                        itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                        labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
                       />
                       <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
                       <Line type="monotone" dataKey="Limit" stroke="#6366f1" strokeWidth={2} activeDot={{ r: 4 }} />
@@ -1314,8 +1316,9 @@ export default function Budget() {
                       <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
                       <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                        itemStyle={{ fontSize: '11px', color: '#cbd5e1' }}
+                        contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '12px' }}
+                        itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                        labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
                       />
                       <Bar dataKey="Spent" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -1508,7 +1511,11 @@ export default function Budget() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                         <XAxis dataKey="title" tick={{ fill: '#64748b', fontSize: 8 }} tickLine={false} />
                         <YAxis tick={{ fill: '#64748b', fontSize: 8 }} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '10px' }} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '10px' }}
+                          itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                          labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
+                        />
                         <Area type="monotone" dataKey="amount" stroke={selectedBudgetDetails.color} fill={selectedBudgetDetails.color} fillOpacity={0.1} strokeWidth={1.5} />
                       </AreaChart>
                     </ResponsiveContainer>

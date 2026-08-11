@@ -456,16 +456,25 @@ export const getGoalInsights = asyncHandler(async (req, res) => {
 
   // 2. Compute dynamic rule-based explainable insights
   const contributions = await Contribution.find({ goalId: goal._id }).sort({ date: 1 });
-  const totalSaved = goal.savedAmount;
-  const remaining = goal.remainingAmount;
+  const analytics = computeUnifiedGoalAnalytics(goal, contributions);
+  
+  const totalSaved = analytics.accumulatedAmount;
+  const remaining = analytics.remainingAmount;
+  const ratePerDay = analytics.averageDailyContribution;
+  const daysLeft = analytics.daysRemaining;
 
   const insights = [];
 
+  // Data Audit Warning
+  if (analytics.totalContributions !== analytics.accumulatedAmount) {
+    insights.push({
+      level: 'Critical',
+      message: `Data Audit Warning: The sum of your recorded contributions (₹${analytics.totalContributions.toLocaleString('en-IN')}) does not match your goal's accumulated amount (₹${analytics.accumulatedAmount.toLocaleString('en-IN')}).`,
+      confidence: 100
+    });
+  }
+
   // Insight A: Pace check
-  const timeElapsedMs = new Date() - goal.createdAt;
-  const daysElapsed = Math.max(1, Math.ceil(timeElapsedMs / (1000 * 60 * 60 * 24)));
-  const ratePerDay = totalSaved / daysElapsed;
-  const daysLeft = Math.ceil((new Date(goal.targetDate) - new Date()) / (1000 * 60 * 60 * 24));
 
   if (totalSaved === 0) {
     insights.push({
@@ -741,6 +750,139 @@ export const getGoalAnalytics = asyncHandler(async (req, res) => {
     averageMonthlySavings: avgMonthlySaved,
     mostActiveMonth: sortedMonths[sortedMonths.length - 1] || 'None'
   });
+});
+
+// @desc    Helper to compute unified goal analytics (single source of truth)
+const computeUnifiedGoalAnalytics = (goal, contributions) => {
+  const totalContributions = contributions.reduce((s, c) => s + c.amount, 0);
+  const accumulatedAmount = goal.savedAmount; 
+  const targetAmount = goal.targetAmount;
+  const remainingAmount = Math.max(targetAmount - accumulatedAmount, 0);
+  const progressPercent = targetAmount > 0 ? Math.min(Math.round((accumulatedAmount / targetAmount) * 100), 100) : 0;
+  
+  const daysRemaining = Math.max(Math.ceil((new Date(goal.targetDate) - new Date()) / (1000 * 60 * 60 * 24)), 0);
+
+  let averageDailyContribution = 0;
+  if (contributions.length > 0) {
+    const firstContribDate = new Date(contributions[0].date);
+    const timeElapsedMs = Math.max(new Date() - firstContribDate, 1000 * 60 * 60 * 24);
+    const daysElapsed = Math.ceil(timeElapsedMs / (1000 * 60 * 60 * 24));
+    averageDailyContribution = totalContributions / daysElapsed;
+  }
+  
+  const averageWeeklyContribution = averageDailyContribution * 7;
+  const averageMonthlyContribution = averageDailyContribution * 30.4;
+  
+  let requiredDailyContribution = 0;
+  let requiredWeeklyContribution = 0;
+  let requiredMonthlyContribution = 0;
+  if (daysRemaining > 0 && remainingAmount > 0) {
+    requiredDailyContribution = remainingAmount / daysRemaining;
+    requiredWeeklyContribution = requiredDailyContribution * 7;
+    requiredMonthlyContribution = requiredDailyContribution * 30.4;
+  }
+
+  const monthlyMap = {};
+  contributions.forEach(c => {
+    const month = new Date(c.date).toISOString().substring(0, 7);
+    monthlyMap[month] = (monthlyMap[month] || 0) + c.amount;
+  });
+
+  const sortedMonths = Object.keys(monthlyMap).sort();
+  const monthlySavingsGrowth = [];
+  let cumulative = 0;
+  sortedMonths.forEach(m => {
+    cumulative += monthlyMap[m];
+    const [y, monthNum] = m.split('-');
+    const mName = new Date(parseInt(y, 10), parseInt(monthNum, 10) - 1, 1).toLocaleDateString('en-IN', { month: 'short' });
+    monthlySavingsGrowth.push({
+      month: `${mName} ${y.substring(2)}`,
+      saved: monthlyMap[m],
+      cumulative
+    });
+  });
+  
+  if (monthlySavingsGrowth.length === 0) {
+    const mName = new Date().toLocaleDateString('en-IN', { month: 'short' });
+    const y = new Date().getFullYear().toString().substring(2);
+    monthlySavingsGrowth.push({ month: `${mName} ${y}`, saved: 0, cumulative: 0 });
+  }
+
+  const forecastDailyRate = averageDailyContribution > 0 ? averageDailyContribution : requiredDailyContribution;
+  const forecastMonthlyRate = forecastDailyRate * 30.4;
+  
+  const wealthProjection = [];
+  let runningSavingsTotal = accumulatedAmount;
+  for (let i = 1; i <= 6; i++) {
+    const fDate = new Date();
+    fDate.setMonth(fDate.getMonth() + i);
+    runningSavingsTotal += forecastMonthlyRate;
+    if (runningSavingsTotal > targetAmount) runningSavingsTotal = targetAmount;
+    
+    wealthProjection.push({
+      month: fDate.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
+      projectedAmount: Math.round(runningSavingsTotal)
+    });
+  }
+
+  let completionForecast = null;
+  if (remainingAmount === 0) {
+    completionForecast = new Date();
+  } else if (averageDailyContribution > 0) {
+    const daysToComplete = Math.ceil(remainingAmount / averageDailyContribution);
+    const estDate = new Date();
+    estDate.setDate(estDate.getDate() + daysToComplete);
+    completionForecast = estDate;
+  }
+  
+  let probability = 0;
+  if (progressPercent >= 100) {
+    probability = 100;
+  } else if (daysRemaining > 0) {
+    if (averageDailyContribution >= requiredDailyContribution) {
+      probability = Math.min(99, 80 + (progressPercent * 0.2));
+    } else if (averageDailyContribution > 0) {
+      const projectedFinal = accumulatedAmount + (averageDailyContribution * daysRemaining);
+      probability = Math.max(10, Math.min(80, Math.round((projectedFinal / targetAmount) * 100)));
+    } else {
+      probability = Math.max(10, Math.round(progressPercent));
+    }
+  }
+
+  return {
+    goalId: goal._id,
+    targetAmount,
+    accumulatedAmount,
+    remainingAmount,
+    progressPercent,
+    daysRemaining,
+    totalContributions,
+    averageDailyContribution: Math.round(averageDailyContribution * 100) / 100,
+    averageWeeklyContribution: Math.round(averageWeeklyContribution * 100) / 100,
+    averageMonthlyContribution: Math.round(averageMonthlyContribution * 100) / 100,
+    requiredDailyContribution: Math.round(requiredDailyContribution * 100) / 100,
+    requiredWeeklyContribution: Math.round(requiredWeeklyContribution * 100) / 100,
+    requiredMonthlyContribution: Math.round(requiredMonthlyContribution * 100) / 100,
+    completionForecast,
+    probability: Math.round(probability),
+    monthlySavingsGrowth,
+    wealthProjection
+  };
+};
+
+// @desc    Get Detailed Analytics for a Specific Goal
+// @route   GET /api/goals/:id/analytics
+export const getSpecificGoalAnalytics = asyncHandler(async (req, res) => {
+  const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id, isDeleted: { $ne: true } });
+  if (!goal) {
+    res.status(404);
+    throw new Error('Goal not found');
+  }
+
+  const contributions = await Contribution.find({ goalId: goal._id }).sort({ date: 1 });
+  const unifiedAnalytics = computeUnifiedGoalAnalytics(goal, contributions);
+
+  sendSuccess(res, 200, 'Specific Goal Analytics fetched successfully', unifiedAnalytics);
 });
 
 // @desc    Delete/Remove a savings contribution

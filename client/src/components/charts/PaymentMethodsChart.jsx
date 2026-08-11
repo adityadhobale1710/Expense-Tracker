@@ -97,6 +97,8 @@ export default function PaymentMethodsChart({ rawExpenses = [], currencySymbol =
                   fontSize: '11px',
                   fontWeight: 'bold'
                 }}
+                itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+                labelStyle={{ color: 'var(--chart-text)' }}
                 formatter={(value) => `${currencySymbol}${value.toLocaleString()}`}
               />
             </PieChart>

@@ -17,10 +17,18 @@ export function useGoalAnalytics(goalId = null) {
     staleTime: 10 * 60 * 1000 // 10 minutes cache freshness
   });
 
-  // 3. User-wide goal analytics query
+  // 3. User-wide goal analytics query (fallback if no goalId is provided)
   const analyticsQuery = useQuery({
-    queryKey: ['goalAnalytics'],
-    queryFn: () => goalService.getGoalAnalytics()
+    queryKey: ['goalAnalytics', 'all'],
+    queryFn: () => goalService.getGoalAnalytics(),
+    enabled: !goalId
+  });
+
+  // 3b. Specific goal analytics query
+  const specificAnalyticsQuery = useQuery({
+    queryKey: ['goalAnalytics', goalId],
+    queryFn: () => goalService.getSpecificGoalAnalytics(goalId),
+    enabled: !!goalId
   });
 
   // 4. User-wide AI Recommendations query
@@ -38,9 +46,9 @@ export function useGoalAnalytics(goalId = null) {
     isLoadingInsights: insightsQuery.isLoading,
     refetchInsights: insightsQuery.refetch,
 
-    analytics: analyticsQuery.data || {},
-    isLoadingAnalytics: analyticsQuery.isLoading,
-    refetchAnalytics: analyticsQuery.refetch,
+    analytics: goalId ? (specificAnalyticsQuery.data || {}) : (analyticsQuery.data || {}),
+    isLoadingAnalytics: goalId ? specificAnalyticsQuery.isLoading : analyticsQuery.isLoading,
+    refetchAnalytics: goalId ? specificAnalyticsQuery.refetch : analyticsQuery.refetch,
 
     recommendations: recommendationsQuery.data || [],
     isLoadingRecommendations: recommendationsQuery.isLoading,

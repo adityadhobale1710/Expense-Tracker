@@ -1160,8 +1160,9 @@ export default function Subscriptions() {
                       <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
                       <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                        itemStyle={{ fontSize: '11px', color: '#cbd5e1' }}
+                        contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '12px' }}
+                        itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                        labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
                       />
                       <Bar dataKey="Cost" fill="#6366f1" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -1193,8 +1194,9 @@ export default function Subscriptions() {
                               ))}
                             </Pie>
                             <Tooltip
-                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                              itemStyle={{ fontSize: '11px', color: '#cbd5e1' }}
+                              contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '12px' }}
+                              itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                              labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
@@ -1230,8 +1232,9 @@ export default function Subscriptions() {
                       <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
                       <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                        itemStyle={{ fontSize: '11px', color: '#cbd5e1' }}
+                        contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '12px' }}
+                        itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
+                        labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
                       />
                       <Area type="monotone" dataKey="Projected" stroke="#10b981" fillOpacity={1} fill="url(#colorProjected)" strokeWidth={2} />
                     </AreaChart>

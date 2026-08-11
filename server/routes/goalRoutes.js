@@ -7,6 +7,7 @@ import {
   getGoalRecommendations,
   getGoalById,
   getGoalInsights,
+  getSpecificGoalAnalytics,
   getGoalContributions,
   createGoal,
   contributeToGoal,
@@ -37,6 +38,7 @@ router.route('/:id')
 
 router.put('/:id/status', updateGoalStatus);
 router.get('/:id/insights', getGoalInsights);
+router.get('/:id/analytics', getSpecificGoalAnalytics);
 router.get('/:id/contributions', getGoalContributions);
 router.post('/:id/contribute', contributeToGoal);
 router.delete('/:id/contributions/:contribId', deleteContribution);

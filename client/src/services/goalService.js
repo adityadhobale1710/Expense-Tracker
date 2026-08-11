@@ -63,6 +63,11 @@ export const goalService = {
     return data.data;
   },
 
+  getSpecificGoalAnalytics: async (id) => {
+    const { data } = await api.get(`/goals/${id}/analytics`);
+    return data.data;
+  },
+
   getGoalRecommendations: async () => {
     const { data } = await api.get('/goals/recommendations');
     return data.data;

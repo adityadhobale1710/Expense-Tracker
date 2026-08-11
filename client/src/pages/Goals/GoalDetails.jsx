@@ -229,6 +229,15 @@ export default function GoalDetails() {
 
             {/* Metrics */}
             <div className="flex-1 space-y-4">
+              {/* Data Audit Warning */}
+              {analytics && analytics.totalContributions !== undefined && analytics.accumulatedAmount !== undefined && analytics.totalContributions !== analytics.accumulatedAmount && (
+                <div className="flex items-start gap-3 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-semibold mb-2">
+                  <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                  <p>
+                    <strong>Data Audit Warning:</strong> The sum of your recorded contributions (₹{analytics.totalContributions.toLocaleString('en-IN')}) does not match your goal's accumulated amount (₹{analytics.accumulatedAmount.toLocaleString('en-IN')}).
+                  </p>
+                </div>
+              )}
               <div>
                 <div className="flex items-center gap-2.5">
                   <h3 className="text-lg font-black text-slate-100">{goal.title}</h3>
@@ -376,28 +385,28 @@ export default function GoalDetails() {
             <div className="space-y-3 font-semibold text-xs text-slate-300">
               <div className="flex justify-between p-2.5 bg-dark-900/60 border border-slate-700/30 rounded-xl">
                 <span>Suggested Monthly:</span>
-                <span className="text-slate-100 font-bold">₹{Math.round(goal.suggestedMonthlySaving || 0).toLocaleString('en-IN')}</span>
+                <span className="text-slate-100 font-bold">₹{Math.round(analytics?.requiredMonthlyContribution || 0).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between p-2.5 bg-dark-900/60 border border-slate-700/30 rounded-xl">
                 <span>Suggested Weekly:</span>
-                <span className="text-slate-100 font-bold">₹{Math.round(goal.suggestedWeeklySaving || 0).toLocaleString('en-IN')}</span>
+                <span className="text-slate-100 font-bold">₹{Math.round(analytics?.requiredWeeklyContribution || 0).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between p-2.5 bg-dark-900/60 border border-slate-700/30 rounded-xl">
                 <span>Suggested Daily:</span>
-                <span className="text-slate-100 font-bold">₹{Math.round(goal.suggestedDailySaving || 0).toLocaleString('en-IN')}</span>
+                <span className="text-slate-100 font-bold">₹{Math.round(analytics?.requiredDailyContribution || 0).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between p-2.5 bg-dark-900/60 border border-slate-700/30 rounded-xl">
                 <span>Completion Forecast:</span>
                 <span className="text-emerald-400 font-bold">
-                  {goal.estimatedCompletion 
-                    ? new Date(goal.estimatedCompletion).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                  {analytics?.completionForecast 
+                    ? new Date(analytics.completionForecast).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
                     : 'Insufficient data'}
                 </span>
               </div>
               <div className="flex justify-between p-2.5 bg-dark-900/60 border border-slate-700/30 rounded-xl">
                 <span>Probability:</span>
                 <span className="text-primary-400 font-bold">
-                  {goal.status === 'Completed' ? '100%' : daysLeft > 0 && goal.savedAmount > 0 ? '92%' : '45%'}
+                  {analytics?.probability !== undefined ? `${analytics.probability}%` : (goal.status === 'Completed' ? '100%' : 'Insufficient data')}
                 </span>
               </div>
               <div className="flex justify-between p-2.5 bg-dark-900/60 border border-slate-700/30 rounded-xl">

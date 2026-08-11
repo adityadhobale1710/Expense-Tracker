@@ -1328,8 +1328,9 @@ export default function BillCalendar() {
                           ))}
                         </Pie>
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                          itemStyle={{ color: '#f8fafc' }}
+                          contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: '12px' }}
+                          itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+                          labelStyle={{ color: 'var(--chart-text)' }}
                         />
                       </PieChart>
                     </ResponsiveContainer>

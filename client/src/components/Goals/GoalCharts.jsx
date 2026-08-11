@@ -56,6 +56,8 @@ export function SavingsGrowthChart({ data = [] }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               formatter={(val) => [`₹${val.toLocaleString('en-IN')}`, 'Total Saved']}
             />
             <Area
@@ -112,6 +114,8 @@ export function CategoryComparisonChart({ data = [] }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               formatter={(val) => `₹${val.toLocaleString('en-IN')}`}
             />
             <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} iconType="circle" />
@@ -168,6 +172,8 @@ export function SavingsForecastChart({ data = [] }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               formatter={(val) => [`₹${val.toLocaleString('en-IN')}`, 'Projected Balance']}
             />
             <Area

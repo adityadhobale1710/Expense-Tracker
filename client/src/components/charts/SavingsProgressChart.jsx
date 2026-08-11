@@ -63,6 +63,8 @@ export default function SavingsProgressChart({ data = [] }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               labelFormatter={(label, payload) =>
                 payload?.[0]?.payload?.isCurrent ? `${label} (Current)` : label
               }

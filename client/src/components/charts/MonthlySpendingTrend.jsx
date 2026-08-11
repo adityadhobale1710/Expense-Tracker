@@ -65,6 +65,8 @@ export default function MonthlySpendingTrend({ monthlyData = [] }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               formatter={(val, name) => [`₹${val.toLocaleString('en-IN')}`, name]}
             />
             <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} iconType="circle" />

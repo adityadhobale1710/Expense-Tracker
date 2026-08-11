@@ -38,6 +38,8 @@ export default function TopIncomeSourcesChart({ categoryData = [] }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               formatter={(val, name) => [`₹${val.toLocaleString('en-IN')}`, 'Income']}
             />
             <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>

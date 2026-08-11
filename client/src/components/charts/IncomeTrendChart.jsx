@@ -51,6 +51,8 @@ export default function IncomeTrendChart({ monthlyData = [] }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               formatter={(val, name) => [`₹${val.toLocaleString('en-IN')}`, name]}
             />
             <Area type="monotone" dataKey="income" name="Income" stroke={CHART_COLORS.income || '#10b981'} fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} activeDot={{ r: 6 }} />
