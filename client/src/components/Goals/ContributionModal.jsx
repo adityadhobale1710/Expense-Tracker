@@ -16,7 +16,6 @@ export default function ContributionModal({
   const [note, setNote] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().substring(0, 10));
   const [type, setType] = useState('Manual');
-  const [attachment, setAttachment] = useState('');
   const [error, setError] = useState('');
 
   // Fetch wallets list directly for selection
@@ -37,7 +36,6 @@ export default function ContributionModal({
       setNote('');
       setDate(new Date().toISOString().substring(0, 10));
       setType('Manual');
-      setAttachment('');
       setError('');
       
       // Auto select first wallet if available
@@ -73,8 +71,7 @@ export default function ContributionModal({
       walletId,
       note: note || `Savings transfer to goal: ${goal.title}`,
       date,
-      type,
-      attachment
+      type
     });
   };
 
@@ -207,17 +204,7 @@ export default function ContributionModal({
             />
           </div>
 
-          {/* Attachment */}
-          <div className="flex flex-col space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Receipt Attachment Link</label>
-            <input
-              type="text"
-              value={attachment}
-              onChange={(e) => setAttachment(e.target.value)}
-              placeholder="e.g. https://receipts.s3.amazonaws.com/rec-123.jpg"
-              className="px-3.5 py-2 bg-dark-900 border border-slate-700/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary-500"
-            />
-          </div>
+
 
           {/* Submit */}
           <div className="pt-4 border-t border-slate-700/30 flex justify-end gap-3">

@@ -40,59 +40,9 @@ export const calculateExpectedCompletionDate = (goal, contributions = []) => {
   return completionDate;
 };
 
-export const generateMilestonesTimeline = (goal, contributions = []) => {
-  if (!goal) return [];
-
-  // Sort contributions chronologically
-  const sorted = [...contributions].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  // Initialize milestone configurations
-  const timeline = [
-    { title: 'Goal Created', date: new Date(goal.createdAt), reached: true, description: 'Savings plan initiated.' }
-  ];
-
-  // We check thresholds: 25%, 50%, 75%, 90%, 100%
-  const thresholds = [25, 50, 75, 90, 100];
-  let currentSum = 0;
-
-  thresholds.forEach(pct => {
-    // Find the first contribution that crosses this threshold
-    let crossingContrib = null;
-    let runningSum = 0;
-
-    for (const c of sorted) {
-      runningSum += c.amount;
-      const progress = Math.round((runningSum / goal.targetAmount) * 100);
-      if (progress >= pct) {
-        crossingContrib = c;
-        break;
-      }
-    }
-
-    if (crossingContrib) {
-      timeline.push({
-        title: `${pct}% Reached`,
-        date: new Date(crossingContrib.date),
-        reached: true,
-        description: `Crossed ₹${Math.round(goal.targetAmount * (pct / 100)).toLocaleString('en-IN')} milestone.`
-      });
-    } else {
-      timeline.push({
-        title: `${pct}% Milestone`,
-        date: null,
-        reached: false,
-        description: `Target: ₹${Math.round(goal.targetAmount * (pct / 100)).toLocaleString('en-IN')}`
-      });
-    }
-  });
-
-  return timeline;
-};
-
 export default {
   calculateDaysRemaining,
   formatDaysRemaining,
   calculateSavingsRate,
-  calculateExpectedCompletionDate,
-  generateMilestonesTimeline
+  calculateExpectedCompletionDate
 };

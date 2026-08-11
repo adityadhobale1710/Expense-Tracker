@@ -229,6 +229,10 @@ export const updateGoal = asyncHandler(async (req, res) => {
           res.status(400);
           throw new Error('Target amount must be a valid number greater than zero');
         }
+        if (numVal !== goal.targetAmount && numVal < goal.savedAmount) {
+          res.status(400);
+          throw new Error(`Target amount cannot be less than the amount already saved (₹${goal.savedAmount.toLocaleString('en-IN')}).`);
+        }
         goal[f] = numVal;
       } else {
         goal[f] = req.body[f];
@@ -243,9 +247,7 @@ export const updateGoal = asyncHandler(async (req, res) => {
     createdAt: new Date()
   });
 
-  // Invalidate AI cache
-  goal.aiGeneratedAt = null;
-
+  await goal.save();
   await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 200, 'Goal updated successfully', goal);
 });
@@ -306,7 +308,7 @@ export const deleteGoal = asyncHandler(async (req, res) => {
 // @desc    Contribute funds manually to a goal (Savings Transfer)
 // @route   POST /api/goals/:id/contribute
 export const contributeToGoal = asyncHandler(async (req, res) => {
-  const { amount, walletId, note, date, type, attachment } = req.body;
+  const { amount, walletId, note, date, type } = req.body;
 
   if (!amount || amount <= 0) {
     res.status(400);
@@ -360,8 +362,7 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
     amount: actualContribution,
     note: note || `Manual savings transfer from wallet ${wallet.name}`,
     date: date || new Date(),
-    type: type || 'Manual',
-    attachment
+    type: type || 'Manual'
   });
 
   const completionPercent = Math.min(Math.round((goal.savedAmount / goal.targetAmount) * 100), 100);
@@ -389,22 +390,14 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
     createdAt: new Date()
   });
 
-  // Calculate milestones crossed
+  // Trigger completion notification if completed
   const oldPct = Math.min(Math.round((oldSaved / goal.targetAmount) * 100), 100);
-  const newPct = completionPercent;
-  const milestones = [25, 50, 75, 90, 100];
-  
-  for (const threshold of milestones) {
-    if (oldPct < threshold && newPct >= threshold) {
-      const isCompleted = threshold === 100;
-      await Notification.create({
-        user: req.user._id,
-        type: isCompleted ? 'goal_completed' : 'goal_milestone',
-        message: isCompleted 
-          ? `🏆 Hurrah! You fully completed your savings goal "${goal.title}"!`
-          : `🎯 Milestone achieved! Your savings goal "${goal.title}" is now ${threshold}% completed.`
-      });
-    }
+  if (oldPct < 100 && completionPercent >= 100) {
+    await Notification.create({
+      user: req.user._id,
+      type: 'goal_completed',
+      message: `🏆 Hurrah! You fully completed your savings goal "${goal.title}"!`
+    });
   }
 
   if (completionPercent >= 100) {
@@ -416,9 +409,6 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
       createdAt: new Date()
     });
   }
-
-  // Invalidate AI cache
-  goal.aiGeneratedAt = null;
 
   await goal.save();
 
@@ -437,197 +427,6 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
     contribution,
     differenceReturned: amount - actualContribution // return cap residue if any
   });
-});
-
-
-// @desc    Get AI Insights for a Goal
-// @route   GET /api/goals/:id/insights
-export const getGoalInsights = asyncHandler(async (req, res) => {
-  const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id, isDeleted: { $ne: true } });
-  if (!goal) {
-    res.status(404);
-    throw new Error('Goal not found');
-  }
-
-  // 1. Return cached values if fresh (within last 1 hour)
-  if (goal.aiGeneratedAt && (new Date() - goal.aiGeneratedAt < 60 * 60 * 1000) && goal.aiInsights?.length > 0) {
-    return sendSuccess(res, 200, 'Cached AI Insights retrieved', goal.aiInsights);
-  }
-
-  // 2. Compute dynamic rule-based explainable insights
-  const contributions = await Contribution.find({ goalId: goal._id }).sort({ date: 1 });
-  const analytics = computeUnifiedGoalAnalytics(goal, contributions);
-  
-  const totalSaved = analytics.accumulatedAmount;
-  const remaining = analytics.remainingAmount;
-  const ratePerDay = analytics.averageDailyContribution;
-  const daysLeft = analytics.daysRemaining;
-
-  const insights = [];
-
-  // Data Audit Warning
-  if (analytics.totalContributions !== analytics.accumulatedAmount) {
-    insights.push({
-      level: 'Critical',
-      message: `Data Audit Warning: The sum of your recorded contributions (₹${analytics.totalContributions.toLocaleString('en-IN')}) does not match your goal's accumulated amount (₹${analytics.accumulatedAmount.toLocaleString('en-IN')}).`,
-      confidence: 100
-    });
-  }
-
-  // Insight A: Pace check
-
-  if (totalSaved === 0) {
-    insights.push({
-      level: 'Critical',
-      message: 'This goal has stalled with zero contributions. Make an initial deposit to jumpstart progress!',
-      confidence: 99
-    });
-  } else if (ratePerDay > 0) {
-    const daysToFinish = Math.ceil(remaining / ratePerDay);
-    const diff = daysLeft - daysToFinish;
-
-    if (diff > 0) {
-      insights.push({
-        level: 'Positive',
-        message: `At your current savings pace, you are on track to achieve this goal ${diff} days early!`,
-        confidence: 90
-      });
-    } else if (diff < 0) {
-      const extraMonthly = Math.round(((remaining / (daysLeft / 30.4)) - (ratePerDay * 30.4)) * 100) / 100;
-      insights.push({
-        level: 'Critical',
-        message: `Warning: At your current savings rate, you will miss your target deadline. Increase savings by roughly ₹${Math.max(100, Math.round(extraMonthly))} per month to complete on time.`,
-        confidence: 94
-      });
-    } else {
-      insights.push({
-        level: 'Positive',
-        message: 'Your average savings pace lines up exactly with your deadline. Keep it up!',
-        confidence: 85
-      });
-    }
-  }
-
-  // Insight B: Inactivity warning
-  if (contributions.length > 0) {
-    const last = contributions[contributions.length - 1];
-    const stalledDays = Math.ceil((new Date() - last.date) / (1000 * 60 * 60 * 24));
-    if (stalledDays > 30 && goal.status === 'Active') {
-      insights.push({
-        level: 'Warning',
-        message: `You haven't contributed to this goal in ${stalledDays} days. Consider making a manual contribution to continue progress.`,
-        confidence: 98
-      });
-    }
-  }
-
-  // Insight C: Category suggestions based on spending leaks
-  const currentMonthStart = new Date();
-  currentMonthStart.setDate(1);
-  currentMonthStart.setHours(0,0,0,0);
-  
-  const expenses = await Expense.find({ user: req.user._id, date: { $gte: currentMonthStart } }).populate('category');
-  if (expenses.length > 0) {
-    const catTotals = {};
-    expenses.forEach(e => {
-      const catName = e.category?.name || 'Other';
-      catTotals[catName] = (catTotals[catName] || 0) + e.amount;
-    });
-    const sorted = Object.keys(catTotals).sort((a,b) => catTotals[b] - catTotals[a]);
-    const maxCat = sorted[0];
-    const maxAmount = catTotals[maxCat];
-    const reduction = Math.round(maxAmount * 0.20);
-    const speedUpDays = ratePerDay > 0 ? Math.round(reduction / ratePerDay) : 10;
-    
-    if (maxAmount > 2000 && goal.status === 'Active') {
-      insights.push({
-        level: 'Suggestion',
-        message: `Reducing discretionary spending in "${maxCat}" by 20% (saves ₹${reduction.toLocaleString('en-IN')}) would allow you to achieve this goal ${speedUpDays} days faster.`,
-        confidence: 92
-      });
-    }
-  }
-
-  // If no specific insights generated, add a default advice card
-  if (insights.length === 0) {
-    insights.push({
-      level: 'Suggestion',
-      message: 'Establish a weekly recurring savings buffer of ₹500 to keep the goal active and ensure completion.',
-      confidence: 80
-    });
-  }
-
-  // Store in cache
-  goal.aiInsights = insights;
-  goal.aiGeneratedAt = new Date();
-  await goal.save();
-
-  sendSuccess(res, 200, 'AI Insights fetched', insights);
-});
-
-// @desc    Get AI Recommendations and Spending analysis for goals
-// @route   GET /api/goals/recommendations
-export const getGoalRecommendations = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-
-  // Retrieve active goals
-  const goals = await Goal.find({ user: userId, status: 'Active', isDeleted: { $ne: true } });
-  if (goals.length === 0) {
-    return sendSuccess(res, 200, 'No active goals to recommend for', []);
-  }
-
-  // We can fetch the first active goal and cache recommendations on it or return dynamically.
-  // The user wanted: Explainable AI recommendations containing recommendation, reason, impact, confidence.
-  const currentMonthStart = new Date();
-  currentMonthStart.setDate(1);
-  currentMonthStart.setHours(0,0,0,0);
-  
-  const expenses = await Expense.find({ user: userId, date: { $gte: currentMonthStart } }).populate('category');
-  const recommendations = [];
-
-  if (expenses.length > 0) {
-    const catTotals = {};
-    expenses.forEach(e => {
-      const catName = e.category?.name || 'Other';
-      catTotals[catName] = (catTotals[catName] || 0) + e.amount;
-    });
-
-    const sorted = Object.keys(catTotals).sort((a,b) => catTotals[b] - catTotals[a]);
-    const topCat = sorted[0];
-    const topCatVal = catTotals[topCat];
-    
-    // Suggest 20% cutback
-    const targetGoal = goals[0]; // recommend for primary goal
-    const savedPct = targetGoal.progressPct;
-    
-    if (topCatVal > 2000) {
-      const monthlySavingsPotential = Math.round(topCatVal * 0.2);
-      const impactDays = Math.ceil(targetGoal.remainingAmount / (targetGoal.suggestedDailySaving + (monthlySavingsPotential / 30)));
-      const daysEarlier = Math.max(2, Math.ceil(targetGoal.remainingAmount / (targetGoal.suggestedDailySaving || 100)) - impactDays);
-      const confidence = savedPct >= 80 ? 88 : savedPct >= 50 ? 92 : 95;
-
-      recommendations.push({
-        recommendation: `Reduce ${topCat} by 20%`,
-        reason: `Your spending in "${topCat}" is ₹${topCatVal.toLocaleString('en-IN')} this month, representing your highest discretionary outlet. You are currently ${savedPct}% toward "${targetGoal.title}".`,
-        impact: `Redirecting this 20% (₹${monthlySavingsPotential.toLocaleString('en-IN')}) will help you achieve "${targetGoal.title}" ${daysEarlier} days earlier.`,
-        confidence
-      });
-    }
-  }
-
-  // General savings recommendations
-  const totalRemaining = goals.reduce((sum, g) => sum + g.remainingAmount, 0);
-  const avgMonthlyTarget = goals.reduce((sum, g) => sum + g.suggestedMonthlySaving, 0);
-  const suggestedMonthly = Math.round(avgMonthlyTarget * 0.5);
-
-  recommendations.push({
-    recommendation: 'Establish consistent monthly savings',
-    reason: `With ₹${totalRemaining.toLocaleString('en-IN')} still to save across ${goals.length} active goals, manual savings transfers can be irregular, affecting the consistency of your progress.`,
-    impact: `Allocating a fixed monthly amount of ₹${suggestedMonthly.toLocaleString('en-IN')} will help close the remaining ₹${totalRemaining.toLocaleString('en-IN')} and keep your goals on track.`,
-    confidence: 90
-  });
-
-  sendSuccess(res, 200, 'AI Recommendations fetched', recommendations);
 });
 
 // @desc    Get Detailed Analytics for Savings Goals
@@ -808,23 +607,6 @@ const computeUnifiedGoalAnalytics = (goal, contributions) => {
     monthlySavingsGrowth.push({ month: `${mName} ${y}`, saved: 0, cumulative: 0 });
   }
 
-  const forecastDailyRate = averageDailyContribution > 0 ? averageDailyContribution : requiredDailyContribution;
-  const forecastMonthlyRate = forecastDailyRate * 30.4;
-  
-  const wealthProjection = [];
-  let runningSavingsTotal = accumulatedAmount;
-  for (let i = 1; i <= 6; i++) {
-    const fDate = new Date();
-    fDate.setMonth(fDate.getMonth() + i);
-    runningSavingsTotal += forecastMonthlyRate;
-    if (runningSavingsTotal > targetAmount) runningSavingsTotal = targetAmount;
-    
-    wealthProjection.push({
-      month: fDate.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
-      projectedAmount: Math.round(runningSavingsTotal)
-    });
-  }
-
   let completionForecast = null;
   if (remainingAmount === 0) {
     completionForecast = new Date();
@@ -865,8 +647,7 @@ const computeUnifiedGoalAnalytics = (goal, contributions) => {
     requiredMonthlyContribution: Math.round(requiredMonthlyContribution * 100) / 100,
     completionForecast,
     probability: Math.round(probability),
-    monthlySavingsGrowth,
-    wealthProjection
+    monthlySavingsGrowth
   };
 };
 
@@ -923,7 +704,6 @@ export const deleteContribution = asyncHandler(async (req, res) => {
     createdAt: new Date()
   });
 
-  goal.aiGeneratedAt = null; // Invalidate AI cache
   await goal.save();
   await updateSavingsAchievements(req.user._id);
 

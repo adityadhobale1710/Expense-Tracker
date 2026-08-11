@@ -15,9 +15,7 @@ import { calculateDaysRemaining, formatDaysRemaining } from '../../utils/goalCal
 import { getPriorityBadgeClass, getStatusBadgeClass } from '../../utils/goalHelpers';
 
 // Sub-components
-import GoalTimeline from '../../components/Goals/GoalTimeline';
-import GoalInsights from '../../components/Goals/GoalInsights';
-import { SavingsGrowthChart, SavingsForecastChart } from '../../components/Goals/GoalCharts';
+import { SavingsGrowthChart } from '../../components/Goals/GoalCharts';
 import ContributionModal from '../../components/Goals/ContributionModal';
 
 export default function GoalDetails() {
@@ -31,11 +29,7 @@ export default function GoalDetails() {
   const {
     goal,
     isLoadingGoal,
-    insights,
-    isLoadingInsights,
-    analytics,
-    recommendations,
-    isLoadingRecommendations
+    analytics
   } = useGoalAnalytics(id);
 
   const {
@@ -66,6 +60,11 @@ export default function GoalDetails() {
       }
     }
   }, [goal]);
+
+  // Reset page pagination to 1 when switching between different goals
+  useEffect(() => {
+    setPage(1);
+  }, [id]);
 
   if (isLoadingGoal) {
     return (
@@ -280,10 +279,7 @@ export default function GoalDetails() {
             <SavingsGrowthChart data={analytics.monthlySavingsGrowth} />
           )}
 
-          {/* Savings Forecast Model */}
-          {analytics && analytics.wealthProjection && (
-            <SavingsForecastChart data={analytics.wealthProjection} />
-          )}
+
 
           {/* Contributions list */}
           <div className="card p-6 space-y-4">
@@ -416,11 +412,7 @@ export default function GoalDetails() {
             </div>
           </div>
 
-          {/* AI Insights display */}
-          <GoalInsights insights={insights || goal.aiInsights || []} isLoading={isLoadingInsights} />
 
-          {/* Milestones timeline */}
-          <GoalTimeline goal={goal} contributions={contributions} />
         </div>
       </div>
 
@@ -454,15 +446,9 @@ export default function GoalDetails() {
               </p>
 
               {/* Reward stats */}
-              <div className="grid grid-cols-2 gap-4 my-6 bg-dark-950/60 p-3 rounded-2xl border border-slate-800">
-                <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">XP Earned</span>
-                  <span className="text-primary-400 font-black">+500 XP</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Badges</span>
-                  <span className="text-yellow-400 font-black">s4 Milestone</span>
-                </div>
+              <div className="bg-dark-950/60 p-3 rounded-2xl border border-slate-800 my-6">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">XP Earned</span>
+                <span className="text-primary-400 font-black">+500 XP</span>
               </div>
 
               <div className="flex flex-col gap-2.5">

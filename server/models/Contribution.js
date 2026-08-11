@@ -39,10 +39,6 @@ const contributionSchema = new mongoose.Schema(
       enum: ['Manual', 'Automatic', 'Salary Auto Save', 'Round Up', 'Reward', 'Wallet Transfer'],
       default: 'Manual',
     },
-    attachment: {
-      type: String,
-      default: '',
-    },
   },
   { timestamps: true }
 );

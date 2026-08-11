@@ -84,8 +84,17 @@ export default function GoalModal({
     if (new Date(formData.targetDate) <= new Date() && !isEdit) {
       return setError('Target date must be in the future');
     }
-    if (Number(formData.savedAmount) > Number(formData.targetAmount)) {
-      return setError('Initial saved amount cannot exceed target amount');
+
+    const targetAmt = Number(formData.targetAmount);
+    const savedAmt = Number(formData.savedAmount);
+    const isTargetAmountModified = !goal || targetAmt !== Number(goal.targetAmount);
+
+    if (isTargetAmountModified && targetAmt < savedAmt) {
+      if (isEdit) {
+        return setError(`Target amount cannot be less than the amount already saved (₹${savedAmt.toLocaleString('en-IN')}).`);
+      } else {
+        return setError('Initial saved amount cannot exceed target amount');
+      }
     }
 
     onSubmit(formData);
