@@ -153,8 +153,8 @@ const PMBadge = memo(({ method }) => {
 const PieTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-dark-800 border border-slate-700 rounded-xl px-3 py-2 shadow-xl text-xs">
-      <p className="text-slate-100 font-bold">{payload[0].name}</p>
+    <div className="border rounded-xl px-3 py-2 shadow-xl text-xs" style={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)' }}>
+      <p className="font-bold">{payload[0].name}</p>
       <p className="text-emerald-400 font-black mt-0.5">₹{payload[0].value?.toLocaleString('en-IN')}</p>
     </div>
   );
@@ -162,8 +162,8 @@ const PieTooltip = ({ active, payload }) => {
 const AreaTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-dark-800 border border-slate-700 rounded-xl px-3 py-2 shadow-xl text-xs">
-      <p className="text-slate-400 mb-1">{label}</p>
+    <div className="border rounded-xl px-3 py-2 shadow-xl text-xs" style={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)' }}>
+      <p className="mb-1" style={{ color: 'var(--chart-text)' }}>{label}</p>
       <p className="text-emerald-400 font-black">₹{payload[0]?.value?.toLocaleString('en-IN')}</p>
     </div>
   );

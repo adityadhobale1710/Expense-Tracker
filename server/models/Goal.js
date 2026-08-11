@@ -50,7 +50,6 @@ const goalSchema = new mongoose.Schema(
     progressPct: { type: Number, default: 0 },
     remainingAmount: { type: Number, default: 0 },
     estimatedCompletion: { type: Date, default: null },
-    visibility: { type: String, enum: ['Private', 'Family', 'Shared'], default: 'Private' },
     
     reminderPreferences: {
       frequency: { 

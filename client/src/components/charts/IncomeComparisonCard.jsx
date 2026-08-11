@@ -111,6 +111,8 @@ export default function IncomeComparisonCard({ currentMonthIncome, previousMonth
                     fontSize: '11px',
                     fontWeight: 'bold'
                   }}
+                  itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+                  labelStyle={{ color: 'var(--chart-text)' }}
                   formatter={(val) => [`₹${val.toLocaleString('en-IN')}`, 'Income']}
                 />
                 <XAxis 

@@ -76,6 +76,13 @@ html[data-theme="dark-blue"] {
   --slate-700: 29 78 216;
   --slate-800: 20 40 80;
   --slate-900: 10 25 55;
+
+  /* Chart colors */
+  --chart-grid: #1e3a8a;
+  --chart-text: #93c5fd;
+  --chart-tooltip-bg: #081224;
+  --chart-tooltip-border: #1e3a8a;
+  --chart-tooltip-text: #eff6ff;
 }
 
 

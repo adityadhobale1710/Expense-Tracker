@@ -41,8 +41,8 @@ const getCategoryColor = (name, index) => {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-dark-800 border border-slate-700/80 rounded-xl p-3 shadow-xl text-xs space-y-1">
-      <p className="text-slate-400 font-medium mb-1.5">{label}</p>
+    <div className="border rounded-xl p-3 shadow-xl text-xs space-y-1" style={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)' }}>
+      <p className="font-medium mb-1.5" style={{ color: 'var(--chart-text)' }}>{label}</p>
       {payload.map((p) => (
         <p key={p.name} className="text-sm font-extrabold" style={{ color: p.color }}>
           {p.name}: ₹{Number(p.value).toLocaleString('en-IN')}
@@ -58,12 +58,12 @@ const CustomPieTooltip = ({ active, payload }) => {
   const data = payload[0].payload;
   const avgExpense = data.count > 0 ? (data.total / data.count).toFixed(0) : 0;
   return (
-    <div className="bg-dark-800 border border-slate-700/80 rounded-xl p-3.5 shadow-xl text-xs space-y-1.5 min-w-[150px]">
-      <p className="text-[10px] uppercase font-black text-slate-500 tracking-wider flex items-center gap-1.5">
+    <div className="border rounded-xl p-3.5 shadow-xl text-xs space-y-1.5 min-w-[150px]" style={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)' }}>
+      <p className="text-[10px] uppercase font-black tracking-wider flex items-center gap-1.5" style={{ color: 'var(--chart-text)' }}>
         <span>{data.icon}</span> <span>{data.name}</span>
       </p>
-      <div className="border-t border-slate-700/50 my-1 pt-1 space-y-1">
-        <p className="font-extrabold text-sm text-slate-100">
+      <div className="my-1 pt-1 space-y-1" style={{ borderTop: '1px solid var(--chart-tooltip-border)' }}>
+        <p className="font-extrabold text-sm" style={{ color: 'var(--chart-tooltip-text)' }}>
           ₹{Number(data.total).toLocaleString('en-IN')}
         </p>
         <p className="text-slate-400 font-medium">

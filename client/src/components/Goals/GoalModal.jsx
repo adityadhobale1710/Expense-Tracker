@@ -23,8 +23,7 @@ export default function GoalModal({
     priority: 'Medium',
     color: '#6366f1',
     icon: '🎯',
-    notes: '',
-    visibility: 'Private'
+    notes: ''
   });
 
   const [error, setError] = useState('');
@@ -41,8 +40,7 @@ export default function GoalModal({
         priority: goal.priority || 'Medium',
         color: goal.color || '#6366f1',
         icon: goal.icon || '🎯',
-        notes: goal.notes || '',
-        visibility: goal.visibility || 'Private'
+        notes: goal.notes || ''
       });
     } else {
       setFormData({
@@ -55,8 +53,7 @@ export default function GoalModal({
         priority: 'Medium',
         color: '#6366f1',
         icon: '🎯',
-        notes: '',
-        visibility: 'Private'
+        notes: ''
       });
     }
     setError('');
@@ -269,20 +266,6 @@ export default function GoalModal({
                 />
               ))}
             </div>
-          </div>
-
-          {/* Visibility Settings */}
-          <div className="flex flex-col space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Goal Visibility</label>
-            <select
-              value={formData.visibility}
-              onChange={(e) => setFormData(prev => ({ ...prev, visibility: e.target.value }))}
-              className="px-3.5 py-2 bg-dark-900 border border-slate-700/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary-500"
-            >
-              <option value="Private">🔒 Private (User-specific logs)</option>
-              <option value="Family">👪 Family Sharing (Visible to family members)</option>
-              <option value="Shared">🌐 Public/Shared (Visible to shared links)</option>
-            </select>
           </div>
 
           {/* Submit */}

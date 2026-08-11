@@ -62,6 +62,8 @@ export default function CashFlowChart({ cashflowData }) {
                 fontSize: '11px',
                 fontWeight: 'bold'
               }}
+              itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+              labelStyle={{ color: 'var(--chart-text)' }}
               formatter={(val) => `₹${val.toLocaleString('en-IN')}`}
             />
             <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} iconType="circle" />
