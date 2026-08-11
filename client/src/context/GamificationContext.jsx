@@ -39,7 +39,8 @@ const initialState = {
   floatyTexts: [],         // [{ id, text, x, y }]
   notifications: [],       // Steam-style stacked toasts
   confettiActive: false,
-  isLoaded: false,         // true after first backend fetch
+  isLoaded: false,         // true after first backend fetch completes (success or error)
+  loading: true,           // true while the initial /gamification/profile fetch is in-flight
 };
 
 // ─── REDUCER ─────────────────────────────────────────────────────────────────
@@ -62,7 +63,10 @@ function gamificationReducer(state, action) {
         level: profile.level ?? state.level,
         streak: profile.streak ?? state.streak,
         longestStreak: profile.longestStreak ?? state.longestStreak,
-        lifetimeXP: profile.lifetimeXP ?? profile.xp ?? state.lifetimeXP,
+        // Issue 6 fix: trust backend lifetimeXP; do NOT silently fall back to profile.xp
+        // (current-season XP) as that would corrupt the lifetime rank calculation.
+        // If lifetimeXP is genuinely missing from the backend response, preserve prior state.
+        lifetimeXP: profile.lifetimeXP ?? state.lifetimeXP,
         rank: profile.rank ?? state.rank,
         achievements: mergedAchievements,
         simulatedActions: profile.simulatedActions ?? state.simulatedActions,
@@ -71,6 +75,7 @@ function gamificationReducer(state, action) {
         rewardChests: profile.rewardChests ?? state.rewardChests,
         openedChests: (profile.rewardChests || []).map(c => c.level),
         isLoaded: true,
+        loading: false,
       };
     }
 
@@ -210,6 +215,9 @@ function gamificationReducer(state, action) {
       return { ...state, achievements: merged };
     }
 
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+
     default:
       return state;
   }
@@ -248,11 +256,16 @@ export const GamificationProvider = ({ children }) => {
   const loadProfile = useCallback(async () => {
     if (isLoadingRef.current) return;
     const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    if (!token) {
+      // No token — ensure loading flag is cleared so UI doesn't hang
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return;
+    }
 
     const userId = getUserId();
 
     isLoadingRef.current = true;
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const { data } = await api.get('/gamification/profile');
       if (data.success && data.data) {
@@ -263,7 +276,7 @@ export const GamificationProvider = ({ children }) => {
         }
       }
     } catch {
-      // Fallback: try localStorage cache
+      // Fallback: try localStorage cache before giving up
       if (userId) {
         try {
           const cached = localStorage.getItem(`gam_cache_${userId}`);
@@ -277,6 +290,8 @@ export const GamificationProvider = ({ children }) => {
           }
         } catch {}
       }
+      // Even on failure, clear loading so the UI doesn't stay spinning
+      dispatch({ type: 'SET_LOADING', payload: false });
     } finally {
       isLoadingRef.current = false;
     }
@@ -288,17 +303,20 @@ export const GamificationProvider = ({ children }) => {
 
   // ── Debounced backend sync after reward ──────────────────────────────────
   const syncToBackend = useCallback(async (reward, actionId) => {
+    const ENGAGEMENT_ACTIONS = [
+      'DAILY_LOGIN', 'VIEW_ANALYTICS', 'VIEW_SUBSCRIPTIONS', 'REVIEW_SUB_BUDGET', 'BACKUP_DATA'
+    ];
+    
+    // Do not sync business actions from the client. They are handled by their respective controllers.
+    if (!ENGAGEMENT_ACTIONS.includes(actionId)) {
+      return;
+    }
+
     clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(async () => {
       try {
-        await api.post('/gamification/reward', {
+        await api.post('/gamification/log-engagement', {
           actionId,
-          xp: reward.xp,
-          coins: reward.coins,
-          description: actionId.replace(/_/g, ' ').toLowerCase(),
-          achievementsUnlocked: reward.achievementsUnlocked,
-          levelUp: reward.levelUp,
-          chestUnlocked: reward.chestUnlocked,
         });
       } catch (err) {
         console.warn('[GamificationContext] Sync failed:', err.message);

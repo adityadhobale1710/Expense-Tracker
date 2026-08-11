@@ -53,29 +53,113 @@ export const REWARD_ACTIONS = {
   NET_POSITIVE_MONTH:     { xp: 200,  coins: 30  },
 };
 
-// Map actionId -> unlocked achievements (Option A)
+// Map actionId -> unlocked achievements
+//
+// Issue 8 fix: Expanded to cover all action-based achievements from all 14 categories.
+//
+// Achievement classification:
+//   ACTION-BASED   — triggered by a discrete action in the app (listed below)
+//   THRESHOLD-BASED — triggered by accumulating a numeric value (e.g. streak > 20,
+//                     net worth > ₹5L, 10+ payments). These require server-side
+//                     calculation in the relevant domain controller and cannot be
+//                     verified through actionToAchievementMap alone.
+//   SYSTEM         — automatically evaluated by the server (e.g. level checks, date checks)
+//
 export const actionToAchievementMap = {
-  ADD_INCOME:          ['c1'],
-  ADD_EXPENSE:         [],
-  CREATE_BUDGET:       ['b1'],
-  ADD_GOAL:            ['s2'],
-  GOAL_COMPLETED:      ['s4'],
-  ADD_WALLET:          ['wal1'],
-  WALLET_TRANSFER:     ['wal3'],
-  ADD_INVESTMENT:      ['i1'],
-  ADD_LOAN:            ['loan1'],
-  MAKE_LOAN_PAYMENT:   ['loan2'],
-  PAYOFF_LOAN:         ['loan5'],
-  ADD_SUBSCRIPTION:    ['sub1'],
-  CREATE_FAMILY:       ['fam1'],
-  INVITE_FAMILY_MEMBER:['fam2'],
-  LOG_FAMILY_EXPENSE:  ['fam4'],
-  SET_FAMILY_BUDGET:   ['fam5'],
-  CREATE_SPLIT_BILL:   ['p10'],
-  SETTLE_SPLIT_BILL:   ['fam6', 'p11'],
-  EXPORT_REPORTS:      ['p1'],
-  DAILY_LOGIN:         ['c1'],
+  // ── Core financial ────────────────────────────────────────────────────────
+  ADD_INCOME:             ['c1'],           // c1: Hello World (first login/add)
+  ADD_EXPENSE:            [],
+  UPLOAD_RECEIPT:         ['p4'],           // p4: OCR Tech
+  CATEGORIZE_EXPENSE:     [],
+  EXPORT_REPORTS:         ['p1', 'p2', 'p3'],  // p1: Documenter, p2: Spreadsheet Geek, p3: PDF Printer
+
+  // ── Budget ────────────────────────────────────────────────────────────────
+  CREATE_BUDGET:          ['b1'],           // b1: Budget Architect
+
+  // ── Goals ─────────────────────────────────────────────────────────────────
+  ADD_GOAL:               ['s2'],           // s2: Goal Setter
+  GOAL_COMPLETED:         ['s4'],           // s4: Milestone Achiever
+  REACH_GOAL:             ['s4'],
+  GOAL_CONTRIBUTION:      [],
+
+  // ── Investments ───────────────────────────────────────────────────────────
+  ADD_INVESTMENT:         ['i1'],           // i1: First Asset
+
+  // ── Loans ─────────────────────────────────────────────────────────────────
+  ADD_LOAN:               ['loan1'],        // loan1: Borrower Debut
+  MAKE_LOAN_PAYMENT:      ['loan2'],        // loan2: First Installment
+  PAY_EMI:                ['loan2'],
+  PAYOFF_LOAN:            ['loan5'],        // loan5: Debt Free Starter
+  PAY_LOAN_ON_TIME:       [],
+
+  // ── Wallets ───────────────────────────────────────────────────────────────
+  ADD_WALLET:             ['wal1'],         // wal1: Vault Creator
+  WALLET_TRANSFER:        ['wal3', 'p8'],   // wal3: Bridge Builder, p8: Wallet Transfer
+  TRANSFER:               ['wal3', 'p8'],
+  DIVERSE_WALLETS:        ['wal6'],         // wal6: Hybrid Pockets
+  WALLET_MILESTONE:       [],
+  WALLET_BALANCE_30D:     [],
+
+  // ── Subscriptions ─────────────────────────────────────────────────────────
+  ADD_SUBSCRIPTION:       ['sub1', 'p9'],   // sub1: Streaming Age, p9: Subscription Track
+  VIEW_SUBSCRIPTIONS:     ['sub3'],         // sub3: Horizon Watcher
+  CANCEL_SUBSCRIPTION:    ['sub4'],         // sub4: Leak Plugger
+  SWITCH_ANNUAL_PLAN:     ['sub6'],         // sub6: Smart Saver Option
+  SUBSCRIPTION_RENEWED:   [],
+  REVIEW_SUB_BUDGET:      [],
+
+  // ── Reporting & Analytics ─────────────────────────────────────────────────
+  VIEW_ANALYTICS:         [],
+  COMPLETE_REVIEW:        [],
+  TRACK_BILLS:            [],
+  PAY_BILLS_ON_TIME:      [],
+
+  // ── Family ────────────────────────────────────────────────────────────────
+  CREATE_FAMILY:          ['fam1'],         // fam1: First Steps: Group
+  INVITE_FAMILY_MEMBER:   ['fam2'],         // fam2: Growing Together
+  LOG_FAMILY_EXPENSE:     ['fam4'],         // fam4: Shared Ledger
+  SET_FAMILY_BUDGET:      ['fam5'],         // fam5: Family Budgeting
+  FAMILY_ACTIVE_30D:      [],
+
+  // ── Split ─────────────────────────────────────────────────────────────────
+  CREATE_SPLIT_BILL:      ['p10'],          // p10: Split Bill Ledger
+  SETTLE_SPLIT_BILL:      ['fam6', 'p11'], // fam6: Settle & Smile, p11: Settle Up Master
+
+  // ── Engagement ────────────────────────────────────────────────────────────
+  DAILY_LOGIN:            ['c1'],           // c1: Hello World
+  MAINTAIN_STREAK:        [],
+  BACKUP_DATA:            [],
+  COMPLETE_CHALLENGE:     [],
+  INVITE_FRIENDS:         [],
+
+  // ── Financial health ──────────────────────────────────────────────────────
+  SAVED_15_PERCENT:       [],
+  NO_IMPULSE_WEEK:        [],
+  EMERGENCY_FUND_BUILT:   [],
+  NET_POSITIVE_MONTH:     [],
 };
+
+// NOTE — Threshold-based achievements that cannot be triggered via actionToAchievementMap
+// because they depend on accumulated counters or domain-specific server logic:
+//
+//   Savings:    s1, s3, s5, s6, s7, s8, s9, s10, s11
+//   Budget:     b2–b11
+//   Investment: i2–i11
+//   Consistency:c2–c11 (streak counts)
+//   AI:         a1–a11 (chat usage)
+//   Security:   sec1–sec11 (account events)
+//   Special:    sp1–sp11 (UI events / coin accumulation)
+//   Legendary:  l1–l11  (level / net worth / mass unlock)
+//   Seasonal:   se1–se11 (date-based)
+//   Family:     fam3, fam7, fam8
+//   Loans:      loan3, loan4, loan6, loan7, loan8
+//   Subscriptions: sub2, sub5, sub7
+//   Wallets:    wal2, wal4, wal5, wal7
+//   Productivity: p6, p7
+//
+// These must be evaluated server-side in the relevant domain controller
+// (goalController, loanController, etc.) when the relevant threshold is crossed.
+
 
 // Invert actionToAchievementMap to get a mapping from achievementId -> actionIds
 export const achievementToActionsMap = {};

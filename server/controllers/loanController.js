@@ -4,6 +4,7 @@ import Expense from '../models/Expense.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
+import { awardBusinessXP } from '../services/gamificationService.js';
 
 // @desc    Get all loans
 // @route   GET /api/loans
@@ -63,6 +64,13 @@ export const createLoan = asyncHandler(async (req, res) => {
     nextEmiDate: nextEmiDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
   });
   await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
+
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'ADD_LOAN', entityId: loan._id.toString() });
+  } catch (err) {
+    console.error('Gamification Add Loan failed:', err);
+  }
+
   sendSuccess(res, 201, 'Loan logged successfully', loan);
 });
 
@@ -158,7 +166,7 @@ export const payEmi = asyncHandler(async (req, res) => {
   await loan.save();
 
   // Create an expense for the EMI
-  await Expense.create({
+  const expense = await Expense.create({
     user: req.user._id,
     title: `EMI Payment: ${loan.name}`,
     amount: emiPaid,
@@ -167,6 +175,15 @@ export const payEmi = asyncHandler(async (req, res) => {
     wallet: wallet ? wallet._id : undefined,
     description: `Monthly EMI repayment. Remaining loan balance is ₹${loan.remainingBalance}`,
   });
+
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'PAY_EMI', entityId: expense._id.toString() });
+    if (loan.remainingBalance <= 0) {
+      await awardBusinessXP({ userId: req.user._id, actionId: 'PAYOFF_LOAN', entityId: loan._id.toString() });
+    }
+  } catch (err) {
+    console.error('Gamification Pay EMI failed:', err);
+  }
 
   sendSuccess(res, 200, 'EMI payment registered successfully', loan);
 });

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useGamification } from '../../context/GamificationContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -16,6 +17,23 @@ const CURRENCIES = [
 
 export default function Profile() {
   const { user, updateUser, logout } = useAuth();
+  // Issue 1 fix: consume live gamification state from the same single source of truth
+  // as the Achievements page (GamificationContext → GET /api/gamification/profile).
+  // This replaces the previous reads of user?.xp, user?.level, etc. in the Gamification
+  // section, which were reading from the stale AuthContext snapshot.
+  const {
+    xp: gamXP,
+    lifetimeXP: gamLifetimeXP,
+    level: gamLevel,
+    rank: gamRank,
+    coins: gamCoins,
+    streak: gamStreak,
+    longestStreak: gamLongestStreak,
+    achievements: gamAchievements,
+    season: gamSeason,
+    isLoaded: gamIsLoaded,
+    loading: gamLoading,
+  } = useGamification();
   const navigate = useNavigate();
 
   const [activeSection, setActiveSection] = useState('profile');
@@ -530,61 +548,103 @@ export default function Profile() {
 
                   {activeProfileSection === 'gamification' && (
                     <div className="space-y-6">
-                      <div className="pb-4 border-b border-slate-700/50">
-                        <h4 className="text-sm font-semibold text-slate-200">Gamification</h4>
-                        <p className="text-xs text-slate-400 mt-1">View your current progress and rewards.</p>
+                      <div className="pb-4 border-b border-slate-700/50 flex justify-between items-end">
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-200">Gamification</h4>
+                          <p className="text-xs text-slate-400 mt-1">View your current progress and rewards.</p>
+                        </div>
+                        {gamSeason && (
+                          <div className="text-right">
+                            <span className="text-[10px] text-primary-400 uppercase font-bold tracking-wider">{gamSeason.name}</span>
+                            <p className="text-[10px] text-slate-500">Season XP: {gamSeason.seasonalXP?.toLocaleString('en-IN') || 0}</p>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="space-y-6 text-xs animate-fade-in">
-                        {/* PROGRESS */}
-                        <div className="space-y-3">
-                          <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Progress</h5>
+                      {/* Loading skeleton while GamificationContext is fetching */}
+                      {gamLoading && !gamIsLoaded ? (
+                        <div className="space-y-4 animate-pulse">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Level</span>
-                              <span className="text-base font-bold text-slate-200">{user?.level ?? 1}</span>
-                            </div>
-                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Rank</span>
-                              <span className="text-base font-bold text-slate-200">{user?.rank ?? '-'}</span>
-                            </div>
-                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current XP</span>
-                              <span className="text-base font-bold text-slate-200">{user?.xp ?? 0}</span>
-                            </div>
-                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Lifetime XP</span>
-                              <span className="text-base font-bold text-slate-200">{user?.lifetimeXP ?? 0}</span>
-                            </div>
+                            {[...Array(4)].map((_, i) => (
+                              <div key={i} className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-2">
+                                <Skeleton className="h-3 w-16" />
+                                <Skeleton className="h-5 w-12" />
+                              </div>
+                            ))}
                           </div>
-                        </div>
-
-                        {/* STREAK */}
-                        <div className="space-y-3">
-                          <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Streak</h5>
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current Streak</span>
-                              <span className="text-base font-bold text-slate-200">{user?.streak ?? 0} days</span>
-                            </div>
-                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Longest Streak</span>
-                              <span className="text-base font-bold text-slate-200">{user?.longestStreak ?? 0} days</span>
-                            </div>
+                            {[...Array(2)].map((_, i) => (
+                              <div key={i} className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-2">
+                                <Skeleton className="h-3 w-20" />
+                                <Skeleton className="h-5 w-16" />
+                              </div>
+                            ))}
                           </div>
                         </div>
+                      ) : (
+                        <div className="space-y-6 text-xs animate-fade-in">
+                          {/* PROGRESS */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Progress</h5>
+                              {/* Issue 5 fix: explain the Level vs Rank distinction */}
+                              <span className="text-[10px] text-slate-600 italic">
+                                Level = season XP · Rank = lifetime XP
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Level</span>
+                                <span className="text-base font-bold text-slate-200">{gamLevel}</span>
+                              </div>
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Rank</span>
+                                <span className="text-base font-bold text-slate-200">{gamRank ?? '-'}</span>
+                              </div>
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current XP</span>
+                                <span className="text-base font-bold text-slate-200">{gamXP.toLocaleString('en-IN')}</span>
+                              </div>
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Lifetime XP</span>
+                                <span className="text-base font-bold text-slate-200">{gamLifetimeXP.toLocaleString('en-IN')}</span>
+                              </div>
+                            </div>
+                          </div>
 
-                        {/* REWARDS */}
-                        <div className="space-y-3">
-                          <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rewards</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Available Coins</span>
-                              <span className="text-base font-bold text-slate-200">{user?.coins ?? 0} 🪙</span>
+                          {/* STREAK */}
+                          <div className="space-y-3">
+                            <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Streak</h5>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current Streak</span>
+                                <span className="text-base font-bold text-slate-200">{gamStreak} days</span>
+                              </div>
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Longest Streak</span>
+                                <span className="text-base font-bold text-slate-200">{gamLongestStreak} days</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* REWARDS */}
+                          <div className="space-y-3">
+                            <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rewards</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Available Coins</span>
+                                <span className="text-base font-bold text-slate-200">{gamCoins.toLocaleString('en-IN')} 🪙</span>
+                              </div>
+                              <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Badges Unlocked</span>
+                                <span className="text-base font-bold text-slate-200">
+                                  {gamAchievements.filter(a => a.unlocked).length} / {gamAchievements.length}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 

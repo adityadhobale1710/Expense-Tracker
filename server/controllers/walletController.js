@@ -6,6 +6,7 @@ import Income from '../models/Income.js';
 import Loan from '../models/Loan.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
+import { awardBusinessXP } from '../services/gamificationService.js';
 
 // B5/B6 fix: escape regex metacharacters from user input to prevent ReDoS
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -56,6 +57,13 @@ export const createWallet = asyncHandler(async (req, res) => {
     isPrimary: isPrimary || false,
   });
   await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'ADD_WALLET', entityId: wallet._id.toString() });
+  } catch (err) {
+    console.error('Gamification Add Wallet failed:', err);
+  }
+
   sendSuccess(res, 201, 'Wallet created successfully', wallet);
 });
 
@@ -279,6 +287,13 @@ export const transferFunds = asyncHandler(async (req, res) => {
     session.endSession();
 
   await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+
+    try {
+      await awardBusinessXP({ userId: req.user._id, actionId: 'WALLET_TRANSFER', entityId: fromWalletId.toString() });
+    } catch (err) {
+      console.error('Gamification Wallet Transfer failed:', err);
+    }
+
     sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
   } catch (error) {
     await session.abortTransaction();

@@ -4,7 +4,8 @@ import {
   getGamificationProfile,
   getGamificationStats,
   getGamificationHistory,
-  applyGamificationReward,
+  logEngagement,
+  completeDailyChallenge,
   getDailyChallenges,
   getLeaderboard,
   updatePinnedBadges,
@@ -22,7 +23,8 @@ router.get('/history',     getGamificationHistory);
 router.get('/challenges',  getDailyChallenges);
 router.get('/leaderboard', getLeaderboard);
 
-router.post('/reward',         applyGamificationReward);
+router.post('/log-engagement', logEngagement);
+router.post('/challenges/complete', completeDailyChallenge);
 router.patch('/pins',          updatePinnedBadges);
 router.patch('/achievements',  syncAchievements);
 

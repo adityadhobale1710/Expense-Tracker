@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Budget from '../models/Budget.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
+import { awardBusinessXP } from '../services/gamificationService.js';
 
 export const getBudgets = asyncHandler(async (req, res) => {
   const budgets = await Budget.find({ user: req.user._id }).populate('category', 'name icon color');
@@ -29,6 +30,13 @@ export const createBudget = asyncHandler(async (req, res) => {
   });
   await budget.populate('category', 'name icon color');
   await invalidateAICache(req.user._id, CACHE_MODULES.BUDGETS);
+
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'CREATE_BUDGET', entityId: budget._id.toString() });
+  } catch (err) {
+    console.error('Gamification Create Budget failed:', err);
+  }
+
   sendSuccess(res, 201, 'Budget created', budget);
 });
 
