@@ -27,16 +27,19 @@ export const getMe = asyncHandler(async (req, res) => {
 // @route PUT /api/users/me
 export const updateMe = asyncHandler(async (req, res) => {
   // Issue #3 fix: only allow safe, user-writable fields.
-  // Sensitive fields (role, twoFactorEnabled) and all gamification data
+  // Sensitive fields (role) and all gamification data
   // (xp, coins, level, streak, achievements, etc.) are NEVER user-writable.
-  const { name, avatar, currency, phone, company } = req.body;
+  // twoFactorEnabled and alertSettings are whitelisted for update.
+  const { name, avatar, currency, phone, company, twoFactorEnabled, alertSettings } = req.body;
 
   const updateFields = {};
-  if (name !== undefined)     updateFields.name     = name;
-  if (avatar !== undefined)   updateFields.avatar   = avatar;
-  if (currency !== undefined) updateFields.currency = currency;
-  if (phone !== undefined)    updateFields.phone    = phone;
-  if (company !== undefined)  updateFields.company  = company;
+  if (name !== undefined)             updateFields.name             = name;
+  if (avatar !== undefined)           updateFields.avatar           = avatar;
+  if (currency !== undefined)         updateFields.currency         = currency;
+  if (phone !== undefined)            updateFields.phone            = phone;
+  if (company !== undefined)          updateFields.company          = company;
+  if (twoFactorEnabled !== undefined) updateFields.twoFactorEnabled = twoFactorEnabled;
+  if (alertSettings !== undefined)    updateFields.alertSettings    = alertSettings;
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
@@ -447,6 +450,55 @@ export const deleteMe = asyncHandler(async (req, res) => {
   } finally {
     session.endSession();
   }
+});
+
+// @desc    Get counts and summary statistics for profile page
+// @route   GET /api/users/me/stats
+export const getProfileStats = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const [
+    walletsCount,
+    budgetsCount,
+    goalsCount,
+    subscriptionsCount,
+    billsCount,
+    incomeCount,
+    expenseCount,
+    incomeAgg,
+    expenseAgg
+  ] = await Promise.all([
+    Wallet.countDocuments({ user: userId, isArchived: { $ne: true } }),
+    Budget.countDocuments({ user: userId }),
+    Goal.countDocuments({ user: userId, isDeleted: { $ne: true } }),
+    Subscription.countDocuments({ user: userId }),
+    Bill.countDocuments({ user: userId, status: { $nin: ['paid', 'cancelled'] } }),
+    Income.countDocuments({ user: userId, isTransfer: { $ne: true } }),
+    Expense.countDocuments({ user: userId, isTransfer: { $ne: true } }),
+    Income.aggregate([
+      { $match: { user: userId, isTransfer: { $ne: true } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]),
+    Expense.aggregate([
+      { $match: { user: userId, isTransfer: { $ne: true } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ])
+  ]);
+
+  const totalIncome = incomeAgg.length > 0 ? incomeAgg[0].total : 0;
+  const totalExpense = expenseAgg.length > 0 ? expenseAgg[0].total : 0;
+  const transactionCount = incomeCount + expenseCount;
+
+  sendSuccess(res, 200, 'Profile statistics retrieved successfully', {
+    totalIncome,
+    totalExpense,
+    transactionCount,
+    walletsCount,
+    budgetsCount,
+    goalsCount,
+    subscriptionsCount,
+    billsCount
+  });
 });
 
 

@@ -4,6 +4,46 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
+import Session from '../models/Session.js';
+
+const createSessionRecord = async (userId, token, req) => {
+  try {
+    const userAgent = req.headers['user-agent'] || '';
+    let os = 'Unknown OS';
+    let browser = 'Unknown Browser';
+
+    if (userAgent.includes('Windows')) os = 'Windows';
+    else if (userAgent.includes('Macintosh')) os = 'macOS';
+    else if (userAgent.includes('Linux')) os = 'Linux';
+    else if (userAgent.includes('Android')) os = 'Android';
+    else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'iOS';
+
+    if (userAgent.includes('Chrome')) browser = 'Chrome';
+    else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+    else if (userAgent.includes('Firefox')) browser = 'Firefox';
+    else if (userAgent.includes('Edge')) browser = 'Edge';
+
+    let deviceName = `${os} PC (${browser} browser)`;
+    if (os === 'Android' || os === 'iOS') {
+      deviceName = `${os} Mobile Device`;
+    }
+
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    await Session.create({
+      user: userId,
+      token,
+      deviceName,
+      browser,
+      os,
+      ipAddress,
+      isActive: true,
+      lastActive: new Date()
+    });
+  } catch (err) {
+    logger.error(`Failed to create active session log: ${err.message}`);
+  }
+};
 
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
@@ -159,6 +199,8 @@ export const login = asyncHandler(async (req, res) => {
   user.refreshToken = refreshToken;
   await user.save();
 
+  await createSessionRecord(user._id, accessToken, req);
+
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -198,6 +240,18 @@ export const logout = asyncHandler(async (req, res) => {
     user.refreshToken = null;
     await user.save();
   }
+
+  // Revoke current session
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer')) {
+      const token = authHeader.split(' ')[1];
+      await Session.findOneAndUpdate({ token, user: req.user._id }, { isActive: false });
+    }
+  } catch (err) {
+    logger.error(`Failed to revoke session on logout: ${err.message}`);
+  }
+
   res.clearCookie('refreshToken');
   sendSuccess(res, 200, 'Logged out successfully');
 });
@@ -381,6 +435,8 @@ export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
   const refreshToken = generateRefreshToken(user._id);
   user.refreshToken = refreshToken;
   await user.save();
+
+  await createSessionRecord(user._id, accessToken, req);
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,

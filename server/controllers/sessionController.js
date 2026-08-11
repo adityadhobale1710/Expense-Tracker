@@ -6,8 +6,19 @@ import { sendSuccess } from '../utils/apiResponse.js';
 // @desc    Get active device sessions
 // @route   GET /api/sessions
 export const getSessions = asyncHandler(async (req, res) => {
+  let currentToken = '';
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    currentToken = req.headers.authorization.split(' ')[1];
+  }
+
   const sessions = await Session.find({ user: req.user._id, isActive: true }).sort({ lastActive: -1 });
-  sendSuccess(res, 200, 'Sessions retrieved successfully', sessions);
+
+  const sessionsWithCurrent = sessions.map(s => ({
+    ...s.toObject(),
+    isCurrent: s.token === currentToken
+  }));
+
+  sendSuccess(res, 200, 'Sessions retrieved successfully', sessionsWithCurrent);
 });
 
 // @desc    Revoke session and force log out

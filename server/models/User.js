@@ -20,6 +20,11 @@ const userSchema = new mongoose.Schema(
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String, default: '' },
     backupCodes: { type: [String], default: [] },
+    alertSettings: {
+      bills: { type: Boolean, default: true },
+      budgets: { type: Boolean, default: true },
+      weekly: { type: Boolean, default: false }
+    },
     otpVerified: { type: Boolean, default: false },
     isEmailVerified: { type: Boolean, default: false },
     registrationOtp: { type: String, default: null },
