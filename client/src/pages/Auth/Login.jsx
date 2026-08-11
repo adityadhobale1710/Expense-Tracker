@@ -75,7 +75,7 @@ export default function Login() {
       toast.success('Verification code sent to your email!');
       setForgotStep(2);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send reset code');
+      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Failed to send reset code'));
     } finally {
       setForgotLoading(false);
     }
@@ -103,7 +103,7 @@ export default function Login() {
       setForgotCode('');
       setNewPassword('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to reset password');
+      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Failed to reset password'));
     } finally {
       setForgotLoading(false);
     }
@@ -156,7 +156,7 @@ export default function Login() {
       }
       navigate('/dashboard');
     } catch (err) {
-      let errMsg = err.response?.data?.message || 'Login failed';
+      let errMsg = err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Login failed');
       
       if (err.response?.status === 403 && err.response?.data?.unverified) {
         toast.error(errMsg);

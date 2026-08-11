@@ -148,7 +148,7 @@ export default function Register() {
       setStep('otp');
       toast.success('Registration successful! Verification code sent.');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -166,7 +166,7 @@ export default function Register() {
       toast.success('Email verified successfully! Welcome Pro!');
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Verification failed');
+      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Verification failed'));
     } finally {
       setOtpLoading(false);
     }
@@ -179,7 +179,7 @@ export default function Register() {
       await resendRegistrationOtp(emailForOtp);
       toast.success('Verification code resent successfully!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Resend failed');
+      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Resend failed'));
     }
 
     const interval = setInterval(() => {

@@ -62,6 +62,7 @@ api.interceptors.response.use(
     }
 
     const originalRequest = error.config;
+    const isAuthRoute = originalRequest?.url?.includes('/auth/');
 
     // 1. Handle Token Refresh on 401 Unauthorized
     if (
@@ -112,7 +113,6 @@ api.interceptors.response.use(
     if (error.response) {
       const status = error.response.status;
       const message = error.response.data?.message || error.message || 'An error occurred';
-      const isAuthRoute = originalRequest.url?.includes('/auth/');
 
       if (!isAuthRoute) {
         switch (status) {
@@ -138,9 +138,13 @@ api.interceptors.response.use(
         }
       }
     } else if (error.code === 'ECONNABORTED') {
-      toast.error('Request timed out. Please check your internet connection.');
+      if (!isAuthRoute) {
+        toast.error('Request timed out. Please check your internet connection.');
+      }
     } else {
-      toast.error('Network Error. Unable to connect to the backend server.');
+      if (!isAuthRoute) {
+        toast.error('Network Error. Unable to connect to the backend server.');
+      }
     }
 
     return Promise.reject(error);
