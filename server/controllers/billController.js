@@ -11,16 +11,8 @@ import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 
 // Helper: Recalculate Budget spent
 const recalcBudgetSpent = async (userId, categoryId) => {
-  if (!categoryId) return;
-  const [result] = await Expense.aggregate([
-    { $match: { user: userId, category: categoryId } },
-    { $group: { _id: null, total: { $sum: '$amount' } } },
-  ]);
-  const spent = result ? result.total : 0;
-  await Budget.updateOne(
-    { user: userId, category: categoryId },
-    { $set: { spent } }
-  );
+  // DEPRECATED: Budget spent is now dynamically aggregated based on active periods.
+  return;
 };
 
 // Helper: Update Bill Statuses based on due dates
