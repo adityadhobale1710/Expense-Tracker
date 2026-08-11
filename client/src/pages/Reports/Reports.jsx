@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell
 } from 'recharts';
-import { TrendingUp, TrendingDown, Calendar, Wallet, List, Award, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Download, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -15,6 +15,13 @@ import { StatCard } from '../../components/ui/StatCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { DataTable } from '../../components/ui/DataTable';
+import { useGamification } from '../../context/GamificationContext';
+
+const EXPORT_FORMATS = [
+  { format: 'csv', label: 'CSV', ext: 'csv' },
+  { format: 'excel', label: 'Excel', ext: 'xlsx' },
+  { format: 'pdf', label: 'PDF', ext: 'pdf' },
+];
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_NAMES = [
@@ -161,6 +168,52 @@ export default function Reports() {
     setSelectedYear(now.getFullYear());
   };
 
+  const { applyReward } = useGamification();
+  const [exporting, setExporting] = useState(null);
+
+  // Resolve the current filter range so exports match exactly what's on screen
+  const resolveExportRange = () => {
+    if (customStartDate && customEndDate) {
+      return {
+        startDate: new Date(customStartDate).toISOString(),
+        endDate: new Date(customEndDate).toISOString(),
+      };
+    }
+    return {
+      startDate: new Date(selectedYear, selectedMonth, 1).toISOString(),
+      endDate: new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59).toISOString(),
+    };
+  };
+
+  const handleExport = async ({ format, ext }) => {
+    const { startDate, endDate } = resolveExportRange();
+    const label = `${startDate.slice(0, 10)}_to_${endDate.slice(0, 10)}`;
+    setExporting(format);
+    try {
+      const res = await api.get(`/analytics/export/${format}`, {
+        params: { startDate, endDate },
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data]);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `financial_report_${label}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`Financial report exported as ${format.toUpperCase()}!`);
+      // Award gamification reward + advance Documenter/Spreadsheet Geek/PDF Printer achievements
+      try { applyReward('EXPORT_REPORTS'); } catch {}
+    } catch (err) {
+      console.error('Export failed:', err);
+      toast.error('Export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
   // Memoize total category expenses
   const totalCategoryExpenses = useMemo(() => {
     return categoryData.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -173,6 +226,23 @@ export default function Reports() {
         <div>
           <h1 className="page-title">Reports & Analytics</h1>
           <p className="page-subtitle">Track trends, breakdown categories, and inspect budget indexes</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider hidden xl:block mr-1">
+            Export
+          </span>
+          {EXPORT_FORMATS.map(({ format, label, ext }) => (
+            <button
+              key={format}
+              type="button"
+              disabled={!!exporting}
+              onClick={() => handleExport({ format, ext })}
+              className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {exporting === format ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 

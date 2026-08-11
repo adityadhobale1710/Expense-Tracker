@@ -20,9 +20,18 @@ export const validate = (schema) => (req, res, next) => {
     });
 
     res.status(400);
-    // Attach details so errorHandler can surface them as the `errors` array
+    // Attach Joi-compatible metadata so errorHandler surfaces each friendly
+    // message as a structured `errors` array instead of a single joined blob.
     const err = new Error(uniqueErrors.map((e) => e.message).join(', '));
-    err.errors = uniqueErrors;
+    err.name = 'ValidationError';
+    err.isJoi = true;
+    // Already mapped to friendly copy — errorHandler must keep this message.
+    err.alreadyMapped = true;
+    err.details = uniqueErrors.map((e) => ({
+      path: [e.field],
+      message: e.message,
+      type: 'any.custom',
+    }));
     throw err;
   }
   next();

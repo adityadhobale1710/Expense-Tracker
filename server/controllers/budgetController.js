@@ -40,6 +40,9 @@ export const getBudgets = asyncHandler(async (req, res) => {
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     b.spent = result ? result.total : 0;
+    // M4 fix: `.lean()` skips the schema's percentSpent virtual getter, so the
+    // API returned no percentage. Compute it explicitly here.
+    b.percentSpent = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
   }
   
   sendSuccess(res, 200, 'Budgets fetched', budgets);
@@ -86,6 +89,8 @@ export const getBudget = asyncHandler(async (req, res) => {
     { $group: { _id: null, total: { $sum: '$amount' } } }
   ]);
   budget.spent = result ? result.total : 0;
+  // M4 fix: `.lean()` skips the schema's percentSpent virtual getter.
+  budget.percentSpent = budget.limit > 0 ? Math.round((budget.spent / budget.limit) * 100) : 0;
   
   sendSuccess(res, 200, 'Budget fetched', budget);
 });

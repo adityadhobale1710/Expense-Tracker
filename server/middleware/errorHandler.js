@@ -12,7 +12,10 @@ const errorHandler = (err, req, res, next) => {
   // 1. Handle Joi Validation Errors (parentheses enforce correct operator precedence)
   if (err.isJoi || (err.name === 'ValidationError' && err.details)) {
     statusCode = 400;
-    message = 'Validation failed';
+    // M2 fix: validate.js maps raw Joi text to friendly copy before throwing and
+    // flags `alreadyMapped`, so keep that user-friendly message instead of the
+    // generic "Validation failed" placeholder.
+    message = err.alreadyMapped && err.message ? err.message : 'Validation failed';
     errors = err.details.map((d) => ({
       field: d.path.join('.'),
       message: d.message,
@@ -47,12 +50,18 @@ const errorHandler = (err, req, res, next) => {
     message = 'Authentication token has expired. Please log in again.';
   }
 
+  // H1 fix: never expose stack traces via the API. The deployed server was found
+  // running with NODE_ENV != production, which leaked full absolute paths and
+  // middleware internals to anyone. Stack traces belong in the server logs
+  // (already written above via Winston), not in client responses. Explicitly
+  // opt-in for local debugging via EXPOSE_ERROR_STACK=true.
+  const exposeStack = process.env.EXPOSE_ERROR_STACK === 'true' && process.env.NODE_ENV === 'development';
   res.status(statusCode).json({
     success: false,
     message,
     data: null,
     errors,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(exposeStack && { stack: err.stack }),
   });
 };
 

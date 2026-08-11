@@ -127,9 +127,12 @@ app.use(morgan(morganFormat, {
 }));
 
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────
+// H1 fix: strict limits are applied in ALL environments. Previously this was
+// gated on NODE_ENV === 'production', so a server accidentally running without
+// that flag got a 10,000-request dev allowance and a brute-forceable auth layer.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
+  max: parseInt(process.env.GLOBAL_RATE_LIMIT || '300', 10),
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again after 15 minutes.'
@@ -138,21 +141,7 @@ const globalLimiter = rateLimit({
   legacyHeaders: false
 });
 
-if (process.env.NODE_ENV === 'production') {
-  app.use('/api/', globalLimiter);
-} else {
-  // Relaxed development rate limit to prevent 429 errors during hot reloading / StrictMode
-  app.use('/api/', rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10000,
-    message: {
-      success: false,
-      message: 'Too many requests in development.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false
-  }));
-}
+app.use('/api/', globalLimiter);
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 // Financial/personal API responses must never be stored in browser or CDN caches

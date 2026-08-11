@@ -1,5 +1,13 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
+import { validate } from '../middleware/validate.js';
+import {
+  billCreateSchema,
+  billUpdateSchema,
+  billPaySchema,
+  billPostponeSchema,
+  billDuplicateSchema,
+} from '../middleware/schemas.js';
 import {
   getBills,
   createBill,
@@ -17,25 +25,25 @@ router.use(protect);
 
 router.route('/')
   .get(getBills)
-  .post(createBill);
+  .post(validate(billCreateSchema), createBill);
 
 router.route('/stats')
   .get(getBillStats);
 
 router.route('/:id')
-  .put(updateBill)
+  .put(validate(billUpdateSchema), updateBill)
   .delete(deleteBill);
 
 router.route('/:id/pay')
-  .post(markBillPaid);
+  .post(validate(billPaySchema), markBillPaid);
 
 router.route('/:id/skip')
   .post(skipBill);
 
 router.route('/:id/postpone')
-  .post(postponeBill);
+  .post(validate(billPostponeSchema), postponeBill);
 
 router.route('/:id/duplicate')
-  .post(duplicateBill);
+  .post(validate(billDuplicateSchema), duplicateBill);
 
 export default router;

@@ -90,10 +90,66 @@ export default function Loans() {
     fetchData();
   }, []);
 
+  // Automatic EMI calculation
+  useEffect(() => {
+    const P = parseFloat(amount);
+    const annualRate = parseFloat(interestRate);
+    const n = parseInt(durationMonths);
+
+    if (!isNaN(P) && P > 0 && !isNaN(annualRate) && annualRate >= 0 && !isNaN(n) && n > 0) {
+      let calculatedEmi;
+      if (annualRate === 0) {
+        calculatedEmi = P / n;
+      } else {
+        const r = annualRate / 12 / 100;
+        calculatedEmi = (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      }
+      setEmiAmount(String(Math.round(calculatedEmi * 100) / 100));
+    } else {
+      setEmiAmount('');
+    }
+  }, [amount, interestRate, durationMonths]);
+
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!name || !amount || !interestRate || !durationMonths || !emiAmount) {
+    if (!name || !amount || interestRate === '' || !durationMonths || !emiAmount) {
       return toast.error('Please fill out all required fields');
+    }
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return toast.error('Total Amount must be greater than 0');
+    }
+
+    const numInterest = Number(interestRate);
+    if (isNaN(numInterest) || numInterest < 0) {
+      return toast.error('Interest Rate must be greater than or equal to 0');
+    }
+
+    const numDuration = Number(durationMonths);
+    if (isNaN(numDuration) || numDuration <= 0 || !Number.isInteger(numDuration)) {
+      return toast.error('Duration must be a positive number of months');
+    }
+
+    const numEmi = Number(emiAmount);
+    if (isNaN(numEmi) || numEmi <= 0) {
+      return toast.error('EMI must be greater than 0');
+    }
+
+    const numRemaining = remainingBalance !== '' ? Number(remainingBalance) : numAmount;
+    if (isNaN(numRemaining) || numRemaining < 0) {
+      return toast.error('Remaining Balance must be greater than or equal to 0');
+    }
+    if (numRemaining > numAmount) {
+      return toast.error('Remaining Balance cannot be greater than Total Amount');
+    }
+
+    if (!nextEmiDate) {
+      return toast.error('Next EMI Date is required');
+    }
+    const d = new Date(nextEmiDate);
+    if (isNaN(d.getTime())) {
+      return toast.error('Next EMI Date must be a valid date');
     }
 
     setSubmitting(true);
@@ -101,11 +157,11 @@ export default function Loans() {
       await api.post('/loans', {
         name,
         type,
-        amount: Number(amount),
-        interestRate: Number(interestRate),
-        durationMonths: Number(durationMonths),
-        emiAmount: Number(emiAmount),
-        remainingBalance: remainingBalance ? Number(remainingBalance) : Number(amount),
+        amount: numAmount,
+        interestRate: numInterest,
+        durationMonths: numDuration,
+        emiAmount: numEmi,
+        remainingBalance: numRemaining,
         nextEmiDate
       });
       toast.success('Loan logged successfully!');

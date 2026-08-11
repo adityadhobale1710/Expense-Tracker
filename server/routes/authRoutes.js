@@ -17,7 +17,7 @@ const router = express.Router();
 // Rate limiter for login: max 5 requests per 15 minutes
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 5 : 1000,
+  max: parseInt(process.env.LOGIN_RATE_LIMIT || '5', 10),
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -32,7 +32,7 @@ const loginLimiter = rateLimit({
 // Max 5 attempts per 10 minutes per IP to block brute-force on 6-digit OTP tokens.
 const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: process.env.NODE_ENV === 'production' ? 5 : 1000,
+  max: parseInt(process.env.OTP_RATE_LIMIT || '5', 10),
   handler: (req, res) => {
     res.status(429).json({
       success: false,

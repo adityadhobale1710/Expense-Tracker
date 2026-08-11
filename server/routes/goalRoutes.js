@@ -15,6 +15,13 @@ import {
   deleteContribution
 } from '../controllers/goalController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { validate } from '../middleware/validate.js';
+import {
+  goalCreateSchema,
+  goalUpdateSchema,
+  goalStatusSchema,
+  goalContributionSchema,
+} from '../middleware/schemas.js';
 
 const router = express.Router();
 router.use(protect);
@@ -26,20 +33,20 @@ router.get('/analytics', getGoalAnalytics);
 
 router.route('/')
   .get(getGoals)
-  .post(createGoal);
+  .post(validate(goalCreateSchema), createGoal);
 
 router.route('/:id')
   .get(getGoalById)
-  .put(updateGoal)
+  .put(validate(goalUpdateSchema), updateGoal)
   .delete(deleteGoal);
 
-router.put('/:id/status', updateGoalStatus);
+router.put('/:id/status', validate(goalStatusSchema), updateGoalStatus);
 router.get('/:id/analytics', getSpecificGoalAnalytics);
 router.get('/:id/contributions', getGoalContributions);
-router.post('/:id/contribute', contributeToGoal);
+router.post('/:id/contribute', validate(goalContributionSchema), contributeToGoal);
 router.delete('/:id/contributions/:contribId', deleteContribution);
 
 // Legacy backward-compatibility alias
-router.post('/:id/deposit', contributeToGoal);
+router.post('/:id/deposit', validate(goalContributionSchema), contributeToGoal);
 
 export default router;

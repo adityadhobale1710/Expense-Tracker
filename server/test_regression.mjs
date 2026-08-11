@@ -50,14 +50,17 @@ const runTests = async () => {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
   const dotenv = await import('dotenv');
   dotenv.config();
-  const mongoUri = process.env.MONGO_URI || 'mongodb+srv://dhobaleaditya2007_db_user:Z43JxbFQ3GoLOh2V@cluster0.yp5dvm5.mongodb.net/expense_tracker?appName=Cluster0';
-  await import('mongoose').then(m => m.connect(mongoUri));
+  // H2 fix: no hardcoded credentials — the URI must come from the environment.
+  if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI is required to run the regression test.');
+  }
+  await import('mongoose').then(m => m.connect(process.env.MONGO_URI));
   const User = (await import('./models/User.js')).default;
   const jwt = await import('jsonwebtoken');
   
   await User.deleteMany({ email: 'test_regression@test.com' });
-  const user = await User.create({ name: 'Regression Test', email: 'test_regression@test.com', password: 'password123', isVerified: true });
-  const token = jwt.default.sign({ id: user._id }, 'your_super_secret_jwt_key_change_this_in_production', { expiresIn: '15m' });
+  const user = await User.create({ name: 'Regression Test', email: 'test_regression@test.com', password: 'password123', isEmailVerified: true });
+  const token = jwt.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
   console.log('✅ Generated direct token for regression test user.');
 
   // 2. Create Goal

@@ -31,25 +31,45 @@ export const createLoan = asyncHandler(async (req, res) => {
   const numAmount = Number(amount);
   if (isNaN(numAmount) || numAmount <= 0) {
     res.status(400);
-    throw new Error('Loan amount must be a positive number');
+    throw new Error('Total Amount must be greater than 0');
   }
 
   const numInterestRate = Number(interestRate);
-  if (isNaN(numInterestRate) || numInterestRate < 0 || numInterestRate > 100) {
+  if (isNaN(numInterestRate) || numInterestRate < 0) {
     res.status(400);
-    throw new Error('Interest rate must be between 0 and 100');
+    throw new Error('Interest Rate must be greater than or equal to 0');
   }
 
   const numDuration = Number(durationMonths);
-  if (!Number.isInteger(numDuration) || numDuration < 1) {
+  if (!Number.isInteger(numDuration) || numDuration <= 0) {
     res.status(400);
-    throw new Error('Duration must be a positive integer (months)');
+    throw new Error('Duration must be a positive number of months');
   }
 
   const numEmi = Number(emiAmount);
   if (isNaN(numEmi) || numEmi <= 0) {
     res.status(400);
-    throw new Error('EMI amount must be a positive number');
+    throw new Error('EMI must be greater than 0');
+  }
+
+  const numRemaining = remainingBalance !== undefined ? Number(remainingBalance) : numAmount;
+  if (isNaN(numRemaining) || numRemaining < 0) {
+    res.status(400);
+    throw new Error('Remaining Balance must be greater than or equal to 0');
+  }
+  if (numRemaining > numAmount) {
+    res.status(400);
+    throw new Error('Remaining Balance cannot be greater than Total Amount');
+  }
+
+  if (!nextEmiDate) {
+    res.status(400);
+    throw new Error('Next EMI Date is required');
+  }
+  const d = new Date(nextEmiDate);
+  if (isNaN(d.getTime())) {
+    res.status(400);
+    throw new Error('Next EMI Date must be a valid date');
   }
 
   const loan = await Loan.create({
@@ -60,8 +80,8 @@ export const createLoan = asyncHandler(async (req, res) => {
     interestRate: numInterestRate,
     durationMonths: numDuration,
     emiAmount: numEmi,
-    remainingBalance: remainingBalance !== undefined ? Number(remainingBalance) : numAmount,
-    nextEmiDate: nextEmiDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
+    remainingBalance: numRemaining,
+    nextEmiDate: d,
   });
   await invalidateAICache(req.user._id, CACHE_MODULES.LOANS);
 
@@ -79,18 +99,62 @@ export const createLoan = asyncHandler(async (req, res) => {
 export const updateLoan = asyncHandler(async (req, res) => {
   const { name, type, amount, interestRate, durationMonths, emiAmount, remainingBalance, nextEmiDate, paymentStatus } = req.body;
 
-  // D2 fix: only include fields that were actually provided in the request body
-  // Previously, all fields including undefined ones were spread into the update
-  // causing existing DB values to be overwritten with undefined.
+  const existingLoan = await Loan.findOne({ _id: req.params.id, user: req.user._id });
+  if (!existingLoan) {
+    res.status(404);
+    throw new Error('Loan not found');
+  }
+
+  // Calculate prospective final fields by merging request payload fields with existing document values
+  const finalAmount = amount !== undefined ? Number(amount) : existingLoan.amount;
+  const finalInterest = interestRate !== undefined ? Number(interestRate) : existingLoan.interestRate;
+  const finalDuration = durationMonths !== undefined ? Number(durationMonths) : existingLoan.durationMonths;
+  const finalEmi = emiAmount !== undefined ? Number(emiAmount) : existingLoan.emiAmount;
+  const finalRemaining = remainingBalance !== undefined ? Number(remainingBalance) : existingLoan.remainingBalance;
+  const finalNextEmiDate = nextEmiDate !== undefined ? nextEmiDate : existingLoan.nextEmiDate;
+
+  // Validation checks on merged values
+  if (isNaN(finalAmount) || finalAmount <= 0) {
+    res.status(400);
+    throw new Error('Total Amount must be greater than 0');
+  }
+  if (isNaN(finalInterest) || finalInterest < 0) {
+    res.status(400);
+    throw new Error('Interest Rate must be greater than or equal to 0');
+  }
+  if (isNaN(finalDuration) || finalDuration <= 0 || !Number.isInteger(finalDuration)) {
+    res.status(400);
+    throw new Error('Duration must be a positive number of months');
+  }
+  if (isNaN(finalEmi) || finalEmi <= 0) {
+    res.status(400);
+    throw new Error('EMI must be greater than 0');
+  }
+  if (isNaN(finalRemaining) || finalRemaining < 0) {
+    res.status(400);
+    throw new Error('Remaining Balance must be greater than or equal to 0');
+  }
+  if (finalRemaining > finalAmount) {
+    res.status(400);
+    throw new Error('Remaining Balance cannot be greater than Total Amount');
+  }
+  if (finalNextEmiDate) {
+    const d = new Date(finalNextEmiDate);
+    if (isNaN(d.getTime())) {
+      res.status(400);
+      throw new Error('Next EMI Date must be a valid date');
+    }
+  }
+
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (type !== undefined) updateData.type = type;
-  if (amount !== undefined) updateData.amount = Number(amount);
-  if (interestRate !== undefined) updateData.interestRate = Number(interestRate);
-  if (durationMonths !== undefined) updateData.durationMonths = Number(durationMonths);
-  if (emiAmount !== undefined) updateData.emiAmount = Number(emiAmount);
-  if (remainingBalance !== undefined) updateData.remainingBalance = Number(remainingBalance);
-  if (nextEmiDate !== undefined) updateData.nextEmiDate = nextEmiDate;
+  if (amount !== undefined) updateData.amount = finalAmount;
+  if (interestRate !== undefined) updateData.interestRate = finalInterest;
+  if (durationMonths !== undefined) updateData.durationMonths = finalDuration;
+  if (emiAmount !== undefined) updateData.emiAmount = finalEmi;
+  if (remainingBalance !== undefined) updateData.remainingBalance = finalRemaining;
+  if (nextEmiDate !== undefined) updateData.nextEmiDate = new Date(finalNextEmiDate);
   if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
 
   const loan = await Loan.findOneAndUpdate(
