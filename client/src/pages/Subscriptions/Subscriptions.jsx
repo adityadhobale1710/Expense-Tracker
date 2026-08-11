@@ -4,10 +4,10 @@ import {
   TrendingUp, TrendingDown, Target, Wallet, AlertCircle, Plus, Edit3, Trash2,
   Calendar, CreditCard, Banknote, Search, ShieldAlert, Sparkles, RefreshCw,
   Info, LayoutGrid, BarChart3, PieChart as PieIcon, ArrowUpRight, ArrowDownRight,
-  Shield, CheckCircle2, SlidersHorizontal, Check, Copy, Flame, Lock, Unlock,
+  CheckCircle2, SlidersHorizontal, Check, Copy, Flame, Lock, Unlock,
   ChevronRight, ArrowLeft, MoreVertical, Layers, Settings, FileText,
-  Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, Zap, X,
-  Play, Pause, Star, Clock, XCircle, DollarSign
+  Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, X,
+  Play, Pause, Star, Clock, DollarSign
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
@@ -406,22 +406,11 @@ export default function Subscriptions() {
     return combinedSubscriptions.filter(s => s.isFreeTrial).length;
   }, [combinedSubscriptions]);
 
-  const cancelledCount = useMemo(() => {
-    return combinedSubscriptions.filter(s => !s.autoRenewal || s.extendedProps?.status === 'cancelled').length;
-  }, [combinedSubscriptions]);
-
   const potentialSavings = useMemo(() => {
     // Dynamic simulation: identify low priority or rarely used subscriptions
     return combinedSubscriptions
       .filter(s => s.priority === 'low' || s.isFreeTrial)
       .reduce((sum, s) => sum + (s.billingCycle === 'monthly' ? s.cost : s.cost / 12), 0);
-  }, [combinedSubscriptions]);
-
-  const healthScore = useMemo(() => {
-    if (combinedSubscriptions.length === 0) return 100;
-    const overExpenses = combinedSubscriptions.filter(s => getDaysRemaining(s.renewalDate) < 0).length;
-    const unLockedPct = Math.max(0, 100 - (overExpenses / combinedSubscriptions.length) * 100);
-    return Math.round(unLockedPct);
   }, [combinedSubscriptions]);
 
   // AI-Style Insights Generator
@@ -873,38 +862,6 @@ export default function Subscriptions() {
           color="#f97316"
           sub="Renews in next 14 days"
           sparkData={[0, upcomingCount]}
-        />
-        <PremiumSummaryCard
-          icon={Zap}
-          label="Free Trials"
-          value={trialCount}
-          color="#a855f7"
-          sub="Unbilled active accounts"
-          sparkData={[0, trialCount]}
-        />
-        <PremiumSummaryCard
-          icon={XCircle}
-          label="Cancelled Accounts"
-          value={cancelledCount}
-          color="#64748b"
-          sub="Auto renew disabled"
-          sparkData={[0, cancelledCount]}
-        />
-        <PremiumSummaryCard
-          icon={TrendingDown}
-          label="Potential Savings"
-          value={potentialSavings}
-          color="#06b6d4"
-          sub="Low priority & trials"
-          sparkData={[0, potentialSavings]}
-        />
-        <PremiumSummaryCard
-          icon={Shield}
-          label="Health Score"
-          value={healthScore}
-          color="#ec4899"
-          sub="Active pacing health"
-          sparkData={[100, healthScore]}
         />
       </div>
 

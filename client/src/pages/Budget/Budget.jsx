@@ -222,6 +222,15 @@ const PremiumSummaryCard = memo(({ icon: Icon, label, value, sub, trend, trendUp
   </motion.div>
 ));
 
+// ─── Budget Logo Component ──────────────────────────────────
+const BudgetLogoIcon = memo(({ className = 'w-5 h-5' }) => (
+  <img
+    src="/budget-logo.png"
+    alt="Budget Logo"
+    className={`${className} object-contain`}
+  />
+));
+
 export default function Budget() {
   const { budgets, fetchBudgets, addBudget, updateBudget, deleteBudget, categories, fetchCategories, expenses, fetchExpenses, loading } = useExpense();
   
@@ -825,7 +834,7 @@ export default function Budget() {
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-slate-100 flex items-center gap-3 tracking-tight">
             <span className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 shadow-lg">
-              <Target size={20} className="text-indigo-400" />
+              <BudgetLogoIcon className="w-5 h-5" />
             </span>
             Budget Planner
           </h1>
@@ -1010,7 +1019,7 @@ export default function Budget() {
             <EmptyState
               title="No active budgets found"
               description="Establish target spending boundaries on categories to begin automated tracking and safety forecasts."
-              icon={Target}
+              icon={BudgetLogoIcon}
               actionText="Set First Budget"
               onAction={openAdd}
             />
