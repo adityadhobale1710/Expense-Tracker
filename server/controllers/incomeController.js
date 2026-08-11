@@ -3,6 +3,7 @@ import Income from '../models/Income.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
+import { awardBusinessXP } from '../services/gamificationService.js';
 
 // @desc  Get all incomes
 // @route GET /api/income
@@ -54,6 +55,14 @@ export const addIncome = asyncHandler(async (req, res) => {
   const income = await Income.create(payload);
 
   await invalidateAICache(req.user._id, CACHE_MODULES.INCOME_ADD);
+  
+  // Gamification: Award XP securely
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'ADD_INCOME', entityId: income._id.toString() });
+  } catch (err) {
+    console.error('Gamification Add Income failed:', err);
+  }
+
   sendSuccess(res, 201, 'Income added', income);
 });
 

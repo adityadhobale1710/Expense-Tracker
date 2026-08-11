@@ -223,6 +223,10 @@ export const login = asyncHandler(async (req, res) => {
     level: user.level,
     streak: user.streak,
     longestStreak: user.longestStreak,
+    // Issue 2 fix: include lifetimeXP and rank so AuthContext.user is fully
+    // populated immediately after login — no fetchProfile() required to get these.
+    lifetimeXP: user.lifetimeXP,
+    rank: user.rank,
     unlockedTitles: user.unlockedTitles,
     unlockedAvatars: user.unlockedAvatars,
     unlockedThemes: user.unlockedThemes,
@@ -460,6 +464,8 @@ export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
     level: user.level,
     streak: user.streak,
     longestStreak: user.longestStreak,
+    lifetimeXP: user.lifetimeXP,
+    rank: user.rank,
     unlockedTitles: user.unlockedTitles,
     unlockedAvatars: user.unlockedAvatars,
     unlockedThemes: user.unlockedThemes,

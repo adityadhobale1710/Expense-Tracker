@@ -62,6 +62,16 @@ export const getGamificationProfile = asyncHandler(async (req, res) => {
       seasonalXP: user.xp || 0,
     };
     await user.save();
+  } else if (user.season.endDate && new Date() > user.season.endDate) {
+    // Season Reset (Idempotent)
+    const end = new Date();
+    end.setDate(end.getDate() + 30); // 30 day seasons
+    user.season.number = (user.season.number || 1) + 1;
+    user.season.name = `Season ${user.season.number}`;
+    user.season.startDate = new Date();
+    user.season.endDate = end;
+    user.season.seasonalXP = 0; // Only reset seasonal XP, lifetimeXP is preserved
+    await user.save();
   }
 
   sendSuccess(res, 200, 'Gamification profile fetched', {
@@ -201,112 +211,58 @@ export const getGamificationHistory = asyncHandler(async (req, res) => {
   });
 });
 
-// ─── POST REWARD ─────────────────────────────────────────────────────────────
-// @route POST /api/gamification/reward
-export const applyGamificationReward = asyncHandler(async (req, res) => {
-  const { actionId, description, achievementsUnlocked = [], chestUnlocked } = req.body;
+// ─── LOG ENGAGEMENT (View/UI Actions ONLY) ──────────────────────────────────
+// @route POST /api/gamification/log-engagement
+import { logEngagementXP, completeDailyChallenge as srvCompleteChallenge } from '../services/gamificationService.js';
 
+const ALLOWED_ENGAGEMENT_ACTIONS = [
+  'VIEW_ANALYTICS', 'VIEW_SUBSCRIPTIONS', 'REVIEW_SUB_BUDGET',
+  'EXPORT_REPORTS', 'COMPLETE_REVIEW', 'TRACK_BILLS', 'BACKUP_DATA',
+  'DAILY_LOGIN', 'MAINTAIN_STREAK'
+];
+
+export const logEngagement = asyncHandler(async (req, res) => {
+  const { actionId } = req.body;
   if (!actionId) { res.status(400); throw new Error('actionId is required'); }
-
-  const user = await User.findById(req.user._id);
-  if (!user) { res.status(404); throw new Error('User not found'); }
-
-  const knownAction = REWARD_ACTIONS[actionId];
-  if (!knownAction) {
+  if (!ALLOWED_ENGAGEMENT_ACTIONS.includes(actionId)) {
     res.status(400);
-    throw new Error(`Invalid actionId: ${actionId}`);
+    throw new Error(`Action ${actionId} cannot be submitted as a UI engagement event. Business actions must be triggered by backend controllers.`);
   }
 
-  // Enforce server-side multiplier using the server's own clock, ignoring any client inputs.
-  const multiplier = getActiveMultiplier(new Date());
-
-  // Ignore client-provided values and calculate earned XP and coins strictly server-side.
-  const earnedXP = Math.round(knownAction.xp * multiplier);
-  const earnedCoins = Math.round(knownAction.coins * multiplier);
-
-  user.xp = (user.xp || 0) + earnedXP;
-  user.coins = (user.coins || 0) + earnedCoins;
-  user.lifetimeXP = (user.lifetimeXP || 0) + earnedXP;
-
-  // Recompute level server-side rather than trusting the client payload
-  user.level = calculateLevel(user.xp);
-
-  // Update rank
-  user.rank = getRankFromXP(user.lifetimeXP);
-
-  // Update season XP
-  if (user.season) {
-    user.season.seasonalXP = (user.season.seasonalXP || 0) + earnedXP;
-  }
-
-  // Apply achievement unlocks with server-side justification check (Option A)
-  if (Array.isArray(achievementsUnlocked) && achievementsUnlocked.length > 0) {
-    const validCandidateIds = actionToAchievementMap[actionId] || [];
-    for (const achId of achievementsUnlocked) {
-      if (!validCandidateIds.includes(achId)) {
-        continue; // skip if achievement does not correspond to the logged actionId
-      }
-      const isEligible = verifyAchievementEligibility(user, achId);
-      if (!isEligible) {
-        continue; // skip if eligibility criteria are not met on the server
-      }
-
-      const existing = user.achievements?.find(a => a.id === achId);
-      if (existing && !existing.unlocked) {
-        existing.unlocked = true;
-        existing.unlockedAt = new Date();
-        existing.currentProgress = existing.currentProgress || 1;
-      } else if (!existing) {
-        user.achievements.push({ id: achId, unlocked: true, unlockedAt: new Date(), currentProgress: 1 });
-      }
-    }
-  }
-
-  // Record reward chest if level-up triggered one
-  if (chestUnlocked && chestUnlocked.level) {
-    const alreadyOpened = (user.rewardChests || []).some(c => c.level === chestUnlocked.level);
-    if (!alreadyOpened) {
-      if (!user.rewardChests) user.rewardChests = [];
-      user.rewardChests.push({
-        level: chestUnlocked.level,
-        openedAt: new Date(),
-        rewards: chestUnlocked,
-      });
-      // Give chest coins bonus
-      user.coins += (chestUnlocked.coins || 0);
-    }
-  }
-
-  // Append to xpHistory (cap at 200 entries)
-  if (!user.xpHistory) user.xpHistory = [];
-  user.xpHistory.push({
-    action: actionId,
-    xp: earnedXP,
-    coins: earnedCoins,
-    description: description || actionId.replace(/_/g, ' ').toLowerCase(),
-    timestamp: new Date(),
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const result = await logEngagementXP({
+    userId: req.user._id,
+    actionId,
+    dateString: todayStr
   });
-  if (user.xpHistory.length > 200) {
-    user.xpHistory = user.xpHistory.slice(-200);
+
+  if (!result) {
+    // Already processed today
+    return sendSuccess(res, 200, 'Engagement already logged today', null);
   }
 
-  // Track simulated action
-  if (!user.simulatedActions) user.simulatedActions = [];
-  if (!user.simulatedActions.includes(actionId)) {
-    user.simulatedActions.push(actionId);
-  }
+  sendSuccess(res, 200, 'Engagement reward applied', result.gamificationData);
+});
 
-  await user.save();
+// ─── COMPLETE DAILY CHALLENGE ───────────────────────────────────────────────
+// @route POST /api/gamification/challenges/complete
+export const completeDailyChallenge = asyncHandler(async (req, res) => {
+  const { challengeId } = req.body;
+  if (!challengeId) { res.status(400); throw new Error('challengeId is required'); }
 
-  sendSuccess(res, 200, 'Reward applied', {
-    xp: user.xp,
-    coins: user.coins,
-    level: user.level,
-    lifetimeXP: user.lifetimeXP,
-    rank: user.rank,
-    season: user.season,
-    rewardChests: user.rewardChests,
+  const todayStr = new Date().toISOString().slice(0, 10);
+  
+  const result = await srvCompleteChallenge({
+    userId: req.user._id,
+    challengeId,
+    dateString: todayStr
   });
+
+  if (!result) {
+    return sendSuccess(res, 200, 'Challenge already completed today', null);
+  }
+
+  sendSuccess(res, 200, 'Challenge completed', result.gamificationData);
 });
 
 // ─── GET CHALLENGES ───────────────────────────────────────────────────────────
@@ -315,8 +271,18 @@ export const applyGamificationReward = asyncHandler(async (req, res) => {
 export const getDailyChallenges = asyncHandler(async (req, res) => {
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
+  // Also fetch completed challenges for today
+  let completed = [];
+  try {
+    const { default: DailyChallengeCompletion } = await import('../models/DailyChallengeCompletion.js');
+    const logs = await DailyChallengeCompletion.find({ user: req.user._id, dateString: dateStr }).lean();
+    completed = logs.map(l => l.challengeId);
+  } catch (e) {
+    console.warn("Could not fetch daily challenges:", e);
+  }
 
-  sendSuccess(res, 200, 'Daily challenges date', { dateStr });
+  sendSuccess(res, 200, 'Daily challenges date', { dateStr, completed });
 });
 
 // ─── GET LEADERBOARD ─────────────────────────────────────────────────────────

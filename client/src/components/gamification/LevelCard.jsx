@@ -68,6 +68,10 @@ export default function LevelCard() {
                 {(lifetimeXP || xp).toLocaleString('en-IN')} lifetime XP
               </span>
             </div>
+            {/* Issue 5 fix: clarify that Level and Rank are based on different XP pools */}
+            <p className="text-[9px] text-slate-600 text-center md:text-left mt-0.5 italic">
+              Level = current-season XP · Rank = lifetime XP
+            </p>
           </div>
 
           <XPBar />

@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema(
     level: { type: Number, default: 1 },
     streak: { type: Number, default: 0 },
     longestStreak: { type: Number, default: 0 },
+    lastActivityDate: { type: Date, default: null },
     // lifetimeXP never resets between seasons — used for rank tier calculation
     lifetimeXP: { type: Number, default: 0 },
     rank: { type: String, default: 'Bronze' },

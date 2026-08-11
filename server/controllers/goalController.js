@@ -8,6 +8,7 @@ import Expense from '../models/Expense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
+import { awardBusinessXP } from '../services/gamificationService.js';
 
 // Predefined Goal Templates
 const GOAL_TEMPLATES = [
@@ -21,92 +22,8 @@ const GOAL_TEMPLATES = [
   { name: 'Emergency Reserve', targetAmount: 50000, icon: '🏥', category: 'Emergency Fund', color: '#ef4444', description: 'Minor liquid cushion for sudden bills.' }
 ];
 
-// Helper: Check and update user achievements
-export const updateSavingsAchievements = async (userId) => {
-  try {
-    const totalGoalsCount = await Goal.countDocuments({ user: userId });
-    const emergencyGoalsCount = await Goal.countDocuments({ user: userId, category: 'Emergency Fund' });
-    const completedGoals = await Goal.find({ user: userId, status: 'Completed' });
-
-    // Calculate maximum completions in a single month
-    const completedInSameMonth = () => {
-      const monthCounts = {};
-      completedGoals.forEach(g => {
-        const month = g.updatedAt ? g.updatedAt.toISOString().substring(0, 7) : new Date().toISOString().substring(0, 7);
-        monthCounts[month] = (monthCounts[month] || 0) + 1;
-      });
-      return Math.max(0, ...Object.values(monthCounts));
-    };
-    const maxCompletedInMonth = completedGoals.length > 0 ? completedInSameMonth() : 0;
-
-    const contributions = await Contribution.find({ user: userId });
-    const cumulativeSaved = contributions.reduce((sum, c) => sum + c.amount, 0);
-    const maxSingleDeposit = contributions.length > 0 ? Math.max(...contributions.map(c => c.amount)) : 0;
-
-    const goals = await Goal.find({ user: userId });
-    const maxProgress = goals.length > 0 ? Math.max(...goals.map(g => g.progressPct)) : 0;
-
-    const user = await User.findById(userId);
-    if (!user) return;
-
-    let xpAwarded = 0;
-    let coinsAwarded = 0;
-    const achievementsList = [...(user.achievements || [])];
-
-    const checkAndAward = (id, currentVal, neededVal, xpReward, coinsReward) => {
-      let ach = achievementsList.find(a => a.id === id);
-      if (!ach) {
-        ach = { id, currentProgress: 0, unlocked: false };
-        achievementsList.push(ach);
-      }
-      if (ach.unlocked) return;
-
-      ach.currentProgress = Math.min(currentVal, neededVal);
-      if (ach.currentProgress >= neededVal) {
-        ach.unlocked = true;
-        ach.unlockedAt = new Date();
-        xpAwarded += xpReward;
-        coinsAwarded += coinsReward;
-      }
-    };
-
-    // Savings achievements references
-    checkAndAward('s1', contributions.length, 1, 100, 10); // First deposit
-    checkAndAward('s2', totalGoalsCount, 1, 150, 15);     // Goal Setter
-    checkAndAward('s3', maxSingleDeposit, 2000, 200, 20);   // Double Down
-    checkAndAward('s4', completedGoals.length, 1, 500, 50); // Milestone Completed
-    checkAndAward('s5', contributions.length, 5, 300, 30);  // Tenacious Saver
-    checkAndAward('s6', emergencyGoalsCount, 1, 200, 20);   // Emergency Shield
-    checkAndAward('s7', maxProgress, 50, 350, 35);          // Halfway
-    checkAndAward('s8', cumulativeSaved, 10000, 600, 60);   // Savings Stack
-    checkAndAward('s9', cumulativeSaved, 50000, 1200, 120);  // Accumulator Pro
-    checkAndAward('s10', cumulativeSaved, 200000, 3000, 300); // Sovereign Vault
-    checkAndAward('s11', maxCompletedInMonth, 2, 1000, 100);  // Double Completed Month
-
-    user.achievements = achievementsList;
-
-    if (xpAwarded > 0 || coinsAwarded > 0) {
-      user.xp += xpAwarded;
-      user.coins += coinsAwarded;
-
-      const xpLevels = [0, 500, 1200, 2200, 3500, 5000, 7000, 9500, 12500, 16000, 20000, 25000, 31000, 38000, 46000];
-      let calculatedLevel = 1;
-      for (let i = 0; i < xpLevels.length; i++) {
-        if (user.xp >= xpLevels[i]) {
-          calculatedLevel = i + 1;
-        } else {
-          break;
-        }
-      }
-      user.level = calculatedLevel;
-    }
-
-    await user.save();
-  } catch (err) {
-    // C4 fix: use Winston logger instead of console.error
-    logger.error('Error updating savings achievements: %s', err.message);
-  }
-};
+// Helper: updateSavingsAchievements removed. Threshold achievements are now evaluated centrally 
+// in gamificationService to prevent XP calculation duplication and race conditions.
 
 // @desc    Get all goals (with filters, search & sorting)
 // @route   GET /api/goals
@@ -278,8 +195,12 @@ export const createGoal = asyncHandler(async (req, res) => {
     message: `🎯 Financial Goal initiated: "${title}" with a target of ₹${targetAmount.toLocaleString('en-IN')}.`
   });
 
-  // Achievements
-  await updateSavingsAchievements(req.user._id);
+  // Central gamification service evaluates threshold achievements automatically
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'ADD_GOAL', entityId: goal._id.toString() });
+  } catch(err) {
+    logger.error('Gamification Add Goal failed: %s', err.message);
+  }
 
   await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 201, 'Goal created successfully', goal);
@@ -324,9 +245,6 @@ export const updateGoal = asyncHandler(async (req, res) => {
 
   // Invalidate AI cache
   goal.aiGeneratedAt = null;
-
-  await goal.save();
-  await updateSavingsAchievements(req.user._id);
 
   await invalidateAICache(req.user._id, CACHE_MODULES.GOALS);
   sendSuccess(res, 200, 'Goal updated successfully', goal);
@@ -504,8 +422,14 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
 
   await goal.save();
 
-  // Update achievements
-  await updateSavingsAchievements(req.user._id);
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'GOAL_CONTRIBUTION', entityId: contribution._id.toString() });
+    if (completionPercent >= 100) {
+      await awardBusinessXP({ userId: req.user._id, actionId: 'GOAL_COMPLETED', entityId: goal._id.toString() });
+    }
+  } catch (err) {
+    logger.error('Gamification Goal Contribution failed: %s', err.message);
+  }
 
   await invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
   sendSuccess(res, 200, 'Contribution saved successfully', {

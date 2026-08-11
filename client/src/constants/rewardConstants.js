@@ -127,6 +127,15 @@ export const RARITY_CONFIG = {
 };
 
 // ─── ACTIVE MULTIPLIER HELPER ────────────────────────────────────────────────
+// NOTE (Issue 7): This client implementation returns an OBJECT:
+//   { value: number, label: string|null, icon: string|null, color: string|null }
+// The server-side mirror in server/utils/rewardUtils.js returns a plain NUMBER.
+//
+// Client callers use: multiplierInfo.value   (e.g. rewardService.js L143)
+// Server callers use: getActiveMultiplier() directly as a number
+//
+// Do NOT import the server version on the client or vice versa.
+// If a shared constant layer is ever introduced, unify the return type to the object form.
 export function getActiveMultiplier(date = new Date()) {
   const day = date.getDay(); // 0=Sun, 6=Sat
 

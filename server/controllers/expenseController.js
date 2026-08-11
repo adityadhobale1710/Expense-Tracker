@@ -4,6 +4,7 @@ import Budget from '../models/Budget.js';
 import Wallet from '../models/Wallet.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
+import { awardBusinessXP } from '../services/gamificationService.js';
 
 // ---------------------------------------------------------------------------
 // Helper: Recalculate Budget.spent by summing all Expense amounts for a given
@@ -94,6 +95,15 @@ export const addExpense = asyncHandler(async (req, res) => {
   // Invalidate AI context caches affected by new expense (awaited so the next
   // AI/Insights read cannot consume the pre-mutation cache snapshot).
   await invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);
+  
+  // Gamification: Award XP securely
+  try {
+    const actionId = payload.receipt ? 'UPLOAD_RECEIPT' : 'ADD_EXPENSE';
+    await awardBusinessXP({ userId: req.user._id, actionId, entityId: expense._id.toString() });
+  } catch (err) {
+    console.error('Gamification Add Expense failed:', err);
+  }
+
   sendSuccess(res, 201, 'Expense added', expense);
 });
 
@@ -200,6 +210,14 @@ export const updateExpense = asyncHandler(async (req, res) => {
   const newCatId = updatedExpense.category?._id ?? updatedExpense.category;
   if (newCatId && String(oldCategoryId) !== String(newCatId)) {
     await recalcBudgetSpent(req.user._id, newCatId);
+    // Categorize reward
+    if (!oldCategoryId) {
+      try {
+        await awardBusinessXP({ userId: req.user._id, actionId: 'CATEGORIZE_EXPENSE', entityId: updatedExpense._id.toString() });
+      } catch (err) {
+        console.error('Gamification Categorize Expense failed:', err);
+      }
+    }
   }
 
   await invalidateAICache(req.user._id, CACHE_MODULES.EXPENSE_ADD);

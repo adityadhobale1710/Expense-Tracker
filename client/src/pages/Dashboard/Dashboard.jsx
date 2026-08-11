@@ -71,12 +71,6 @@ export default function Dashboard() {
     }
   };
 
-  // Gamification state
-  const [gameXp, setGameXp] = useState(3450);
-  const [gameCoins, setGameCoins] = useState(640);
-  const [gameStreak, setGameStreak] = useState(18);
-  const [unlockedBadgesCount, setUnlockedBadgesCount] = useState(13);
-
   const [subscriptions, setSubscriptions] = useState([]);
   const [loans, setLoans] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -95,12 +89,6 @@ export default function Dashboard() {
     try {
       const payload = await fetchDashboardData();
       if (payload) {
-        if (payload.user) {
-          setGameXp(payload.user.xp || 3450);
-          setGameCoins(payload.user.coins || 640);
-          setGameStreak(payload.user.streak || 18);
-          setUnlockedBadgesCount(payload.user.achievements?.filter(a => a.unlocked).length || 13);
-        }
         setSubscriptions(payload.subscriptions || []);
         setLoans(payload.loans || []);
         setGoals(payload.goals || []);

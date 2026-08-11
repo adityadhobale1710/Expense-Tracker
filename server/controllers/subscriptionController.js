@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Subscription from '../models/Subscription.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
+import { awardBusinessXP } from '../services/gamificationService.js';
 
 // @desc    Get all subscriptions
 // @route   GET /api/subscriptions
@@ -47,6 +48,13 @@ export const createSubscription = asyncHandler(async (req, res) => {
     reminder: typeof reminder === 'boolean' ? reminder : false,
   });
   await invalidateAICache(req.user._id, CACHE_MODULES.SUBSCRIPTIONS);
+
+  try {
+    await awardBusinessXP({ userId: req.user._id, actionId: 'ADD_SUBSCRIPTION', entityId: subscription._id.toString() });
+  } catch (err) {
+    console.error('Gamification Add Subscription failed:', err);
+  }
+
   sendSuccess(res, 201, 'Subscription created successfully', subscription);
 });
 

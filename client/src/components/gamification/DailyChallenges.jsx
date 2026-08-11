@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGamification } from '../../context/GamificationContext';
 import { getDailyChallenges, getTodayDateStr } from '../../constants/challengePool';
+import api from '../../services/api';
 
 import toast from 'react-hot-toast';
 
@@ -21,22 +22,25 @@ export default function DailyChallenges() {
     } catch { return []; }
   });
 
-  // Burst confetti for a moment
   const [burstId, setBurstId] = useState(null);
 
-  const handleComplete = useCallback((challenge) => {
+  const handleComplete = useCallback(async (challenge) => {
     if (completed.includes(challenge.id)) return;
 
-    const newCompleted = [...completed, challenge.id];
-    setCompleted(newCompleted);
-    localStorage.setItem(storageKey, JSON.stringify(newCompleted));
+    try {
+      // Sync with backend FIRST
+      await api.post('/gamification/challenges/complete', { challengeId: challenge.id });
 
-    // Award XP
-    if (challenge.actionId) {
-      applyReward(challenge.actionId);
-    } else {
-      applyReward('COMPLETE_CHALLENGE');
-    }
+      const newCompleted = [...completed, challenge.id];
+      setCompleted(newCompleted);
+      localStorage.setItem(storageKey, JSON.stringify(newCompleted));
+
+      // Optimistic UI updates
+      if (challenge.actionId) {
+        applyReward(challenge.actionId);
+      } else {
+        applyReward('COMPLETE_CHALLENGE');
+      }
 
     spawnFloaty(`+${challenge.xp} XP`, 0, 0);
     setBurstId(challenge.id);
@@ -46,20 +50,45 @@ export default function DailyChallenges() {
       style: { background: '#1e1b4b', color: '#a5b4fc', border: '1px solid #6366f1' },
     });
 
-    // Bonus if all 3 completed
-    if (newCompleted.length === dailyChallenges.length) {
-      setTimeout(() => {
-        applyReward('COMPLETE_CHALLENGE');
-        toast.success('🎉 All daily challenges complete! Bonus XP awarded!', {
-          duration: 4000,
-          style: { background: '#1e1b4b', color: '#fbbf24', border: '2px solid #f59e0b' },
-        });
-      }, 500);
+      // Bonus if all 3 completed
+      if (newCompleted.length === dailyChallenges.length) {
+        setTimeout(() => {
+          applyReward('COMPLETE_CHALLENGE');
+          toast.success('🎉 All daily challenges complete! Bonus XP awarded!', {
+            duration: 4000,
+            style: { background: '#1e1b4b', color: '#fbbf24', border: '2px solid #f59e0b' },
+          });
+        }, 500);
+      }
+    } catch (err) {
+      console.error('Failed to complete challenge:', err);
+      toast.error('Failed to sync challenge completion. Please try again.');
     }
   }, [completed, storageKey, applyReward, spawnFloaty, dailyChallenges.length]);
 
   const completedCount = completed.length;
   const progressPct = Math.round((completedCount / dailyChallenges.length) * 100);
+
+  // Initial sync from backend when component mounts
+  useEffect(() => {
+    let isMounted = true;
+    const fetchChallenges = async () => {
+      try {
+        const { data } = await api.get('/gamification/challenges');
+        if (data.success && isMounted) {
+          const { dateStr, completed: serverCompleted } = data.data;
+          if (dateStr === todayStr && serverCompleted.length > 0) {
+            setCompleted(serverCompleted);
+            localStorage.setItem(storageKey, JSON.stringify(serverCompleted));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load challenges from server:', err);
+      }
+    };
+    fetchChallenges();
+    return () => { isMounted = false; };
+  }, [todayStr, storageKey]);
 
   // Midnight auto-reset
   useEffect(() => {

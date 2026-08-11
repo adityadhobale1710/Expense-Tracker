@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import User from '../models/User.js';
-import { applyGamificationReward, syncAchievements } from '../controllers/gamificationController.js';
+import { logEngagement, syncAchievements } from '../controllers/gamificationController.js';
 import { calculateLevel } from '../utils/levelUtils.js';
 
 dotenv.config();
@@ -60,6 +60,38 @@ User.findById = async (id) => {
   };
 };
 
+User.findByIdAndUpdate = async (id, update, options) => {
+  const user = await User.findById(id);
+  if (!user) return null;
+  
+  if (update.$inc) {
+    if (update.$inc.xp) user.xp = (user.xp || 0) + update.$inc.xp;
+    if (update.$inc.lifetimeXP) user.lifetimeXP = (user.lifetimeXP || 0) + update.$inc.lifetimeXP;
+    if (update.$inc.coins) user.coins = (user.coins || 0) + update.$inc.coins;
+  }
+  
+  if (update.$set) {
+    if (update.$set.xp !== undefined) user.xp = update.$set.xp;
+    if (update.$set.lifetimeXP !== undefined) user.lifetimeXP = update.$set.lifetimeXP;
+    if (update.$set.level !== undefined) user.level = update.$set.level;
+    if (update.$set.rank !== undefined) user.rank = update.$set.rank;
+    if (update.$set.achievements !== undefined) user.achievements = update.$set.achievements;
+  }
+  
+  await user.save();
+  return user;
+};
+
+import GamificationLog from '../models/GamificationLog.js';
+GamificationLog.create = async (doc, opts) => {
+  return doc;
+};
+GamificationLog.findOneAndUpdate = async (query, update, options) => {
+  // If we want to simulate it didn't exist (new insertion), we return null 
+  // because `{ upsert: true, new: false }` returns null on insert.
+  return null;
+};
+
 const runTest = async () => {
   console.log('--- STARTING GAMIFICATION REGRESSION TESTS ---');
 
@@ -99,16 +131,16 @@ const runTest = async () => {
     }
     console.log('✓ User B starts fresh (Level 1, 0 XP, 0 achievements)');
 
-    // 3. Mock Req/Res for applyGamificationReward with forged payload
+    // 3. Mock Req/Res for logEngagement with forged payload (should be ignored since it doesn't take xp/coins/achievementsUnlocked)
     console.log('Simulating forged reward request for User B...');
     
     const mockReq = {
       user: { _id: userB._id },
       body: {
-        actionId: 'ADD_INCOME',
+        actionId: 'DAILY_LOGIN',
         xp: 99999, // forged
         coins: 99999, // forged
-        achievementsUnlocked: ['s10'], // forged mismatch (not linked to ADD_INCOME)
+        achievementsUnlocked: ['s10'], // forged mismatch
         levelUp: { from: 1, to: 15 } // forged
       }
     };
@@ -127,7 +159,7 @@ const runTest = async () => {
     };
 
     // Invoke the controller action (wrapped in asyncHandler)
-    await applyGamificationReward(mockReq, mockRes, (err) => {
+    await logEngagement(mockReq, mockRes, (err) => {
       if (err) throw err;
     });
 
@@ -136,7 +168,7 @@ const runTest = async () => {
     
     const day = new Date().getDay();
     const multiplier = (day === 0 || day === 6) ? 2.0 : 1.0;
-    const expectedXP = Math.round(50 * multiplier);
+    const expectedXP = Math.round(100 * multiplier);
 
     console.log(`Earned XP calculated on server: ${updatedUserB.xp}`);
     if (updatedUserB.xp !== expectedXP) {
@@ -154,24 +186,24 @@ const runTest = async () => {
 
     console.log('✓ Server successfully rejected forged XP, level, and badge parameters');
 
-    // 4. Test reject invalid actionId
-    console.log('Verifying invalid actionId is rejected with 400...');
+    // 4. Test reject business actionId
+    console.log('Verifying business actionId is rejected with 400...');
     const invalidReq = {
       user: { _id: userB._id },
-      body: { actionId: 'INVALID_ACTION_ID' }
+      body: { actionId: 'ADD_INCOME' }
     };
     let errorThrown = false;
     try {
-      await applyGamificationReward(invalidReq, mockRes, (err) => {
+      await logEngagement(invalidReq, mockRes, (err) => {
         if (err) errorThrown = true;
       });
     } catch (e) {
       errorThrown = true;
     }
     if (!errorThrown && responseStatus !== 400) {
-      throw new Error('Expected 400 error status for invalid actionId');
+      throw new Error('Expected error status for business actionId');
     }
-    console.log('✓ Server rejected invalid actionId');
+    console.log('✓ Server rejected business actionId on logEngagement');
 
     // Clean up
     await User.deleteMany({ email: { $in: ['usera@test.com', 'userb@test.com'] } });
