@@ -53,10 +53,6 @@ export const goalService = {
     return data.data;
   },
 
-  getGoalInsights: async (id) => {
-    const { data } = await api.get(`/goals/${id}/insights`);
-    return data.data;
-  },
 
   getGoalAnalytics: async () => {
     const { data } = await api.get('/goals/analytics');
@@ -68,10 +64,6 @@ export const goalService = {
     return data.data;
   },
 
-  getGoalRecommendations: async () => {
-    const { data } = await api.get('/goals/recommendations');
-    return data.data;
-  },
 
   deleteContribution: async (id, contribId) => {
     const { data } = await api.delete(`/goals/${id}/contributions/${contribId}`);

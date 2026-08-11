@@ -1,30 +1,11 @@
 import mongoose from 'mongoose';
 
-const milestoneSchema = new mongoose.Schema({
-  percentage: { type: Number, required: true },
-  reached: { type: Boolean, default: false },
-  reachedAt: { type: Date, default: null }
-}, { _id: false });
-
 const goalHistorySchema = new mongoose.Schema({
   action: { type: String, required: true },
   amount: { type: Number },
   note: { type: String, default: '' },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now }
-}, { _id: false });
-
-const aiInsightSchema = new mongoose.Schema({
-  level: { type: String, enum: ['Positive', 'Suggestion', 'Warning', 'Critical'], required: true },
-  message: { type: String, required: true },
-  confidence: { type: Number, default: 90 }
-}, { _id: false });
-
-const aiRecommendationSchema = new mongoose.Schema({
-  recommendation: { type: String, required: true },
-  reason: { type: String, required: true },
-  impact: { type: String, required: true },
-  confidence: { type: Number, default: 90 }
 }, { _id: false });
 
 const goalSchema = new mongoose.Schema(
@@ -59,17 +40,6 @@ const goalSchema = new mongoose.Schema(
       }
     },
     
-    milestones: {
-      type: [milestoneSchema],
-      default: () => [
-        { percentage: 25, reached: false, reachedAt: null },
-        { percentage: 50, reached: false, reachedAt: null },
-        { percentage: 75, reached: false, reachedAt: null },
-        { percentage: 90, reached: false, reachedAt: null },
-        { percentage: 100, reached: false, reachedAt: null }
-      ]
-    },
-    
     suggestedMonthlySaving: { type: Number, default: 0 },
     suggestedWeeklySaving: { type: Number, default: 0 },
     suggestedDailySaving: { type: Number, default: 0 },
@@ -81,12 +51,7 @@ const goalSchema = new mongoose.Schema(
     deletedAt: { type: Date, default: null },
     
     // Audit log
-    goalHistory: [goalHistorySchema],
-    
-    // AI Insights Cache
-    aiInsights: [aiInsightSchema],
-    aiRecommendations: [aiRecommendationSchema],
-    aiGeneratedAt: { type: Date, default: null }
+    goalHistory: [goalHistorySchema]
   },
   { timestamps: true }
 );
@@ -141,16 +106,6 @@ goalSchema.pre('save', function (next) {
     this.suggestedDailySaving = 0;
     this.suggestedWeeklySaving = 0;
     this.suggestedMonthlySaving = 0;
-  }
-
-  // Sync milestone reached status
-  if (this.milestones && this.milestones.length > 0) {
-    this.milestones.forEach(m => {
-      if (this.progressPct >= m.percentage && !m.reached) {
-        m.reached = true;
-        m.reachedAt = new Date();
-      }
-    });
   }
 
   next();

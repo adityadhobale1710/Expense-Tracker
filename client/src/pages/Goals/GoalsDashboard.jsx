@@ -13,7 +13,6 @@ import GoalSearch from '../../components/Goals/GoalSearch';
 import GoalFilters from '../../components/Goals/GoalFilters';
 import GoalModal from '../../components/Goals/GoalModal';
 import ContributionModal from '../../components/Goals/ContributionModal';
-import GoalInsights from '../../components/Goals/GoalInsights';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -307,35 +306,7 @@ export default function GoalsDashboard() {
             </div>
           )}
 
-          {/* Goal AI Insights */}
-          <GoalInsights insights={stats.aiInsights || []} isLoading={isLoadingStats} />
 
-          {/* Achievements widget */}
-          <div className="card p-6 space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                <Award size={14} className="text-emerald-400" /> Milestone Badges
-              </h3>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Achievements unlocked via cumulative savings</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="flex flex-col items-center p-2 rounded-xl bg-dark-900 border border-slate-700/20">
-                <span className="text-xl">🥉</span>
-                <span className="text-[9px] font-bold text-slate-300 mt-1 block leading-none">First Save</span>
-                <span className="text-[8px] text-emerald-400 mt-0.5 block font-semibold">Active</span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded-xl bg-dark-900 border border-slate-700/20 opacity-50">
-                <span className="text-xl">🥈</span>
-                <span className="text-[9px] font-bold text-slate-400 mt-1 block leading-none">Halfway</span>
-                <span className="text-[8px] text-slate-500 mt-0.5 block">Locked</span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded-xl bg-dark-900 border border-slate-700/20 opacity-50">
-                <span className="text-xl">👑</span>
-                <span className="text-[9px] font-bold text-slate-400 mt-1 block leading-none">Sovereign</span>
-                <span className="text-[8px] text-slate-500 mt-0.5 block">Locked</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

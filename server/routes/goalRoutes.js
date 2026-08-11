@@ -4,9 +4,7 @@ import {
   getGoalStats,
   getGoalTemplates,
   getGoalAnalytics,
-  getGoalRecommendations,
   getGoalById,
-  getGoalInsights,
   getSpecificGoalAnalytics,
   getGoalContributions,
   createGoal,
@@ -25,7 +23,6 @@ router.use(protect);
 router.get('/stats', getGoalStats);
 router.get('/templates', getGoalTemplates);
 router.get('/analytics', getGoalAnalytics);
-router.get('/recommendations', getGoalRecommendations);
 
 router.route('/')
   .get(getGoals)
@@ -37,7 +34,6 @@ router.route('/:id')
   .delete(deleteGoal);
 
 router.put('/:id/status', updateGoalStatus);
-router.get('/:id/insights', getGoalInsights);
 router.get('/:id/analytics', getSpecificGoalAnalytics);
 router.get('/:id/contributions', getGoalContributions);
 router.post('/:id/contribute', contributeToGoal);

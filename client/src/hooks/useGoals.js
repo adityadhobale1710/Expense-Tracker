@@ -36,6 +36,7 @@ export function useGoals(filters = {}) {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goal', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['goalStats'] });
+      queryClient.invalidateQueries({ queryKey: ['goalAnalytics', variables.id] });
     }
   });
 
@@ -46,6 +47,7 @@ export function useGoals(filters = {}) {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goal', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['goalStats'] });
+      queryClient.invalidateQueries({ queryKey: ['goalAnalytics', variables.id] });
     }
   });
 
@@ -133,7 +135,6 @@ export function useGoals(filters = {}) {
       queryClient.invalidateQueries({ queryKey: ['goalStats'] });
       queryClient.invalidateQueries({ queryKey: ['goalContributions', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['goalAnalytics'] });
-      queryClient.invalidateQueries({ queryKey: ['goalRecommendations'] });
       queryClient.invalidateQueries({ queryKey: ['wallets'] }); // Refresh wallets
     }
   });
@@ -176,7 +177,6 @@ export function useGoals(filters = {}) {
           queryClient.invalidateQueries({ queryKey: ['goalStats'] });
           queryClient.invalidateQueries({ queryKey: ['goalContributions', id] });
           queryClient.invalidateQueries({ queryKey: ['goalAnalytics'] });
-          queryClient.invalidateQueries({ queryKey: ['goalRecommendations'] });
           queryClient.invalidateQueries({ queryKey: ['wallets'] });
         },
         onError: (err) => {
