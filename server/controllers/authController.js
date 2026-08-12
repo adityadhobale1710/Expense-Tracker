@@ -104,18 +104,13 @@ export const register = asyncHandler(async (req, res) => {
   session.startTransaction();
   let user;
   try {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpire = Date.now() + 15 * 60 * 1000;
-
     [user] = await User.create([{ 
       name, 
       email, 
       password, 
       phone: phone || '', 
-      isEmailVerified: false, 
-      isVerified: false,
-      registrationOtp: otp,
-      registrationOtpExpire: otpExpire
+      isEmailVerified: true, 
+      isVerified: true
     }], { session });
 
     // Seed default categories
@@ -149,22 +144,7 @@ export const register = asyncHandler(async (req, res) => {
   }
   session.endSession();
 
-  const emailHtml = getHtmlTemplate({
-    title: 'Verify Your Email',
-    greeting: `Welcome, ${user.name}!`,
-    body: 'Thank you for registering. Please use the verification code below to verify your email address and activate your account. This code is valid for 15 minutes.',
-    code: user.registrationOtp,
-    footerText: 'If you did not register for an account, you can safely ignore this email.',
-  });
-
-  await sendEmail({
-    to: user.email,
-    subject: 'Your Registration Verification Code',
-    html: emailHtml,
-    text: `Welcome ${user.name},\n\nPlease use the following 6-digit code to verify your email:\n\n${user.registrationOtp}\n\nThis code will expire in 15 minutes.\n\nIf you did not register, please ignore this email.`,
-  });
-
-  return sendSuccess(res, 201, 'Account created successfully. We sent a verification OTP to your email.', { email: user.email });
+  return sendSuccess(res, 201, 'Account created successfully. You can now log in.', { email: user.email });
 });
 
 // @desc  Login user
@@ -190,13 +170,7 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  if (!user.isEmailVerified && !user.isVerified) {
-    res.status(403);
-    return res.json({
-      success: false,
-      message: 'Email verification required. Please verify your email before logging in.'
-    });
-  }
+
 
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
@@ -417,85 +391,3 @@ export const resetPassword = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Password has been reset successfully');
 });
 
-// @desc  Verify Registration OTP
-// @route POST /api/auth/verify-registration-otp
-export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    res.status(400);
-    throw new Error('Email and OTP are required');
-  }
-
-  const user = await User.findOne({ email });
-  if (!user) {
-    res.status(400);
-    throw new Error('User not found');
-  }
-
-  if (user.isEmailVerified || user.isVerified) {
-    res.status(400);
-    throw new Error('Account is already verified');
-  }
-
-  if (!user.registrationOtp || user.registrationOtp !== otp) {
-    res.status(400);
-    throw new Error('Invalid OTP');
-  }
-
-  if (user.registrationOtpExpire && user.registrationOtpExpire < Date.now()) {
-    res.status(400);
-    throw new Error('OTP has expired');
-  }
-
-  user.isEmailVerified = true;
-  user.isVerified = true;
-  user.registrationOtp = null;
-  user.registrationOtpExpire = null;
-  await user.save();
-
-  sendSuccess(res, 200, 'Email verified successfully. You can now log in.');
-});
-
-// @desc  Resend Registration OTP
-// @route POST /api/auth/resend-registration-otp
-export const resendRegistrationOtp = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    res.status(400);
-    throw new Error('Email is required');
-  }
-
-  const user = await User.findOne({ email });
-  if (!user) {
-    res.status(400);
-    throw new Error('User not found');
-  }
-
-  if (user.isEmailVerified || user.isVerified) {
-    res.status(400);
-    throw new Error('Account is already verified');
-  }
-
-  // Generate new OTP
-  const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.registrationOtp = newOtp;
-  user.registrationOtpExpire = Date.now() + 15 * 60 * 1000;
-  await user.save();
-
-  const emailHtml = getHtmlTemplate({
-    title: 'Verify Your Email',
-    greeting: `Hello ${user.name},`,
-    body: 'We received a request to resend your verification code. Please use the code below to verify your email address. This code is valid for 15 minutes.',
-    code: newOtp,
-    footerText: 'If you did not request this, please ignore this email.',
-  });
-
-  await sendEmail({
-    to: user.email,
-    subject: 'Your New Verification Code',
-    html: emailHtml,
-    text: `Hello ${user.name},\n\nYour new 6-digit verification code is:\n\n${newOtp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please ignore this email.`,
-  });
-
-  sendSuccess(res, 200, 'A new verification OTP has been sent to your email.');
-});

@@ -50,23 +50,7 @@ const Sparkle = ({ className, delay }) => (
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register, verifyRegistrationOtp, resendRegistrationOtp } = useAuth();
-
-  // Form states
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [registeredEmail, setRegisteredEmail] = useState('');
-  const [resendTimer, setResendTimer] = useState(0);
-
-  useEffect(() => {
-    let interval;
-    if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [resendTimer]);
+  const { register } = useAuth();
 
   // Form states
   const [form, setForm] = useState({
@@ -145,43 +129,10 @@ export default function Register() {
 
     try {
       await register(form.name, form.email, form.password, form.phone);
-      toast.success('Account created successfully! We sent a verification OTP to your email.');
-      setRegisteredEmail(form.email);
-      setIsOtpSent(true);
-      setResendTimer(30);
-    } catch (err) {
-      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Registration failed'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    if (otp.length !== 6) {
-      return toast.error('Please enter a 6-digit OTP.');
-    }
-    setLoading(true);
-    try {
-      await verifyRegistrationOtp(registeredEmail, otp);
-      toast.success('Email verified successfully! Please sign in.');
+      toast.success('Account created successfully! Please sign in.');
       navigate('/login');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Verification failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (resendTimer > 0) return;
-    setLoading(true);
-    try {
-      await resendRegistrationOtp(registeredEmail);
-      toast.success('OTP resent successfully.');
-      setResendTimer(30);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to resend OTP');
+      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -209,65 +160,7 @@ export default function Register() {
               </span>
             </div>
 
-            {isOtpSent ? (
-              <motion.div
-                key="otp"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="mb-6">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] tracking-tight font-jakarta">
-                    Verify Email
-                  </h1>
-                  <p className="text-xs sm:text-sm font-medium text-[#475569] mt-1">
-                    Enter the 6-digit code sent to <span className="font-semibold text-[#334155]">{registeredEmail}</span>
-                  </p>
-                </div>
 
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="form-group">
-                    <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
-                      Verification Code
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      className="w-full h-[46px] px-4 bg-[#F1F5F9] border border-transparent rounded-[14px] text-[#0F172A] text-sm font-bold tracking-[0.25em] text-center placeholder:tracking-normal placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#5B4CF0] focus:ring-4 focus:ring-[#5B4CF0]/12 transition-all duration-200"
-                      placeholder="••••••"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || otp.length !== 6}
-                    className="w-full h-[48px] rounded-[14px] bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm shadow-md shadow-[#4F46E5]/25 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed font-jakarta"
-                  >
-                    {loading ? (
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <span>Verify OTP</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                  
-                  <div className="text-center mt-4 text-xs font-semibold">
-                    <button
-                      type="button"
-                      disabled={loading || resendTimer > 0}
-                      onClick={handleResendOtp}
-                      className={`transition-colors ${resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-[#5B4CF0] hover:text-[#4338CA]'}`}
-                    >
-                      {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            ) : (
             <motion.div
               key="register"
               initial={{ opacity: 0, x: -10 }}
@@ -467,7 +360,6 @@ export default function Register() {
                     </button>
                   </form>
                 </motion.div>
-            )}
           </div>
 
           {/* Bottom link back to login page */}
