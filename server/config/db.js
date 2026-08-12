@@ -6,6 +6,7 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
     logger.info(`✅ MongoDB Connected: ${conn.connection.host}`);
+    logger.info(`MongoDB Database: ${conn.connection.name}`);
 
     // Startup guard for AIChat deduplication
     const duplicates = await AIChat.aggregate([
