@@ -26,6 +26,11 @@ const CATEGORY_ICONS = {
   All: '📂'
 };
 
+// M11 fix: money formatter that never renders more than 2 decimals. Split shares
+// are stored to 2dp, but sums (outstanding/owe) can accumulate float artifacts
+// like 3.333 which toLocaleString('en-IN') prints verbatim.
+const inrMoney = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
 export default function SplitBills() {
   const { user } = useAuth();
   const { showConfirm } = useDialog();
@@ -409,28 +414,28 @@ export default function SplitBills() {
         {[
           {
             label: 'Total Net Balance',
-            value: `${stats.outstanding >= 0 ? '+' : ''}₹${stats.outstanding.toLocaleString('en-IN')}`,
+            value: `${stats.outstanding >= 0 ? '+' : ''}₹${inrMoney(stats.outstanding)}`,
             icon: '💵',
             color: stats.outstanding >= 0 ? 'text-emerald-400' : 'text-rose-400',
             glow: stats.outstanding >= 0 ? 'from-emerald-500/5 to-transparent' : 'from-rose-500/5 to-transparent',
           },
           {
             label: 'You Owe',
-            value: `₹${stats.owe.toLocaleString('en-IN')}`,
+            value: `₹${inrMoney(stats.owe)}`,
             icon: '📉',
             color: 'text-rose-400',
             glow: 'from-rose-500/5 to-transparent',
           },
           {
             label: 'You Are Owed',
-            value: `₹${stats.owed.toLocaleString('en-IN')}`,
+            value: `₹${inrMoney(stats.owed)}`,
             icon: '📈',
             color: 'text-emerald-400',
             glow: 'from-emerald-500/5 to-transparent',
           },
           {
             label: 'Settled Payments',
-            value: `₹${stats.settled.toLocaleString('en-IN')}`,
+            value: `₹${inrMoney(stats.settled)}`,
             icon: '✅',
             color: 'text-indigo-400',
             glow: 'from-indigo-500/5 to-transparent',
@@ -676,7 +681,7 @@ export default function SplitBills() {
                   <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3.5 flex justify-between items-center gap-3">
                     <div>
                       <p className="text-[9px] font-bold text-rose-400 uppercase tracking-wide">You Owe Others</p>
-                      <p className="text-base font-black text-rose-400 font-mono mt-0.5">₹{stats.owe.toLocaleString('en-IN')}</p>
+                      <p className="text-base font-black text-rose-400 font-mono mt-0.5">₹{inrMoney(stats.owe)}</p>
                     </div>
                     <span className="text-2xl">📉</span>
                   </div>
@@ -686,7 +691,7 @@ export default function SplitBills() {
                   <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3.5 flex justify-between items-center gap-3">
                     <div>
                       <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wide">You Are Owed By Others</p>
-                      <p className="text-base font-black text-emerald-400 font-mono mt-0.5">₹{stats.owed.toLocaleString('en-IN')}</p>
+                      <p className="text-base font-black text-emerald-400 font-mono mt-0.5">₹{inrMoney(stats.owed)}</p>
                     </div>
                     <span className="text-2xl">📈</span>
                   </div>

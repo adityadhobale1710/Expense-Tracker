@@ -173,7 +173,7 @@ const AreaTooltip = ({ active, payload, label }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Income() {
-  const { incomes, fetchIncomes, addIncome, updateIncome, deleteIncome, categories, fetchCategories, loading } = useExpense();
+  const { incomes, fetchIncomes, addIncome, updateIncome, deleteIncome, categories, fetchCategories, loading, incomesTotal } = useExpense();
 
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_FORM);
@@ -377,7 +377,7 @@ export default function Income() {
 
       {/* ── Summary Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <SummaryCard delay={0}    icon={TrendingUp}  label="Total Earned"  value={fmt(totalAll)}   color="#10b981" sparkData={monthlySparkData} loading={loading} />
+        <SummaryCard delay={0}    icon={TrendingUp}  label="Total Earned"  value={fmt(incomesTotal ?? totalAll)}   color="#10b981" sparkData={monthlySparkData} loading={loading} />
         <SummaryCard delay={0.05} icon={Calendar}    label="This Month"    value={fmt(monthTotal)} color="#6366f1" loading={loading} />
         <SummaryCard delay={0.1}  icon={Clock}       label="Today"         value={fmt(todayTotal)} color="#f59e0b" loading={loading} />
         <SummaryCard delay={0.15} icon={BarChart3}   label="Average"       value={fmt(avgTx)}      color="#3b82f6" loading={loading} />

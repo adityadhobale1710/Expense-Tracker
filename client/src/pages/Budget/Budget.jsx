@@ -830,10 +830,11 @@ export default function Budget() {
             <span className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 shadow-lg">
               <BudgetLogoIcon className="w-5 h-5" />
             </span>
-            Budget Planner
+            Budget Manager
           </h1>
           <p className="text-slate-400 text-sm mt-1 ml-[52px]">
-            Track and optimize your monthly spending with cognitive boundaries
+            Track and optimize your monthly spending with live limits — usage is
+            recomputed from your expenses on every view, so Budget is never stale.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 self-stretch md:self-auto">

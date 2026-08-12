@@ -611,10 +611,16 @@ export const buildContext = async (userId, detectedIntents, chat, message = '', 
   } else {
     logger.info(`[ContextBuilder] Cache MISS or temporal query detected. Fetching fresh snapshot from DB.`);
     
-    // Load fresh data in parallel using standard collectFinancialData loader
+    // Load fresh data in parallel using standard collectFinancialData loader.
+    // M8 fix: for temporal queries ("this month", "this week", "last month",
+    // …) the fetch window MUST match the parsed range — previously expenses
+    // were always loaded as last-30-days while the section was labeled "This
+    // Month", so monthly AI answers were silently wrong (all-time/rolling
+    // numbers reported as month figures). Non-temporal queries keep the 30-day
+    // window so the module cache stays a consistent rolling snapshot.
     const rawData = await collectFinancialData(userId, {
-      expensesStartDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Approximate for cache fallback if needed
-      expensesEndDate: new Date(),
+      expensesStartDate: isCustomTimeQuery ? dateRange.start : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      expensesEndDate: isCustomTimeQuery ? dateRange.end : new Date(),
     }, tzOffset);
 
     // Populate formatters and update cache

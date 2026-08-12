@@ -4,31 +4,7 @@ import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 import { awardBusinessXP } from '../services/gamificationService.js';
 import Expense from '../models/Expense.js';
-const getBudgetPeriodDates = (budget) => {
-  const now = new Date();
-  let start = new Date(now);
-  let end = new Date(now);
-  
-  if (budget.startDate && budget.endDate) {
-    return { startDate: budget.startDate, endDate: budget.endDate };
-  }
-
-  if (budget.period === 'weekly') {
-    const day = now.getDay() || 7;
-    if (day !== 1) start.setHours(-24 * (day - 1));
-    start.setHours(0, 0, 0, 0);
-    end = new Date(start);
-    end.setDate(end.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-  } else if (budget.period === 'yearly') {
-    start = new Date(now.getFullYear(), 0, 1);
-    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-  } else {
-    start = new Date(now.getFullYear(), now.getMonth(), 1);
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  }
-  return { startDate: start, endDate: end };
-};
+import { getBudgetPeriodDates } from '../utils/budgetDates.js';
 
 export const getBudgets = asyncHandler(async (req, res) => {
   const budgets = await Budget.find({ user: req.user._id }).populate('category', 'name icon color').lean();

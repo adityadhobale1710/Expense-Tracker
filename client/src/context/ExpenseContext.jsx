@@ -12,6 +12,10 @@ export const ExpenseProvider = ({ children }) => {
   const [budgets, setBudgets] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  // Server-computed grand totals (getIncomes/getExpenses return totalAmount =
+  // sum across ALL matches). null until fetched.
+  const [incomesTotal, setIncomesTotal] = useState(null);
+  const [expensesTotal, setExpensesTotal] = useState(null);
   // Monotonic revision counter bumped on every successful income/expense mutation.
   // Consumers (e.g. AnalyticsPro) depend on it to re-fetch server-derived data
   // without polling, reloads, or stale cache replays.
@@ -31,6 +35,7 @@ export const ExpenseProvider = ({ children }) => {
     try {
       const { data } = await api.get('/income', { params });
       setIncomes(data.data.incomes || []);
+      if (typeof data.data.totalAmount === 'number') setIncomesTotal(data.data.totalAmount);
     } catch (e) {
       if (e.name !== 'CanceledError' && e.message !== 'canceled') {
         toast.error(e.response?.data?.message || 'Failed to fetch incomes');
@@ -72,6 +77,7 @@ export const ExpenseProvider = ({ children }) => {
     try {
       const { data } = await api.get('/expenses', { params });
       setExpenses(data.data.expenses || []);
+      if (typeof data.data.totalAmount === 'number') setExpensesTotal(data.data.totalAmount);
     } catch (e) {
       if (e.name !== 'CanceledError' && e.message !== 'canceled') {
         toast.error(e.response?.data?.message || 'Failed to fetch expenses');
@@ -180,6 +186,7 @@ export const ExpenseProvider = ({ children }) => {
   return (
     <ExpenseContext.Provider value={{
       incomes, expenses, categories, budgets, summary, loading, dataRevision,
+      incomesTotal, expensesTotal,
       fetchIncomes, addIncome, updateIncome, deleteIncome,
       fetchExpenses, addExpense, updateExpense, deleteExpense,
       fetchCategories, fetchBudgets, addBudget, updateBudget, deleteBudget,

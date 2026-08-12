@@ -233,7 +233,10 @@ html[data-theme="dark-blue"] {
     }
   }
   .nav-link.active {
-    @apply bg-primary-600/20 text-primary-400 border border-primary-500/20;
+    /* M13 fix: primary-400 text on a primary-600/20 fill was violet-on-violet
+       (contrast ≈1.0 — literally invisible active item). White text on the
+       tinted fill reads clearly on every dark variant. */
+    @apply bg-primary-500/25 text-white border border-primary-400/40;
   }
 
   /* ── App shell: h-dvh with 100vh fallback for older browsers ── */
@@ -656,6 +659,74 @@ html[data-theme="light"] .analytics-page .text-red-300 {
 
 html[data-theme="light"] .analytics-page [class~="text-red-300/80"] {
   color: #dc2626 !important;
+}
+
+/* ── Dark Theme Readability Improvements ─────────────────────────────── */
+/* Many "stat/label" texts sit on 10–20% alpha color fills (e.g. emerald-500/10
+   over dark-800). The stock 400-luminance tints measure ~1.3–3.2 contrast on
+   those fills (audit: "Quick Add Money" 1.32, "Urgent" 1.36, "Income: +₹" 1.32,
+   "Transfer Funds" 3.18, micro "Limit/Spent" labels 3.75). Bumping the colored
+   text to its 300-range (near-white tint) on dark surfaces raises every
+   affected pair well above 4.5. Light theme keeps its 600/700 deep shades. */
+:root,
+html[data-theme="dark"],
+html[data-theme="dark-blue"] {
+  --contrast-emerald: #6ee7b7;   /* emerald-300 */
+  --contrast-emerald-bright: #a7f3d0; /* emerald-200 */
+  --contrast-red: #fca5a5;       /* red-300 */
+  --contrast-rose: #fda4af;      /* rose-300 */
+  --contrast-amber: #fcd34d;     /* amber-300 */
+  --contrast-purple: #c4b5fd;    /* purple-300 */
+  --contrast-slate-dim: #94a3b8; /* slate-400 (up from slate-500/600 grays) */
+}
+
+/* Tiny reversed: currently slate-400 (#94a3b8) is used for meta text on dark —
+   it passes ~7:1, keep it. The offenders are slate-500/600 gray micro-labels.
+   Scope to the handful of semantic tinted-text classes instead of blanket
+   var swaps so borders/surfaces are untouched. */
+html[data-theme="dark"] [class~="text-emerald-400"],
+html[data-theme="dark-blue"] [class~="text-emerald-400"] {
+  color: var(--contrast-emerald) !important;
+}
+html[data-theme="dark"] [class~="text-emerald-300"],
+html[data-theme="dark-blue"] [class~="text-emerald-300"] {
+  color: var(--contrast-emerald-bright) !important;
+}
+html[data-theme="dark"] [class~="text-red-400"],
+html[data-theme="dark-blue"] [class~="text-red-400"] {
+  color: var(--contrast-red) !important;
+}
+html[data-theme="dark"] [class~="text-rose-300"],
+html[data-theme="dark"] [class~="text-rose-400"],
+html[data-theme="dark-blue"] [class~="text-rose-300"],
+html[data-theme="dark-blue"] [class~="text-rose-400"] {
+  color: var(--contrast-rose) !important;
+}
+html[data-theme="dark"] [class~="text-amber-300"],
+html[data-theme="dark"] [class~="text-amber-400"],
+html[data-theme="dark"] [class~="text-yellow-400"],
+html[data-theme="dark-blue"] [class~="text-amber-300"],
+html[data-theme="dark-blue"] [class~="text-amber-400"],
+html[data-theme="dark-blue"] [class~="text-yellow-400"] {
+  color: var(--contrast-amber) !important;
+}
+/* Purple links/actions ("Manage", "View All", active pills @ 10px) */
+html[data-theme="dark"] [class~="text-primary-400"],
+html[data-theme="dark"] [class~="text-purple-400"],
+html[data-theme="dark-blue"] [class~="text-primary-400"],
+html[data-theme="dark-blue"] [class~="text-purple-400"] {
+  color: var(--contrast-purple) !important;
+}
+
+/* Micro-labels (Limit/Spent, dates, footnote text) using slate-500/600 grays
+   on dark surfaces: lift to slate-300 (#cbd5e1) which comfortably passes. */
+html[data-theme="dark"] [class~="text-slate-500"]:not([class~="opacity-0"]),
+html[data-theme="dark"] [class~="text-slate-600"]:not([class~="opacity-0"]),
+html[data-theme="dark-blue"] [class~="text-slate-500"]:not([class~="opacity-0"]),
+html[data-theme="dark-blue"] [class~="text-slate-600"]:not([class~="opacity-0"]),
+html[data-theme="dark"] [class~="label"] [class~="text-slate-400"],
+html[data-theme="dark-blue"] [class~="label"] [class~="text-slate-400"] {
+  color: rgb(203 213 225) !important;
 }
 
 

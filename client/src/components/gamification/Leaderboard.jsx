@@ -21,7 +21,6 @@ export default function Leaderboard() {
       } catch {
         // Fallback: just show current user
         setEntries([{
-          _id: user?._id,
           name: user?.name || 'You',
           avatar: user?.avatar,
           xp: xp,
@@ -87,7 +86,7 @@ export default function Leaderboard() {
 
           {entries.map((entry) => (
             <div
-              key={entry._id}
+              key={`${entry.rank_position}-${entry.name}`}
               className={`grid grid-cols-[40px_1fr_60px_60px_50px] gap-2 items-center p-3 rounded-xl border transition-all duration-200 ${
                 entry.isCurrentUser
                   ? 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]'

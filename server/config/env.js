@@ -52,7 +52,7 @@ const weakSecrets = SECRET_ENV_VARS.filter((envVar) => isWeakSecret(process.env[
 if (weakSecrets.length > 0) {
   console.error('\n❌ CRITICAL SECURITY ERROR: weak or publicly-known secret detected. The server refuses to start.');
   weakSecrets.forEach((v) => console.error(`   - ${v}`));
-  console.error('Generate strong random secrets (e.g. `openssl rand -hex 32`) and set them in your environment/`, '.env file.');
+  console.error('Generate strong random secrets (e.g. `openssl rand -hex 32`) and set them in your environment/.env file.');
   console.error('Running with a guessable JWT secret lets attackers forge authentication tokens for ANY user.\n');
   process.exit(1);
 }

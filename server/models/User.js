@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema(
     },
     otpVerified: { type: Boolean, default: false },
     isEmailVerified: { type: Boolean, default: false },
+    // M17 fix: `isVerified` is the legacy pre-migration verification flag. Legacy
+    // accounts that verified before `isEmailVerified` existed are flagged here; a
+    // login/verify that only checks `isEmailVerified` permanently locks them out.
+    isVerified: { type: Boolean, default: false },
     registrationOtp: { type: String, default: null },
     registrationOtpExpire: { type: Date, default: null },
     isDisabled: { type: Boolean, default: false },

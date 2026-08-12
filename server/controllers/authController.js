@@ -72,6 +72,21 @@ const DEFAULT_CATEGORIES = [
 // OTP resend cooldown in milliseconds (30 seconds)
 const OTP_RESEND_COOLDOWN_MS = 30 * 1000;
 
+// C4 fix: refresh-token cookie options. The API (Render) and the SPA (Vercel)
+// are different sites, so SameSite=Strict meant the browser never sent the
+// refresh cookie cross-site → forced logout every 15 minutes. Production now
+// uses SameSite=None (which requires Secure). SameSite=Strict stays for local
+// dev where frontend/backend are same-site (localhost).
+export const getRefreshCookieOptions = () => {
+  const isProd = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+};
+
 // @desc  Register user
 // @route POST /api/auth/register
 export const register = asyncHandler(async (req, res) => {
@@ -80,7 +95,7 @@ export const register = asyncHandler(async (req, res) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
-    if (existingUser.isEmailVerified === true) {
+    if (existingUser.isEmailVerified === true || existingUser.isVerified === true) {
       res.status(400);
       throw new Error('User already exists with this email');
     }
@@ -188,7 +203,10 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  if (user.isEmailVerified === false) {
+  // M17 fix: accept the legacy `isVerified` flag so pre-migration accounts that
+  // were verified under the old field are not banned from login forever.
+  const isVerified = user.isEmailVerified === true || user.isVerified === true;
+  if (!isVerified) {
     res.status(403);
     return res.json({
       success: false,
@@ -214,12 +232,7 @@ export const login = asyncHandler(async (req, res) => {
 
   await createSessionRecord(user._id, accessToken, req);
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  });
+  res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
   sendSuccess(res, 200, 'Login successful', {
     _id: user._id,
@@ -269,7 +282,11 @@ export const logout = asyncHandler(async (req, res) => {
     logger.error(`Failed to revoke session on logout: ${err.message}`);
   }
 
-  res.clearCookie('refreshToken');
+  // M-RC1 fix: clear with the SAME attributes the cookie was set with. In prod the
+  // refresh cookie is Secure + SameSite=None (cross-site Vercel↔Render); a bare
+  // clearCookie() writes a plain non-Secure Set-Cookie that browsers ignore when
+  // overwriting a Secure cookie — leaving the stale refresh cookie on disk.
+  res.clearCookie('refreshToken', getRefreshCookieOptions());
   sendSuccess(res, 200, 'Logged out successfully');
 });
 
@@ -310,12 +327,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
   user.refreshToken = newRefreshToken;
   await user.save();
 
-  res.cookie('refreshToken', newRefreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
+  res.cookie('refreshToken', newRefreshToken, getRefreshCookieOptions());
 
   sendSuccess(res, 200, 'Token refreshed', {
     accessToken: newAccessToken,
@@ -445,6 +457,7 @@ export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
   }
 
   user.isEmailVerified = true;
+  user.isVerified = true;
   user.registrationOtp = null;
   user.registrationOtpExpire = null;
 
@@ -455,12 +468,7 @@ export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
 
   await createSessionRecord(user._id, accessToken, req);
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  });
+  res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
   sendSuccess(res, 200, 'Email verified successfully', {
     _id: user._id,
@@ -499,7 +507,7 @@ export const resendRegistrationOtp = asyncHandler(async (req, res) => {
     throw new Error('User not found');
   }
 
-  if (user.isEmailVerified) {
+  if (user.isEmailVerified || user.isVerified) {
     res.status(400);
     throw new Error('Email already verified, please log in');
   }

@@ -6,6 +6,7 @@ import Income from '../../models/Income.js';
 import Goal from '../../models/Goal.js';
 import Loan from '../../models/Loan.js';
 import Subscription from '../../models/Subscription.js';
+import { getBudgetPeriodDates } from '../../utils/budgetDates.js';
 
 class FinancialDataService {
   /**
@@ -31,9 +32,29 @@ class FinancialDataService {
    * Get all budgets with category population
    */
   static async getBudgets(userId) {
-    return Budget.find({ user: userId })
+    const budgets = await Budget.find({ user: userId })
       .populate('category', 'name icon color')
       .lean();
+
+    // H7 fix: the persisted Budget.spent field can drift from reality (lowered
+    // by old mutations, never refreshed, etc.). Every consumer of the shared
+    // snapshot (dashboard "REMAINING BUDGET" card, Financial Health Score, AI
+    // chat context) reads b.spent — so recompute it live from the Expense
+    // collection, exactly matching the Budget page (/budget). This keeps the
+    // dashboard and budget page from ever disagreeing, and fixes the false
+    // "Budget Exceeded" / "this month" AI answers that used stale values.
+    for (const b of budgets) {
+      if (!b.category) continue;
+      const { startDate, endDate } = getBudgetPeriodDates(b);
+      const [result] = await Expense.aggregate([
+        { $match: { user: userId, category: b.category._id, date: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+      b.spent = result ? result.total : 0;
+      b.percentSpent = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
+    }
+
+    return budgets;
   }
 
   /**
