@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Expense from '../models/Expense.js';
 import Budget from '../models/Budget.js';
 import Wallet from '../models/Wallet.js';
+import Bill from '../models/Bill.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 import { awardBusinessXP } from '../services/gamificationService.js';
@@ -44,7 +45,48 @@ export const getExpenses = asyncHandler(async (req, res) => {
     .skip((page - 1) * limit)
     .limit(limit);
 
-  sendSuccess(res, 200, 'Expenses fetched', { expenses, total, page });
+  // M10 fix: totalAmount is the sum across ALL matching expenses (not just the
+  // paginated slice). The Expenses page previously summed only the loaded
+  // 20-row slice, so the "Total Spent" card show a wrong lower number once a
+  // user had more than one page of transactions.
+  const [totalAmountAgg] = await Expense.aggregate([
+    { $match: filter },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+
+  // H8: tag expenses whose scheduled bill is due on that expense's own date.
+  // A day-of-month match is used (anchored at "today's time = IST-date"), so a
+  // monthly recurring bill surfaces on its anchor day regardless of how the
+  // expense's date field is stored. Client surfaces these with a
+  // "due today" badge on the via-Bill row.
+  const billsForFlags = await Bill.find({ user: req.user._id, category: { $ne: null } });
+  const billAnchorByCategory = new Map();
+  billsForFlags.forEach((b) => {
+    if (!billAnchorByCategory.has(String(b.category))) {
+      billAnchorByCategory.set(String(b.category), new Date(b.dueDate));
+    }
+  });
+  const expensesWithFlags = expenses.map((e) => {
+    const doc = e.toObject ? e.toObject() : e;
+    const catId = String(doc.category?._id ?? doc.category ?? '');
+    const anchor = catId ? billAnchorByCategory.get(catId) : null;
+    const d = doc.date ? new Date(doc.date) : null;
+    let dueToday = false;
+    if (anchor && d) {
+      dueToday =
+        anchor.getUTCDate() === d.getUTCDate() &&
+        anchor.getUTCMonth() === d.getUTCMonth() &&
+        anchor.getUTCFullYear() === d.getUTCFullYear();
+    }
+    return { ...doc, __billDue: !!anchor, __dueToday: dueToday };
+  });
+
+  sendSuccess(res, 200, 'Expenses fetched', {
+    expenses: expensesWithFlags,
+    total,
+    totalAmount: totalAmountAgg ? totalAmountAgg.total : 0,
+    page
+  });
 });
 
 // @desc  Add expense
@@ -52,31 +94,44 @@ export const getExpenses = asyncHandler(async (req, res) => {
 export const addExpense = asyncHandler(async (req, res) => {
   const { walletId, ...rest } = req.body;
   const payload = { ...rest, user: req.user._id };
+  const amount = Number(rest.amount);
 
-  // Link to wallet and deduct balance
+  // C5 fix: build the fully-validated document BEFORE touching any wallet.
+  // Previously the wallet balance was deducted first and Expense.create() ran
+  // afterwards — any validation/DB error (e.g. enum, CastError, transient
+  // mongodb failure) left the wallet debited without the expense being
+  // recorded: silent fund loss with no rollback. Now a wallet reference is
+  // resolved/validated up front, the expense is created first, and the
+  // deduction happens only after the expense is safely persisted. If the
+  // deduct-step unexpectedly fails we refund the newly created expense.
   if (walletId) {
-    const wallet = await Wallet.findOneAndUpdate(
-      { _id: walletId, user: req.user._id, balance: { $gte: Number(rest.amount) } },
-      { $inc: { balance: -Number(rest.amount) } },
-      { new: true }
-    );
-    if (!wallet) {
-      const existing = await Wallet.findOne({ _id: walletId, user: req.user._id });
-      if (!existing) {
-        res.status(404);
-        throw new Error('Wallet not found');
-      }
+    const existing = await Wallet.findOne({ _id: walletId, user: req.user._id });
+    if (!existing) {
+      res.status(404);
+      throw new Error('Wallet not found');
+    }
+    if (!(Number(existing.balance) >= amount)) {
       res.status(400);
       throw new Error('Insufficient wallet balance');
     }
-    payload.wallet = wallet._id;
+    payload.wallet = walletId;
   }
 
   const expense = await Expense.create(payload);
 
-  // Recalculate budget spent from source of truth
-  if (expense.category) {
-    await recalcBudgetSpent(req.user._id, expense.category);
+  // Atomic deduct AFTER creation — funds only move once the expense exists.
+  if (walletId) {
+    const wallet = await Wallet.findOneAndUpdate(
+      { _id: walletId, user: req.user._id, balance: { $gte: amount } },
+      { $inc: { balance: -amount } },
+      { new: true }
+    );
+    if (!wallet) {
+      // Unexpected — refund the just-created expense and surface a clear error.
+      await Expense.findByIdAndDelete(expense._id);
+      res.status(400);
+      throw new Error('Insufficient wallet balance');
+    }
   }
 
   await expense.populate('category', 'name icon color');

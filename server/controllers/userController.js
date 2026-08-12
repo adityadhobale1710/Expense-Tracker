@@ -15,6 +15,8 @@ import SplitExpense from '../models/SplitExpense.js';
 import Family from '../models/Family.js';
 import AIChat from '../models/AIChat.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import logger from '../utils/logger.js';
+import { getRefreshCookieOptions } from './authController.js';
 
 // @desc  Get current user profile
 // @route GET /api/users/me
@@ -442,10 +444,19 @@ export const deleteMe = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
 
-    res.clearCookie('refreshToken');
+    // M-RC1 fix: clear the refresh cookie with the same Secure + SameSite=None
+    // attributes it was set with, or browsers silently ignore the deletion.
+    res.clearCookie('refreshToken', getRefreshCookieOptions());
     sendSuccess(res, 200, 'Account and all associated data deleted successfully');
   } catch (error) {
-    await session.abortTransaction();
+    // C1 fix (same bug class as register): never call abortTransaction() on a
+    // session whose transaction was already committed/ended — that throws a
+    // MongoTransactionError that masks the real failure with a leaked 502.
+    try {
+      if (session.inTransaction()) await session.abortTransaction();
+    } catch (abortErr) {
+      logger.error(`[deleteMe] Failed to abort transaction: ${abortErr.message}`);
+    }
     throw error;
   } finally {
     session.endSession();

@@ -650,3 +650,117 @@ export const getBillStats = asyncHandler(async (req, res) => {
     },
   });
 });
+
+// ---------------------------------------------------------------------------
+// Calendar "Due Today" context (Policy 87 / H8).
+//
+// The Calendar page and every embedded context that references scheduled bills
+// (Quick Add predictions, Dashboard forecast, hero card) must agree on WHICH
+// bills are "due today". This builder is the single source of truth for the
+// month-grid occurrence math:
+//   - A non-recurring bill is due on its anchor dueDate only.
+//   - A recurring bill is due on the SAME day-of-month as its anchor, every
+//     month (monthly anchoring). When the requested view-month does not
+//     contain the anchor's own month/year, we still produce the occurrence for
+//     the anchor day so a bill created last week is visible on next month's
+//     grid AND on this month's "due today" card.
+//
+// The response mirrors the grid so the front end drops its defunct Redux
+// snapshot: { gridLength, firstWeekday, occurrences (with due-today flags),
+//             slugs (cell → "billId-YYYY-M-D"), dueExecDates, isCurrentMonth }.
+// ---------------------------------------------------------------------------
+const dayKeyOf = (d) => `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+
+export const buildCalendarContext = async (userId, calendarDate) => {
+  const contextDate = calendarDate ? new Date(calendarDate) : new Date();
+  if (Number.isNaN(contextDate.getTime())) throw new Error('Invalid calendarDate');
+
+  // "Today" is the caller's notion of today (the client passes its own local
+  // date — e.g. calendarDate=2026-08-12). Deriving it from the server's UTC
+  // clock makes every IST user's day appear 1 day early between 00:00–05:30.
+  const today = new Date(contextDate);
+  today.setUTCHours(0, 0, 0, 0);
+
+  const viewYear = contextDate.getUTCFullYear();
+  const viewMonth = contextDate.getUTCMonth(); // 0-indexed
+  const isCurrentMonth =
+    viewYear === today.getUTCFullYear() && viewMonth === today.getUTCMonth();
+  const lastDay = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
+
+  const bills = await Bill.find({ user: userId }).lean();
+
+  // Build the month's occurrence list (bill + execDate).
+  const occurrences = [];
+  const seenKey = (billId, dateKey) => `${billId}|${dateKey}`;
+  const keys = new Set();
+  bills.forEach((bill) => {
+    const anchor = new Date(bill.dueDate);
+    if (bill.recurring && bill.frequency && bill.frequency !== 'none') {
+      // Recurring: same day-of-month each month. Exec date within view month.
+      const exec = new Date(Date.UTC(viewYear, viewMonth, anchor.getUTCDate()));
+      const key = seenKey(String(bill._id), dayKeyOf(exec));
+      if (!keys.has(key)) {
+        keys.add(key);
+        occurrences.push({ bill, execDate: exec });
+      }
+    } else {
+      // One-off: only when its anchor lands in the view month.
+      if (anchor.getUTCFullYear() === viewYear && anchor.getUTCMonth() === viewMonth) {
+        const key = seenKey(String(bill._id), dayKeyOf(anchor));
+        if (!keys.has(key)) {
+          keys.add(key);
+          occurrences.push({ bill, execDate: anchor });
+        }
+      }
+    }
+  });
+
+  // Grid geometry.
+  const firstWeekday = new Date(Date.UTC(viewYear, viewMonth, 1)).getUTCDay(); // 0=Sun
+  const gridLength = firstWeekday + lastDay;
+
+  // "Due today" (only meaningful while viewing the current month).
+  const todayKey = dayKeyOf(today);
+  const dueExecDates = isCurrentMonth
+    ? occurrences.filter((o) => dayKeyOf(o.execDate) === todayKey).map((o) => o.execDate)
+    : [];
+
+  // Slugs: cell index (0-based) → "billId-YYYY-M-D" for exact-grid matches.
+  const slugs = {};
+  occurrences.forEach((o) => {
+    const cell = firstWeekday + o.execDate.getUTCDate() - 1;
+    slugs[cell] = `${String(o._id ?? o.bill._id)}-${dayKeyOf(o.execDate)}`;
+  });
+
+  // Human-friendly "due today" summary for the hero/embedded card.
+  const dueTodayBills = occurrences
+    .filter((o) => isCurrentMonth && dayKeyOf(o.execDate) === todayKey)
+    .map((o) => ({
+      ...o,
+      amount: Number(o.bill.amount || 0),
+      title: o.bill.title,
+      category: o.bill.category ?? null,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  return {
+    occurrenceCount: occurrences.length,
+    gridLength,
+    firstWeekday,
+    isCurrentMonth,
+    dueExecDates,
+    dueTodayIds: dueExecDates.map((d) => dayKeyOf(d)),
+    dueTodayBills,
+    dueTodayCount: dueTodayBills.length,
+    dueTodayAmount: dueTodayBills.reduce((s, o) => s + Number(o.amount || 0), 0),
+    slugs,
+    months: [viewMonth],
+  };
+};
+
+// @desc    Get calendar context for a given view date (H8 "Due Today")
+// @route   GET /api/bills/context?calendarDate=YYYY-MM-DD
+export const getCalendarContext = asyncHandler(async (req, res) => {
+  const context = await buildCalendarContext(req.user._id, req.query.calendarDate);
+  sendSuccess(res, 200, 'Calendar context', context);
+});

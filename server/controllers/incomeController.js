@@ -28,7 +28,19 @@ export const getIncomes = asyncHandler(async (req, res) => {
     .skip((page - 1) * limit)
     .limit(limit);
 
-  sendSuccess(res, 200, 'Incomes fetched', { incomes, total, page });
+  // M12 fix: totalAmount sums ALL matching incomes, not just the loaded slice,
+  // so the Income page "Total Earned" card is never wrong on paginated data.
+  const [totalAmountAgg] = await Income.aggregate([
+    { $match: filter },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+
+  sendSuccess(res, 200, 'Incomes fetched', {
+    incomes,
+    total,
+    totalAmount: totalAmountAgg ? totalAmountAgg.total : 0,
+    page
+  });
 });
 
 // @desc  Add income

@@ -306,7 +306,6 @@ export const getLeaderboard = asyncHandler(async (req, res) => {
       familyMembers = (family.members || [])
         .filter(m => m.user && m.user._id.toString() !== req.user._id.toString())
         .map(m => ({
-          _id: m.user._id,
           name: m.user.name,
           avatar: m.user.avatar,
           xp: m.user.xp || 0,
@@ -324,7 +323,6 @@ export const getLeaderboard = asyncHandler(async (req, res) => {
   }
 
   const selfEntry = {
-    _id: user._id,
     name: user.name,
     avatar: user.avatar,
     xp: user.xp || 0,

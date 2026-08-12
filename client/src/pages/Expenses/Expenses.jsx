@@ -168,7 +168,7 @@ const AreaTooltip = ({ active, payload, label }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Expenses() {
-  const { expenses, fetchExpenses, addExpense, updateExpense, deleteExpense, categories, fetchCategories, loading } = useExpense();
+  const { expenses, fetchExpenses, addExpense, updateExpense, deleteExpense, categories, fetchCategories, loading, expensesTotal } = useExpense();
 
   // Modal state
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
@@ -392,7 +392,7 @@ export default function Expenses() {
 
       {/* ── Summary Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <SummaryCard delay={0}   icon={TrendingDown} label="Total Spent"      value={fmt(totalAll)}   color="#f43f5e" sparkData={monthlySparkData} loading={loading} />
+        <SummaryCard delay={0}   icon={TrendingDown} label="Total Spent"      value={fmt(expensesTotal ?? totalAll)}   color="#f43f5e" sparkData={monthlySparkData} loading={loading} />
         <SummaryCard delay={0.05} icon={Calendar}     label="This Month"       value={fmt(monthTotal)} color="#f59e0b" loading={loading} />
         <SummaryCard delay={0.1}  icon={Clock}        label="Today"            value={fmt(todayTotal)} color="#ec4899" loading={loading} />
         <SummaryCard delay={0.15} icon={BarChart3}    label="Average"          value={fmt(avgTx)}      color="#6366f1" loading={loading} />

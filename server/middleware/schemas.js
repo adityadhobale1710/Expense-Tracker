@@ -45,7 +45,11 @@ export const expenseSchema = Joi.object({
   amount: Joi.number().positive().max(10_000_000).required(),
   date: Joi.date().iso().required(),
   category: Joi.string().hex().length(24).required(),
-  paymentMethod: Joi.string().max(50).required(),
+  // M5 fix: enforce the Expense model's paymentMethod enum up front. Previously
+  // any arbitrary value (e.g. "UPI" uppercase, typo) sailed past Joi and hit the
+  // Mongoose enum — wasted round-trip and, in the old order, the cause of a
+  // wallet debit with no recorded expense. Client already sends lowercase.
+  paymentMethod: Joi.string().valid('cash', 'card', 'upi', 'bank', 'other').required(),
   description: Joi.string().max(500).allow('').optional(),
   tags: Joi.array().items(Joi.string().max(50)).optional(),
   walletId: Joi.string().hex().length(24).allow(null, '').optional(),

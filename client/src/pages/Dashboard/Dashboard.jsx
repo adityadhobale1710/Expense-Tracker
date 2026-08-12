@@ -161,6 +161,25 @@ export default function Dashboard() {
     loadDashboard();
   }, [loadDashboard, dataRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // H8: "Due Today" strip — fed by /bills/context (the same occurrence math the
+  // Calendar page uses), so the hero card can never disagree with the grid.
+  const [dueContext, setDueContext] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    const loadDue = async () => {
+      try {
+        const res = await api.get('/bills/context', {
+          params: { calendarDate: getLocalTodayString() },
+        });
+        if (!cancelled) setDueContext(res.data?.data || null);
+      } catch {
+        /* non-fatal: strip simply stays hidden */
+      }
+    };
+    loadDue();
+    return () => { cancelled = true; };
+  }, [dataRevision]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (categories.length > 0 && !txForm.category) {
       const firstMatched = categories.find(c => c.type === txForm.type);
@@ -328,6 +347,46 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* ─── DUE TODAY STRIP (H8) ─── */}
+      {dueContext?.isCurrentMonth && dueContext.dueTodayCount > 0 && (
+        <div className="flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-red-500/25 bg-red-500/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/15">
+              <AlertCircle size={20} className="text-red-400" />
+            </span>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-red-400">
+                {dueContext.dueTodayCount} bill{dueContext.dueTodayCount > 1 ? 's' : ''} due today
+              </p>
+              <p className="text-lg font-black text-slate-100">
+                ₹{Number(dueContext.dueTodayAmount || 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            {dueContext.dueTodayBills.slice(0, 3).map((b, i) => (
+              <span
+                key={i}
+                className="rounded-lg border border-red-500/20 bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-200"
+              >
+                {b.title} · ₹{Number(b.amount || 0).toLocaleString('en-IN')}
+              </span>
+            ))}
+            {dueContext.dueTodayCount > 3 && (
+              <span className="rounded-lg bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-400">
+                +{dueContext.dueTodayCount - 3} more
+              </span>
+            )}
+            <Link
+              to="/calendar"
+              className="text-xs font-bold text-red-400 hover:text-red-300 underline underline-offset-4 whitespace-nowrap"
+            >
+              View calendar →
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ─── TODAY'S ACTIVITY SECTION ─── */}
       {(() => {
         const todayStr = getLocalTodayString();
@@ -456,6 +515,19 @@ export default function Dashboard() {
           </div>
         );
       })()}
+
+      {/* ─── TODAY'S FINANCIAL SNAPSHOT SECTION (v-dashboardH12) ─── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div>
+          <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+            <Activity size={18} className="text-primary-400" />
+            Today's Financial Snapshot
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Live balances, spending and budget health for {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}.
+          </p>
+        </div>
+      </div>
 
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

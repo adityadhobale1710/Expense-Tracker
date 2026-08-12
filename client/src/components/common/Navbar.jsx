@@ -9,7 +9,7 @@ const PAGE_TITLES = {
   '/dashboard':     { title: 'Dashboard', subtitle: 'Your financial overview' },
   '/income':        { title: 'Income',    subtitle: 'Track your earnings' },
   '/expenses':      { title: 'Expenses',  subtitle: 'Manage your spending' },
-  '/budget':        { title: 'Budget',    subtitle: 'Set spending limits' },
+  '/budget':        { title: 'Budget Manager', subtitle: 'Set spending limits' },
   '/reports':       { title: 'Reports',   subtitle: 'Analyze your finances' },
   '/calendar':      { title: 'Bill Calendar', subtitle: 'Track upcoming obligations' },
   '/achievements':  { title: 'Achievements', subtitle: 'Earn XP, level up, and unlock rewards' },

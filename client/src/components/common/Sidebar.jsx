@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   { to: '/income', icon: '💰', label: 'Income' },
   { to: '/expenses', icon: '💸', label: 'Expenses' },
   { to: '/wallets', icon: '/wallet.png', label: 'Wallets' },
-  { to: '/budget', icon: '/budget-logo.png', label: 'Budget' },
+  { to: '/budget', icon: '/budget-logo.png', label: 'Budget Manager' },
   { to: '/goals', icon: '🎯', label: 'Goals' },
   { to: '/loans', icon: '🏛️', label: 'Loans & EMIs' },
   { to: '/subscriptions', icon: '🔁', label: 'Subscriptions' },

@@ -18,6 +18,7 @@ import {
   postponeBill,
   duplicateBill,
   getBillStats,
+  getCalendarContext,
 } from '../controllers/billController.js';
 
 const router = express.Router();
@@ -29,6 +30,10 @@ router.route('/')
 
 router.route('/stats')
   .get(getBillStats);
+
+// MUST be declared before '/:id' so "context" is not swallowed by the id param.
+router.route('/context')
+  .get(getCalendarContext);
 
 router.route('/:id')
   .put(validate(billUpdateSchema), updateBill)
