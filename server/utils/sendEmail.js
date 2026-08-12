@@ -118,9 +118,8 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     // client's 15s axios timeout even if resend stalls.
     const MAIL_DEADLINE_MS = 10000;
     
-    const fromName = process.env.SMTP_FROM_NAME || 'My Expense Pro';
-    // If SMTP_FROM is preserved from before, we use it. Otherwise use the onboarding sender.
-    const fromEmail = process.env.SMTP_FROM || 'onboarding@resend.dev';
+    const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+    const fromName = COMPANY_NAME || 'Expense Tracker';
     
     const sendPromise = resend.emails.send({
       from: `"${fromName}" <${fromEmail}>`,
