@@ -169,7 +169,7 @@ cd client
 npm run dev
 ```
 
-Visit: **http://localhost:5173** to access the application.
+Visit: **https://expense-tracker-five-virid-19.vercel.app/login** to access the application.
 
 ---
 
