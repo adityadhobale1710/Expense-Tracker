@@ -315,17 +315,20 @@ export default function Income() {
 
     setSubmitting(true);
     try {
+      // Build the payload from ONLY the fields accepted by the backend
+      // incomeSchema. Never spread the full form (it is seeded from the server
+      // doc in openEdit and may carry server/UI-derived fields like isTransfer
+      // which Joi's .unknown(false) would reject).
       const payload = {
-        ...form,
-        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
-        amount: Number(form.amount),
         title: form.title.trim(),
+        amount: Number(form.amount),
+        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
+        paymentMethod: form.paymentMethod || '',
       };
-      delete payload.time; delete payload._id; delete payload.user;
-      delete payload.createdAt; delete payload.updatedAt; delete payload.__v; delete payload.wallet;
-      if (!payload.category) delete payload.category;
-      if (!payload.source) delete payload.source;
-      if (!payload.description) delete payload.description;
+      if (form.category) payload.category = form.category;
+      if (form.source) payload.source = form.source;
+      if (form.description) payload.description = form.description;
+      if (form.walletId) payload.walletId = form.walletId;
 
       if (modal.mode === 'add') await addIncome(payload);
       else await updateIncome(modal.item._id, payload);

@@ -329,17 +329,23 @@ export default function Expenses() {
 
     setSubmitting(true);
     try {
+      // Build the payload from ONLY the fields accepted by the backend
+      // expenseSchema. Never spread the full form (it is seeded from the server
+      // doc in openEdit and may carry UI-only/derived fields like isTransfer,
+      // __billDue, __dueToday which Joi's .unknown(false) would reject).
       const payload = {
-        ...form,
-        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
-        amount: Number(form.amount),
         title: form.title.trim(),
+        amount: Number(form.amount),
+        date: new Date(`${form.date}T${form.time || '00:00'}`).toISOString(),
+        category: form.category,
+        paymentMethod: form.paymentMethod,
+        description: form.description ?? '',
         tags: typeof form.tags === 'string'
           ? form.tags.split(',').map(t => t.trim()).filter(Boolean)
           : form.tags || [],
+        walletId: form.walletId || '',
       };
-      delete payload.time; delete payload._id; delete payload.user;
-      delete payload.createdAt; delete payload.updatedAt; delete payload.__v; delete payload.wallet;
+      if (form.receipt) payload.receipt = form.receipt;
 
       if (modal.mode === 'add') await addExpense(payload);
       else await updateExpense(modal.item._id, payload);
