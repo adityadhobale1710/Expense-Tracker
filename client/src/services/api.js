@@ -21,7 +21,9 @@ api.interceptors.request.use(
     const isPublicRoute = config.url?.includes('/auth/login') ||
                           config.url?.includes('/auth/register') ||
                           config.url?.includes('/auth/forgot-password') ||
-                          config.url?.includes('/auth/reset-password');
+                          config.url?.includes('/auth/reset-password') ||
+                          config.url?.includes('/auth/verify-registration-otp') ||
+                          config.url?.includes('/auth/resend-registration-otp');
                           
     if (!isPublicRoute && !token) {
       // Abort/Cancel request locally to prevent repeated failing 401 calls
