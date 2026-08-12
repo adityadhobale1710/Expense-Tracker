@@ -95,25 +95,16 @@ export const register = asyncHandler(async (req, res) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
-    if (existingUser.isEmailVerified === true || existingUser.isVerified === true) {
-      res.status(400);
-      throw new Error('User already exists with this email');
-    }
-
-    // AUDIT-AUTH-003: Reject re-registration of unverified emails.
-    // Previously this path silently overwrote the user's password, allowing account hijacking.
-    // Now we reject with 409 and direct the user to the resend-OTP flow.
-    res.status(409);
-    throw new Error('An account with this email is pending verification. Please check your inbox or use the resend OTP option.');
+    res.status(400);
+    throw new Error('User already exists with this email');
   }
 
-  // Brand new user registration path
+  // Brand new user registration path — account is activated immediately, no email verification required
   const session = await mongoose.startSession();
   session.startTransaction();
   let user;
-  let otp;
   try {
-    [user] = await User.create([{ name, email, password, phone: phone || '', isEmailVerified: false }], { session });
+    [user] = await User.create([{ name, email, password, phone: phone || '', isEmailVerified: true, isVerified: true }], { session });
 
     // Seed default categories
     const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
@@ -131,11 +122,6 @@ export const register = asyncHandler(async (req, res) => {
       isPrimary: true,
     }], { session });
 
-    otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.registrationOtp = otp;
-    user.registrationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-    await user.save({ session });
-
     await session.commitTransaction();
   } catch (error) {
     // C1 fix: never call abortTransaction() on a session whose transaction has
@@ -151,33 +137,7 @@ export const register = asyncHandler(async (req, res) => {
   }
   session.endSession();
 
-  // ── Email is delivered AFTER commit (user record already persisted) ────────
-  const emailHtml = getHtmlTemplate({
-    title: 'Email Verification',
-    greeting: `Welcome, ${user.name}`,
-    body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
-    code: otp,
-    footerText: 'If you did not initiate this registration, you can safely ignore this email.',
-  });
-
-  const emailResult = await sendEmail({
-    to: user.email,
-    subject: 'Your verification code',
-    html: emailHtml,
-    text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
-  });
-
-  if (!emailResult.success && !emailResult.mocked) {
-    // C1 fix: the account already exists in the DB — a 502 here only confuses the
-    // client into showing "Network Error" and leaves an unverified account with no
-    // actionable path. Respond 201 and direct the user to the resend-OTP flow.
-    logger.error(`[register] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
-    return sendSuccess(res, 201,
-      'Account created. We could not send the verification email right now — please use "Resend verification code".',
-      { email: user.email, emailDelivered: false });
-  }
-
-  return sendSuccess(res, 201, 'Registration successful. Please verify the OTP sent to your email.', { email: user.email, emailDelivered: true });
+  return sendSuccess(res, 201, 'Account created successfully. You can now log in.', { email: user.email });
 });
 
 // @desc  Login user
@@ -203,17 +163,6 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  // M17 fix: accept the legacy `isVerified` flag so pre-migration accounts that
-  // were verified under the old field are not banned from login forever.
-  const isVerified = user.isEmailVerified === true || user.isVerified === true;
-  if (!isVerified) {
-    res.status(403);
-    return res.json({
-      success: false,
-      message: 'Please verify your email before logging in.',
-      unverified: true
-    });
-  }
 
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
@@ -434,121 +383,5 @@ export const resetPassword = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Password has been reset successfully');
 });
 
-// @desc  Verify Registration OTP
-// @route POST /api/auth/verify-registration-otp
-export const verifyRegistrationOtp = asyncHandler(async (req, res) => {
-  const { email, otp } = req.body;
+// verifyRegistrationOtp and resendRegistrationOtp removed — registration no longer requires email verification.
 
-  // A6 fix: validate inputs before querying DB
-  if (!email || !otp) {
-    res.status(400);
-    throw new Error('Email and OTP are required');
-  }
-
-  const user = await User.findOne({
-    email,
-    registrationOtp: otp,
-    registrationOtpExpire: { $gt: Date.now() },
-  });
-
-  if (!user) {
-    res.status(400);
-    throw new Error('Invalid or expired OTP');
-  }
-
-  user.isEmailVerified = true;
-  user.isVerified = true;
-  user.registrationOtp = null;
-  user.registrationOtpExpire = null;
-
-  const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
-  user.refreshToken = refreshToken;
-  await user.save();
-
-  await createSessionRecord(user._id, accessToken, req);
-
-  res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
-
-  sendSuccess(res, 200, 'Email verified successfully', {
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    currency: user.currency,
-    avatar: user.avatar,
-    role: user.role,
-    phone: user.phone,
-    company: user.company,
-    twoFactorEnabled: user.twoFactorEnabled,
-    xp: user.xp,
-    coins: user.coins,
-    level: user.level,
-    streak: user.streak,
-    longestStreak: user.longestStreak,
-    lifetimeXP: user.lifetimeXP,
-    rank: user.rank,
-    unlockedTitles: user.unlockedTitles,
-    unlockedAvatars: user.unlockedAvatars,
-    unlockedThemes: user.unlockedThemes,
-    simulatedActions: user.simulatedActions,
-    achievements: user.achievements,
-    accessToken,
-  });
-});
-
-// @desc  Resend Registration OTP
-// @route POST /api/auth/resend-registration-otp
-export const resendRegistrationOtp = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-
-  const user = await User.findOne({ email });
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
-
-  if (user.isEmailVerified || user.isVerified) {
-    res.status(400);
-    throw new Error('Email already verified, please log in');
-  }
-
-  // A5 fix: enforce 30-second cooldown between OTP resends
-  if (user.registrationOtpExpire) {
-    const otpAge = user.registrationOtpExpire.getTime() - (10 * 60 * 1000); // when it was generated
-    const timeSinceGenerated = Date.now() - otpAge;
-    if (timeSinceGenerated < OTP_RESEND_COOLDOWN_MS) {
-      const waitSeconds = Math.ceil((OTP_RESEND_COOLDOWN_MS - timeSinceGenerated) / 1000);
-      res.status(429);
-      throw new Error(`Please wait ${waitSeconds} second(s) before requesting a new code`);
-    }
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.registrationOtp = otp;
-  user.registrationOtpExpire = Date.now() + 10 * 60 * 1000;
-  await user.save();
-
-  const emailHtml = getHtmlTemplate({
-    title: 'Email Verification',
-    greeting: `Welcome, ${user.name}`,
-    body: 'Thank you for choosing us to track your expenses. To complete your registration and activate your account, please enter the 6-digit verification code below. This code is valid for 10 minutes.',
-    code: otp,
-    footerText: 'If you did not initiate this registration, you can safely ignore this email.',
-  });
-
-  // A1 fix: propagate SMTP failures
-  const emailResult = await sendEmail({
-    to: user.email,
-    subject: 'Your verification code',
-    html: emailHtml,
-    text: `Hello ${user.name},\n\nThank you for registering with us. To activate your account, please use the following 6-digit verification code:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not register, please ignore this email.`,
-  });
-
-  if (!emailResult.success && !emailResult.mocked) {
-    logger.error(`[resendRegistrationOtp] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
-    res.status(502);
-    throw new Error('Failed to send verification email. Please try again later.');
-  }
-
-  sendSuccess(res, 200, 'A new verification code has been sent');
-});

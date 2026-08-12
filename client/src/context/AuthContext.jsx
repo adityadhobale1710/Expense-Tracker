@@ -30,26 +30,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, phone) => {
     const { data } = await api.post('/auth/register', { name, email, password, phone });
-    // Registration now sends an OTP email and does not immediately log in the user.
-    return data.data; // { email }
-  };
-
-  const verifyRegistrationOtp = async (email, otp) => {
-    const { data } = await api.post('/auth/verify-registration-otp', { email, otp });
-    const { accessToken, ...userData } = data.data;
-    clearAppStorage();
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-    // K1 fix: reset the api.js isRedirecting flag so future 401s redirect correctly
-    resetAuthState();
-    toast.success(`Welcome, ${userData.name}! 🎉`);
-    return userData;
-  };
-
-  const resendRegistrationOtp = async (email) => {
-    const { data } = await api.post('/auth/resend-registration-otp', { email });
-    return data;
+    return data; // { message, data: { email } }
   };
 
   const login = async (email, password) => {
@@ -87,7 +68,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout, updateUser, verifyRegistrationOtp, resendRegistrationOtp }}>
+    <AuthContext.Provider value={{ user, loading, register, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
