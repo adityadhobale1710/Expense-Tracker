@@ -147,7 +147,7 @@ export default function Register() {
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[1040px] bg-white rounded-[28px] sm:rounded-[32px] shadow-[0_20px_60px_rgba(79,70,229,0.07)] border border-slate-200/60 overflow-hidden grid grid-cols-1 md:grid-cols-2 my-auto"
       >
-        {/* LEFT SIDE - REGISTER FORM / OTP PANEL */}
+        {/* LEFT SIDE - REGISTER FORM */}
         <div className="p-7 sm:p-10 lg:p-12 flex flex-col justify-between bg-white font-sans max-h-[90vh] overflow-y-auto">
           <div>
             {/* App Logo & Header */}
