@@ -1,25 +1,20 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Mail,
   Lock,
   Eye,
   EyeOff,
   ArrowRight,
-  ArrowLeft,
   User,
   Phone,
   CheckCircle2,
   XCircle,
-  Clock,
-  RotateCw,
-  ShieldCheck,
-  KeyRound
 } from 'lucide-react';
-import { FaApple } from "react-icons/fa";
+
 
 const GoldCoin = ({ className }) => (
   <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -54,22 +49,13 @@ const Sparkle = ({ className, delay }) => (
 );
 
 export default function Register() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const { register, verifyRegistrationOtp, resendRegistrationOtp } = useAuth();
-
-  // Step states
-  const [step, setStep] = useState(location.state?.step || 'register');
-  const [emailForOtp, setEmailForOtp] = useState(location.state?.email || '');
-  const [otp, setOtp] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [resendDisabled, setResendDisabled] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(0);
+  const { register } = useAuth();
 
   // Form states
   const [form, setForm] = useState({
     name: '',
-    email: location.state?.email || '',
+    email: '',
     phone: '',
     password: '',
     confirmPassword: ''
@@ -143,60 +129,14 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const { email } = await register(form.name, form.email, form.password, form.phone);
-      setEmailForOtp(email || form.email);
-      setStep('otp');
-      toast.success('Registration successful! Verification code sent.');
+      await register(form.name, form.email, form.password, form.phone);
+      toast.success('Account created successfully! Please sign in.');
+      navigate('/login');
     } catch (err) {
       toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Registration failed'));
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    if (otp.length !== 6) {
-      toast.error('Please enter a 6-digit code');
-      return;
-    }
-    setOtpLoading(true);
-    try {
-      await verifyRegistrationOtp(emailForOtp, otp);
-      toast.success('Email verified successfully! Welcome Pro!');
-      navigate('/dashboard');
-    } catch (err) {
-      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Verification failed'));
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    setResendDisabled(true);
-    setResendCountdown(30);
-    try {
-      await resendRegistrationOtp(emailForOtp);
-      toast.success('Verification code resent successfully!');
-    } catch (err) {
-      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Resend failed'));
-    }
-
-    const interval = setInterval(() => {
-      setResendCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setResendDisabled(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const handleGoBack = () => {
-    setStep('register');
-    setOtp('');
   };
 
   return (
@@ -221,27 +161,24 @@ export default function Register() {
               </span>
             </div>
 
-            <AnimatePresence mode="wait">
-              {step === 'register' ? (
-                <motion.div
-                  key="register"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* Greetings header */}
-                  <div className="mb-6">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] tracking-tight font-jakarta">
-                      Create Account
-                    </h1>
-                    <p className="text-xs sm:text-sm font-medium text-[#475569] mt-1">
-                      Start tracking and saving recurring expenses today
-                    </p>
-                  </div>
+            <motion.div
+              key="register"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Greetings header */}
+              <div className="mb-6">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] tracking-tight font-jakarta">
+                  Create Account
+                </h1>
+                <p className="text-xs sm:text-sm font-medium text-[#475569] mt-1">
+                  Start tracking and saving recurring expenses today
+                </p>
+              </div>
 
-                  {/* Form fields */}
-                  <form onSubmit={handleSubmit} className="space-y-3.5">
+              {/* Form fields */}
+              <form onSubmit={handleSubmit} className="space-y-3.5">
                     {/* Full Name */}
                     <div className="form-group">
                       <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
@@ -423,98 +360,6 @@ export default function Register() {
                     </button>
                   </form>
                 </motion.div>
-              ) : (
-                <motion.div
-                  key="otp"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* OTP Heading */}
-                  <div className="mb-6">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] tracking-tight font-jakarta flex items-center gap-2">
-                      <ShieldCheck className="w-7 h-7 text-[#5B4CF0]" /> Verify Email
-                    </h1>
-                    <p className="text-xs sm:text-sm font-medium text-[#475569] mt-1.5 leading-relaxed">
-                      We have sent a 6-digit verification code to <strong className="text-[#1E293B]">{emailForOtp}</strong>. Enter it below to activate your account.
-                    </p>
-                  </div>
-
-                  {/* OTP Form */}
-                  <form onSubmit={handleVerifyOtp} className="space-y-4">
-                    <div className="form-group">
-                      <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
-                        Verification Code
-                      </label>
-                      <div className="relative flex items-center group">
-                        <KeyRound className="w-4 h-4 absolute left-4 text-slate-400 pointer-events-none transition-colors group-focus-within:text-[#5B4CF0]" />
-                        <input
-                          id="reg-otp"
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={6}
-                          pattern="[0-9]{6}"
-                          className="w-full h-[52px] pl-11 bg-[#F1F5F9] border border-transparent rounded-[14px] text-center tracking-[0.5em] font-mono text-xl text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#5B4CF0] focus:ring-4 focus:ring-[#5B4CF0]/12 transition-all duration-200"
-                          placeholder="000000"
-                          value={otp}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            setOtp(val);
-                          }}
-                          required
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-
-                    {/* Submit Verification */}
-                    <button
-                      id="otp-submit"
-                      type="submit"
-                      disabled={otpLoading}
-                      className="w-full h-[48px] rounded-[14px] bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm shadow-md shadow-[#4F46E5]/25 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed font-jakarta"
-                    >
-                      {otpLoading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Verifying...</span>
-                        </span>
-                      ) : (
-                        <span>Verify & Create Account</span>
-                      )}
-                    </button>
-                  </form>
-
-                  {/* Edit Email / Resend Controls */}
-                  <div className="flex flex-col items-center gap-4 mt-6 text-xs text-slate-500 font-semibold border-t border-slate-100 pt-5">
-                    <div className="flex justify-between w-full">
-                      <button
-                        type="button"
-                        onClick={handleGoBack}
-                        className="text-[#5B4CF0] hover:text-[#4338CA] font-bold transition-colors flex items-center gap-1"
-                      >
-                        <ArrowLeft size={13} /> Edit Email Address
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={handleResendOtp}
-                        disabled={resendDisabled}
-                        className={`font-bold transition-colors flex items-center gap-1 ${
-                          resendDisabled 
-                            ? 'text-slate-400 cursor-not-allowed' 
-                            : 'text-[#5B4CF0] hover:text-[#4338CA]'
-                        }`}
-                      >
-                        <RotateCw size={12} className={resendCountdown > 0 ? 'animate-spin' : ''} />
-                        {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Resend Code'}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
           {/* Bottom link back to login page */}

@@ -20,8 +20,6 @@ api.interceptors.request.use(
     // Check if route is a protected backend endpoint
     const isPublicRoute = config.url?.includes('/auth/login') ||
                           config.url?.includes('/auth/register') ||
-                          config.url?.includes('/auth/verify-registration-otp') ||
-                          config.url?.includes('/auth/resend-registration-otp') ||
                           config.url?.includes('/auth/forgot-password') ||
                           config.url?.includes('/auth/reset-password');
                           

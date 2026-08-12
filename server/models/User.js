@@ -31,8 +31,6 @@ const userSchema = new mongoose.Schema(
     // accounts that verified before `isEmailVerified` existed are flagged here; a
     // login/verify that only checks `isEmailVerified` permanently locks them out.
     isVerified: { type: Boolean, default: false },
-    registrationOtp: { type: String, default: null },
-    registrationOtpExpire: { type: Date, default: null },
     isDisabled: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
