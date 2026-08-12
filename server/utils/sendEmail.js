@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import logger from './logger.js';
 
 // Configuration variables with fallback defaults
@@ -94,20 +94,15 @@ export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, 
 };
 
 /**
- * Sends an email using SMTP transport or logs it to the terminal as a fallback.
+ * Sends an email using Resend HTTPS API or logs it to the terminal as a fallback.
  */
 export const sendEmail = async ({ to, subject, html, text }) => {
-  const isSmtpConfigured = 
-    process.env.SMTP_HOST && 
-    process.env.SMTP_USER && 
-    !process.env.SMTP_USER.includes('your_smtp_username') &&
-    process.env.SMTP_PASS &&
-    !process.env.SMTP_PASS.includes('your_smtp_password');
+  const resendApiKey = process.env.RESEND_API_KEY;
 
   logger.info(`\n📧 Dispatching email to: ${to} (Subject: "${subject}")`);
 
-  if (!isSmtpConfigured) {
-    logger.info('⚠️  [SMTP Log Fallback] SMTP credentials are not configured or still have default placeholders. Dumping email context below:');
+  if (!resendApiKey) {
+    logger.info('⚠️  [Resend Log Fallback] RESEND_API_KEY is not configured. Dumping email context below:');
     logger.info('──────────────────────────────────────────────────────────────────────');
     logger.info(`TO:      ${to}`);
     logger.info(`SUBJECT: ${subject}`);
@@ -117,43 +112,41 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      // C1 fix: cap SMTP handshake/send timeouts so a slow or dead SMTP server
-      // can never hang the request past the client's axios timeout (15s).
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 8000,
-    });
+    const resend = new Resend(resendApiKey);
 
     // Overall deadline guard — guarantees sendEmail resolves well under the
-    // client's 15s axios timeout even if nodemailer stalls.
+    // client's 15s axios timeout even if resend stalls.
     const MAIL_DEADLINE_MS = 10000;
+    
+    const fromName = process.env.SMTP_FROM_NAME || 'My Expense Pro';
+    // If SMTP_FROM is preserved from before, we use it. Otherwise use the onboarding sender.
+    const fromEmail = process.env.SMTP_FROM || 'onboarding@resend.dev';
+    
+    const sendPromise = resend.emails.send({
+      from: `"${fromName}" <${fromEmail}>`,
+      to,
+      subject,
+      text,
+      html,
+    });
+
     const info = await Promise.race([
-      transporter.sendMail({
-        from: `"${process.env.SMTP_FROM_NAME || 'My Expense Pro'}" <${process.env.SMTP_FROM || 'noreply@expensetracker.com'}>`,
-        to,
-        subject,
-        text,
-        html,
-      }),
+      sendPromise,
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('SMTP send timed out')), MAIL_DEADLINE_MS)
+        setTimeout(() => reject(new Error('Resend API send timed out')), MAIL_DEADLINE_MS)
       ),
     ]);
 
-    logger.info(`🚀 [SMTP Success] Email dispatched successfully: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    if (info.error) {
+      throw new Error(info.error.message);
+    }
+
+    logger.info(`🚀 [Resend Success] Email dispatched successfully: ${info.data?.id}`);
+    return { success: true, messageId: info.data?.id };
   } catch (error) {
-    logger.error('❌ [SMTP Error] Failed to deliver email via SMTP: ' + error.message);
+    logger.error('❌ [Resend Error] Failed to deliver email via Resend: ' + error.message);
     logger.info('──────────────────────────────────────────────────────────────────────');
-    logger.info('⚠️ Falling back to terminal dumping because SMTP transport failed:');
+    logger.info('⚠️ Falling back to terminal dumping because Resend transport failed:');
     logger.info(`TO:      ${to}`);
     logger.info(`SUBJECT: ${subject}`);
     logger.info(`TEXT:    ${text}`);
