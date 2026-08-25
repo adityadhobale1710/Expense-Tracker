@@ -11,7 +11,9 @@ import {
   EyeOff,
   ArrowRight,
   Wallet,
-  X
+  X,
+  ShieldCheck,
+  User as UserIcon,
 } from 'lucide-react';
 import { FaApple } from "react-icons/fa";
 
@@ -55,7 +57,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
-  const { login } = useAuth();
+  // 'user' | 'admin'  — controls which login mode is active
+  const [loginMode, setLoginMode] = useState('user');
+  // Inline message shown when a non-admin account tries Admin Login
+  const [adminAccessError, setAdminAccessError] = useState('');
+  const { login, updateUser } = useAuth();
   const navigate = useNavigate();
 
   // Forgot password flow states
@@ -120,9 +126,10 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     setEmailError(false);
     setPasswordError(false);
+    setAdminAccessError('');
 
     // Scenario 3: Empty email
     if (!form.email) {
@@ -147,33 +154,90 @@ export default function Login() {
     }
 
     setLoading(true);
-    try {
-      await login(form.email, form.password);
-      if (rememberMe) {
-        localStorage.setItem('remembered_email', form.email);
-      } else {
-        localStorage.removeItem('remembered_email');
-      }
-      navigate('/dashboard');
-    } catch (err) {
-      let errMsg = err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Login failed');
-      
-      // Highlight invalid fields where appropriate
-      if (errMsg.includes('email') || errMsg.includes('No account found') || errMsg.includes('not registered') || errMsg.includes('registered')) {
-        setEmailError(true);
-      }
-      if (errMsg.includes('password') || errMsg.includes('Incorrect password')) {
-        setPasswordError(true);
-      }
 
-      // Map incorrect password message
-      if (errMsg === 'Incorrect password.') {
-        errMsg = 'Incorrect password. Please try again.';
-      }
+    if (loginMode === 'admin') {
+      // ── Admin login mode — single API call ──────────────────────────────────
+      // We call the API directly (not via AuthContext.login) so we can inspect
+      // the role BEFORE storing credentials. AuthContext.login() always succeeds
+      // on valid creds — it would log in a non-admin as a regular user before
+      // we could check. Instead: one API call → check role → store only if admin.
+      //
+      // X-Login-Mode: admin is an AUDIT SIGNAL sent to the backend — it is
+      // NEVER used by the backend as proof of admin privileges. Backend
+      // authorization always comes from the server-side User.role field.
+      try {
+        const { data } = await api.post(
+          '/auth/login',
+          { email: form.email, password: form.password },
+          { headers: { 'X-Login-Mode': 'admin' } }
+        );
 
-      toast.error(errMsg);
-    } finally {
-      setLoading(false);
+        if (!data.success || !data.data) {
+          // Credentials rejected by server (wrong password, disabled, etc.)
+          throw new Error(data.message || 'Login failed');
+        }
+
+        if (data.data.role !== 'admin') {
+          // Valid credentials but not an admin — show inline message, do NOT log in.
+          setAdminAccessError('Admin access is not available for this account.');
+          setLoading(false);
+          return;
+        }
+
+        // ── Role confirmed as admin — store auth state in one pass ───────────
+        const { accessToken, ...userData } = data.data;
+        // Store in localStorage (AuthContext reads from here on mount)
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        if (rememberMe) {
+          localStorage.setItem('remembered_email', form.email);
+        } else {
+          localStorage.removeItem('remembered_email');
+        }
+        // Sync AuthContext state directly — avoids a second network call
+        updateUser(userData);
+        toast.success(`Welcome, ${userData.name}!`);
+        navigate('/admin-portal');
+      } catch (err) {
+        const errMsg =
+          err.response?.data?.message ||
+          (err.message === 'Network Error' || !err.response
+            ? 'Network Error. Unable to connect to the backend server.'
+            : err.message || 'Login failed');
+        toast.error(errMsg);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // ── Normal user login mode (unchanged from original behavior) ────────────
+      try {
+        await login(form.email, form.password);
+        if (rememberMe) {
+          localStorage.setItem('remembered_email', form.email);
+        } else {
+          localStorage.removeItem('remembered_email');
+        }
+        navigate('/dashboard');
+      } catch (err) {
+        let errMsg = err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Login failed');
+
+        // Highlight invalid fields where appropriate
+        if (errMsg.includes('email') || errMsg.includes('No account found') || errMsg.includes('not registered') || errMsg.includes('registered')) {
+          setEmailError(true);
+        }
+        if (errMsg.includes('password') || errMsg.includes('Incorrect password')) {
+          setPasswordError(true);
+        }
+
+        // Map incorrect password message
+        if (errMsg === 'Incorrect password.') {
+          errMsg = 'Incorrect password. Please try again.';
+        }
+
+        toast.error(errMsg);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -194,7 +258,7 @@ export default function Login() {
         <div className="p-7 sm:p-10 lg:p-12 flex flex-col justify-between bg-white font-sans">
           <div>
             {/* App Logo & Header */}
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 bg-white">
                 <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
               </div>
@@ -203,15 +267,67 @@ export default function Login() {
               </span>
             </div>
 
+            {/* ── User / Admin login mode toggle ───────────────────────────── */}
+            <div
+              role="tablist"
+              aria-label="Login mode"
+              className="flex bg-slate-100 p-1 rounded-[12px] mb-6 gap-1"
+            >
+              <button
+                id="tab-user-login"
+                role="tab"
+                aria-selected={loginMode === 'user'}
+                type="button"
+                onClick={() => { setLoginMode('user'); setAdminAccessError(''); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-[9px] text-xs font-semibold transition-all duration-200 ${
+                  loginMode === 'user'
+                    ? 'bg-white text-[#1E293B] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <UserIcon className="w-3.5 h-3.5" />
+                User Login
+              </button>
+              <button
+                id="tab-admin-login"
+                role="tab"
+                aria-selected={loginMode === 'admin'}
+                type="button"
+                onClick={() => { setLoginMode('admin'); setAdminAccessError(''); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-[9px] text-xs font-semibold transition-all duration-200 ${
+                  loginMode === 'admin'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Admin Login
+              </button>
+            </div>
+
             {/* Welcome Greeting */}
             <div className="mb-7">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] tracking-tight font-jakarta">
-                Welcome Back
+                {loginMode === 'admin' ? 'Admin Sign In' : 'Welcome Back'}
               </h1>
               <p className="text-xs sm:text-sm font-medium text-[#475569] mt-1">
-                Please enter your details to sign in
+                {loginMode === 'admin'
+                  ? 'Restricted access — admin accounts only'
+                  : 'Please enter your details to sign in'}
               </p>
             </div>
+
+            {/* Inline admin-access error (non-admin tried Admin Login) */}
+            {adminAccessError && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 flex items-start gap-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-[12px] px-4 py-3"
+              >
+                <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-500" />
+                <p className="text-xs font-medium leading-snug">{adminAccessError}</p>
+              </motion.div>
+            )}
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -276,13 +392,16 @@ export default function Login() {
                     Remember Me
                   </span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(true)}
-                  className="text-[#5B4CF0] hover:text-[#4338CA] font-semibold transition-colors hover:underline"
-                >
-                  Forgot Password?
-                </button>
+                {/* Forgot Password only shown in User mode — admins must contact support */}
+                {loginMode === 'user' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-[#5B4CF0] hover:text-[#4338CA] font-semibold transition-colors hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                )}
               </div>
 
               {/* Sign In Button */}
@@ -290,16 +409,20 @@ export default function Login() {
                 id="login-submit"
                 type="submit"
                 disabled={loading}
-                className="w-full h-[50px] mt-2 rounded-[14px] bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm shadow-md shadow-[#4F46E5]/25 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed font-jakarta"
+                className={`w-full h-[50px] mt-2 rounded-[14px] font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed font-jakarta text-white ${
+                  loginMode === 'admin'
+                    ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25'
+                    : 'bg-[#4F46E5] hover:bg-[#4338CA] shadow-[#4F46E5]/25'
+                }`}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Signing In...</span>
+                    <span>{loginMode === 'admin' ? 'Signing In as Admin...' : 'Signing In...'}</span>
                   </span>
                 ) : (
                   <>
-                    <span>Sign In</span>
+                    <span>{loginMode === 'admin' ? 'Sign In as Admin' : 'Sign In'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

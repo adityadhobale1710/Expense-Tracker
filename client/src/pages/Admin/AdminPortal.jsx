@@ -119,50 +119,52 @@ export default function AdminPortal() {
           {/* Diagnostics Section */}
           {activeTab === 'diagnostics' && stats && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* CPU Card */}
-              <div className="card flex flex-col justify-between items-center text-center p-6">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPU Usage</h4>
-                <div className="relative w-28 h-28 flex items-center justify-center my-4">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="8" fill="transparent" />
-                    <circle cx="50" cy="50" r="40" stroke="#ef4444" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * stats.diagnostics.cpuUsage) / 100} />
-                  </svg>
-                  <span className="absolute text-xl font-extrabold text-slate-100">{stats.diagnostics.cpuUsage}%</span>
+              {/* Node Process Memory Card */}
+              <div className="card flex flex-col p-6 col-span-1 md:col-span-2">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-700/50 mb-4">
+                  Node Process Memory
+                  <span className="ml-2 text-[10px] font-normal text-slate-500 normal-case">(this process only — not total server RAM)</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { label: 'RSS', desc: 'Total OS memory for this process', value: stats.diagnostics.nodeMemory?.rss ?? '—', color: 'text-violet-400' },
+                    { label: 'Heap Used', desc: 'V8 heap in use by JS objects', value: stats.diagnostics.nodeMemory?.heapUsed ?? '—', color: 'text-emerald-400' },
+                    { label: 'Heap Total', desc: 'Total V8 heap allocated', value: stats.diagnostics.nodeMemory?.heapTotal ?? '—', color: 'text-sky-400' },
+                    { label: 'External', desc: 'C++ objects bound to JS', value: stats.diagnostics.nodeMemory?.external ?? '—', color: 'text-amber-400' },
+                  ].map(({ label, desc, value, color }) => (
+                    <div key={label} className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
+                      <p className="text-[10px] text-slate-500 mb-0.5">{desc}</p>
+                      <p className="text-xs font-bold text-slate-300 mb-1">{label}</p>
+                      <p className={`text-xl font-extrabold ${color}`}>
+                        {value} <span className="text-xs font-medium text-slate-500">MB</span>
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-[11px] text-slate-500">Core execution workload is optimized</p>
               </div>
 
-              {/* RAM Card */}
-              <div className="card flex flex-col justify-between items-center text-center p-6">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">RAM Usage</h4>
-                <div className="relative w-28 h-28 flex items-center justify-center my-4">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="8" fill="transparent" />
-                    <circle cx="50" cy="50" r="40" stroke="#10b981" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * stats.diagnostics.ramUsage) / 100} />
-                  </svg>
-                  <span className="absolute text-xl font-extrabold text-slate-100">{stats.diagnostics.ramUsage}%</span>
-                </div>
-                <p className="text-[11px] text-slate-500">Shared memory heap distribution is active</p>
-              </div>
-
-              {/* Health Metrics Card */}
+              {/* System Health Card */}
               <div className="card flex flex-col justify-between p-6">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-700/50">System Health</h4>
                 <div className="space-y-3.5 my-4 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Server Uptime:</span>
-                    <span className="font-bold text-slate-200">{stats.diagnostics.uptime}s</span>
+                    <span className="font-bold text-slate-200">
+                      {stats.diagnostics.uptimeSeconds != null
+                        ? `${Math.floor(stats.diagnostics.uptimeSeconds / 3600)}h ${Math.floor((stats.diagnostics.uptimeSeconds % 3600) / 60)}m ${stats.diagnostics.uptimeSeconds % 60}s`
+                        : '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Database Status:</span>
                     <span className="text-emerald-400 font-bold">Connected ✅</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Active Handlers:</span>
-                    <span className="font-bold text-slate-200">{stats.diagnostics.activeConnections} sockets</span>
+                    <span className="text-slate-400">Node Version:</span>
+                    <span className="font-bold text-slate-200">{stats.diagnostics.nodeVersion ?? '—'}</span>
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-500">MERN Stack core system is fully operational</p>
+                <p className="text-[10px] text-slate-500">MERN Stack — Node process metrics only</p>
               </div>
             </div>
           )}

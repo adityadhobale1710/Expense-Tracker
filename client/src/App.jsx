@@ -65,6 +65,16 @@ const Loader = () => (
   </div>
 );
 
+// AdminRoute \u2014 UX guard only. The real security boundary is the backend middleware.
+// Unauthenticated \u2192 /login, authenticated non-admin \u2192 /dashboard, admin \u2192 renders.
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  return children;
+};
+
 const AppRoutes = () => (
   <Suspense fallback={<Loader />}>
     <Routes>
@@ -87,7 +97,7 @@ const AppRoutes = () => (
         <Route path="split-bills" element={<SplitBills />} />
         <Route path="family" element={<FamilySharing />} />
         <Route path="analytics-pro" element={<AnalyticsPro />} />
-        <Route path="admin-portal" element={<AdminPortal />} />
+        <Route path="admin-portal" element={<AdminRoute><AdminPortal /></AdminRoute>} />
         <Route path="goals" element={<GoalsDashboard />} />
         <Route path="goals/:id" element={<GoalDetails />} />
       </Route>

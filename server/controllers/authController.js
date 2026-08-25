@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
 import Session from '../models/Session.js';
+import SecurityLog from '../models/SecurityLog.js';
 
 const createSessionRecord = async (userId, token, req) => {
   try {
@@ -147,10 +148,27 @@ export const register = asyncHandler(async (req, res) => {
   return sendSuccess(res, 201, 'Account created successfully. You can now log in.', { email: user.email });
 });
 
+// ─── Helper: write a SecurityLog entry (best-effort, never throws) ─────────────
+const writeSecurityLog = async (userId, action, req, details = '') => {
+  try {
+    const ipAddress =
+      req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+      req.ip ||
+      '127.0.0.1';
+    await SecurityLog.create({ user: userId, action, ipAddress, details });
+  } catch (err) {
+    logger.error(`[SecurityLog] Failed to write '${action}': ${err.message}`);
+  }
+};
+
 // @desc  Login user
 // @route POST /api/auth/login
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+
+  // X-Login-Mode: admin is an AUDIT SIGNAL ONLY — never used to grant access.
+  // It tells the server the client intended admin login so we can log the outcome.
+  const isAdminMode = req.headers['x-login-mode'] === 'admin';
 
   const user = await User.findOne({ email });
   if (!user) {
@@ -170,10 +188,19 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-
-
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
+    // ── Audit: admin account — bad password ──────────────────────────────────
+    // Only log as "Admin Login Failed" when we know the account IS an admin.
+    // For regular users we stay silent to avoid revealing admin-ness.
+    if (user.role === 'admin') {
+      await writeSecurityLog(
+        user._id,
+        'Admin Login Failed',
+        req,
+        'Invalid password supplied for admin account.'
+      );
+    }
     res.status(401);
     return res.json({
       success: false,
@@ -182,12 +209,34 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
+  // ── Audit: valid non-admin account attempted admin login ─────────────────────
+  // Only logged when the client explicitly indicated Admin Login mode AND
+  // credentials are valid (so we've confirmed the account identity).
+  if (isAdminMode && user.role !== 'admin') {
+    await writeSecurityLog(
+      user._id,
+      'Admin Access Denied — Non-Admin Account',
+      req,
+      `Account ${user.email} attempted admin login but has role '${user.role}'.`
+    );
+  }
+
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
   user.refreshToken = refreshToken;
   await user.save();
 
   await createSessionRecord(user._id, accessToken, req);
+
+  // ── Audit: successful admin login ────────────────────────────────────────────
+  if (user.role === 'admin') {
+    await writeSecurityLog(
+      user._id,
+      'Admin Login Success',
+      req,
+      `Admin account ${user.email} logged in successfully.`
+    );
+  }
 
   res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
