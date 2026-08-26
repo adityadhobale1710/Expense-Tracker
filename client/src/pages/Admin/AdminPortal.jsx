@@ -3,6 +3,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { DialogContext } from '../../context/DialogContext';
 import { useAuth } from '../../context/AuthContext';
+import AdminAnalytics from './AdminAnalytics';
 
 // ─── Utility helpers ──────────────────────────────────────────────────────────
 const fmt = (n) => (n ?? 0).toLocaleString('en-IN');
@@ -785,6 +786,7 @@ export default function AdminPortal() {
 
   const TABS = [
     { id: 'overview',  label: 'Overview',     icon: '📊' },
+    { id: 'analytics', label: 'Analytics',    icon: '📈' },
     { id: 'users',     label: 'Users',        icon: '👥' },
     { id: 'security',  label: 'Security',     icon: '🛡️' },
     { id: 'health',    label: 'System Health', icon: '🖥️' },
@@ -910,6 +912,15 @@ export default function AdminPortal() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ANALYTICS TAB (Phase 4)                                            */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'analytics' && (
+        <div role="tabpanel" aria-label="Analytics">
+          <AdminAnalytics />
         </div>
       )}
 

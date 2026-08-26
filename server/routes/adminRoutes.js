@@ -14,6 +14,8 @@ import {
   revokeIndividualSession,
   getSecurityEvents,
   getSecurityOverview,
+  getAdminAnalytics,
+  exportAdminAnalytics,
 } from '../controllers/adminController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -66,6 +68,10 @@ router.post('/users/:id/sessions/:sessionId/revoke', revokeIndividualSession);
 // Phase 3: Security Center
 router.get('/security/events', getSecurityEvents);
 router.get('/security/overview', getSecurityOverview);
+
+// Phase 4: Admin Analytics & Exports
+router.get('/analytics', getAdminAnalytics);
+router.get('/analytics/export/:type', exportAdminAnalytics);
 
 // Feedback management
 router.get('/feedback', getFeedbackList);

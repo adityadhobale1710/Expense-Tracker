@@ -12,7 +12,9 @@ import Wallet from '../models/Wallet.js';
 import Feedback from '../models/Feedback.js';
 import SecurityLog from '../models/SecurityLog.js';
 import Session from '../models/Session.js';
-import { sendSuccess } from '../utils/apiResponse.js';
+import { sendSuccess, sendError } from '../utils/apiResponse.js';
+import PDFDocument from 'pdfkit';
+import ExcelJS from 'exceljs';
 
 // ─── Helper: constant-time string comparison ────────────────────────────────
 const timingSafeEqual = (a, b) => {
@@ -930,5 +932,262 @@ export const getSecurityOverview = asyncHandler(async (req, res) => {
     },
     recentEvents: enrichedEvents,
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Get Phase 4 Admin Analytics (Advanced)
+// @route   GET /api/admin/analytics
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const getAdminAnalytics = asyncHandler(async (req, res) => {
+  const { startDate, endDate, timezone } = req.query;
+  const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const end = endDate ? new Date(endDate) : new Date();
+
+  // Validate dates
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+    res.status(400);
+    throw new Error('Invalid date range');
+  }
+  
+  // Previous period (for comparison)
+  const durationMs = end - start;
+  const prevStart = new Date(start.getTime() - durationMs);
+  const prevEnd = new Date(start.getTime());
+
+  // 1. User Growth
+  const [currentUsers, prevUsers, activeUsers, activeAccounts, totalUsers] = await Promise.all([
+    User.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+    User.countDocuments({ createdAt: { $gte: prevStart, $lte: prevEnd } }),
+    // "Active Users = users who generated authenticated activity during the selected period"
+    Session.distinct('user', { lastActive: { $gte: start, $lte: end } }).then(docs => docs.length),
+    // "Active Accounts = not blocked and not disabled"
+    User.countDocuments({ isBlocked: false, isDisabled: false }),
+    User.countDocuments()
+  ]);
+
+  // 2. Financial Analytics (Grouped by Currency)
+  // We use aggregate to group by currency safely
+  const expensesAgg = await Expense.aggregate([
+    { $match: { date: { $gte: start, $lte: end }, isTransfer: false } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userData'
+      }
+    },
+    { $unwind: '$userData' },
+    {
+      $group: {
+        _id: '$userData.currency',
+        totalAmount: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const incomeAgg = await Income.aggregate([
+    { $match: { date: { $gte: start, $lte: end }, isTransfer: false } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userData'
+      }
+    },
+    { $unwind: '$userData' },
+    {
+      $group: {
+        _id: '$userData.currency',
+        totalAmount: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+  
+  // 3. Category Distribution (Top 10 overall)
+  const categoryAgg = await Expense.aggregate([
+    { $match: { date: { $gte: start, $lte: end }, isTransfer: false } },
+    {
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'catData'
+      }
+    },
+    { $unwind: { path: '$catData', preserveNullAndEmptyArrays: true } },
+    {
+      $group: {
+        _id: '$catData.name',
+        totalAmount: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { totalAmount: -1 } },
+    { $limit: 10 }
+  ]);
+
+  // 4. Security Events Trend
+  const securityEvents = await SecurityLog.aggregate([
+    { $match: { timestamp: { $gte: start, $lte: end } } },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$timestamp' },
+          month: { $month: '$timestamp' },
+          day: { $dayOfMonth: '$timestamp' },
+          action: '$action'
+        },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  await auditLog(req.user._id, 'Admin Viewed Analytics', `Viewed analytics from ${start.toISOString()} to ${end.toISOString()}`, req);
+
+  sendSuccess(res, 200, 'Analytics retrieved', {
+    dateRange: { start, end },
+    userMetrics: {
+      total: totalUsers,
+      newCurrentPeriod: currentUsers,
+      newPrevPeriod: prevUsers,
+      activeUsers,
+      activeAccounts,
+      userGrowthPct: prevUsers > 0 ? ((currentUsers - prevUsers) / prevUsers) * 100 : (currentUsers > 0 ? 100 : 0)
+    },
+    financialMetrics: {
+      expensesByCurrency: expensesAgg,
+      incomeByCurrency: incomeAgg
+    },
+    categoryDistribution: categoryAgg,
+    securityEvents: securityEvents
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Export Admin Analytics / Users / Security
+// @route   GET /api/admin/analytics/export/:type
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const exportAdminAnalytics = asyncHandler(async (req, res) => {
+  const { type } = req.params;
+  const { format, startDate, endDate } = req.query;
+
+  if (!['analytics', 'users', 'security'].includes(type)) {
+    res.status(400);
+    throw new Error('Invalid export type. Allowed: analytics, users, security.');
+  }
+
+  const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const end = endDate ? new Date(endDate) : new Date();
+
+  let data = [];
+  
+  if (type === 'users') {
+    data = await User.find({ createdAt: { $gte: start, $lte: end } })
+      .select('name email role status isEmailVerified currency createdAt lastSeen isBlocked isDisabled')
+      .lean();
+    await auditLog(req.user._id, 'Admin Exported Users', `Exported users from ${start.toISOString()} to ${end.toISOString()} as ${format}`, req);
+  } else if (type === 'security') {
+    data = await SecurityLog.find({ timestamp: { $gte: start, $lte: end } })
+      .populate('user', 'email')
+      .sort({ timestamp: -1 })
+      .lean();
+    await auditLog(req.user._id, 'Admin Exported Security Events', `Exported security events from ${start.toISOString()} to ${end.toISOString()} as ${format}`, req);
+  } else {
+    data = [ { Report: 'Admin Analytics Summary', Start: start.toISOString(), End: end.toISOString(), GeneratedAt: new Date().toISOString() } ];
+    await auditLog(req.user._id, 'Admin Generated Analytics Report', `Exported analytics from ${start.toISOString()} to ${end.toISOString()} as ${format}`, req);
+  }
+
+  if (format === 'csv') {
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=admin_export_${type}.csv`);
+    
+    if (data.length === 0) return res.send('No data available\n');
+
+    let csv = '';
+    const sanitizeCell = (val) => {
+      if (typeof val !== 'string') return val;
+      return /^[=+\-@\t\r]/.test(val) ? `'${val}` : val;
+    };
+
+    if (type === 'users') {
+      csv = 'Name,Email,Role,Blocked,Disabled,Verified,Currency,Registered,LastSeen\n';
+      data.forEach(u => {
+        csv += `${sanitizeCell(u.name)},${sanitizeCell(u.email)},${u.role},${u.isBlocked},${u.isDisabled},${u.isEmailVerified},${u.currency},${u.createdAt.toISOString()},${u.lastSeen ? u.lastSeen.toISOString() : ''}\n`;
+      });
+    } else if (type === 'security') {
+      csv = 'Timestamp,User,Action,Severity,IP,Details\n';
+      data.forEach(l => {
+        const severity = getSeverity(l.action, l.details);
+        csv += `${l.timestamp.toISOString()},${l.user ? sanitizeCell(l.user.email) : 'System'},${sanitizeCell(l.action)},${severity},${l.ipAddress || ''},"${sanitizeCell(l.details || '')}"\n`;
+      });
+    } else {
+       csv = 'Key,Value\n';
+       Object.entries(data[0]).forEach(([k,v]) => { csv += `${k},${v}\n`; });
+    }
+    return res.send(csv);
+  } else if (format === 'excel') {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(type.toUpperCase());
+    
+    if (type === 'users') {
+      sheet.columns = [
+        { header: 'Name', key: 'name', width: 20 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Role', key: 'role', width: 10 },
+        { header: 'Blocked', key: 'blocked', width: 10 },
+        { header: 'Disabled', key: 'disabled', width: 10 },
+        { header: 'Registered', key: 'created', width: 20 },
+      ];
+      data.forEach(u => sheet.addRow({ name: u.name, email: u.email, role: u.role, blocked: u.isBlocked, disabled: u.isDisabled, created: u.createdAt }));
+    } else if (type === 'security') {
+      sheet.columns = [
+        { header: 'Timestamp', key: 'ts', width: 20 },
+        { header: 'User', key: 'user', width: 25 },
+        { header: 'Action', key: 'action', width: 20 },
+        { header: 'Severity', key: 'sev', width: 15 },
+        { header: 'IP', key: 'ip', width: 15 },
+      ];
+      data.forEach(l => sheet.addRow({ ts: l.timestamp, user: l.user ? l.user.email : 'System', action: l.action, sev: getSeverity(l.action, l.details), ip: l.ipAddress }));
+    } else {
+      sheet.columns = [ { header: 'Key', key: 'k', width: 20 }, { header: 'Value', key: 'v', width: 40 } ];
+      Object.entries(data[0]).forEach(([k,v]) => sheet.addRow({ k, v }));
+    }
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=admin_export_${type}.xlsx`);
+    return await workbook.xlsx.write(res);
+  } else if (format === 'pdf') {
+    const doc = new PDFDocument({ margin: 30 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=admin_export_${type}.pdf`);
+    doc.pipe(res);
+
+    doc.fontSize(20).text(`Admin Report: ${type.toUpperCase()}`, { align: 'center' }).moveDown();
+    doc.fontSize(12).text(`Generated: ${new Date().toISOString()}`, { align: 'center' }).moveDown();
+    
+    if (type === 'users') {
+      data.slice(0, 100).forEach((u, i) => {
+        doc.fontSize(10).text(`${i+1}. ${u.name} (${u.email}) - ${u.role} - Created: ${u.createdAt.toISOString().split('T')[0]}`);
+      });
+      if(data.length > 100) doc.text('... (truncated for PDF)');
+    } else if (type === 'security') {
+      data.slice(0, 100).forEach((l, i) => {
+        doc.fontSize(10).text(`${l.timestamp.toISOString().split('T')[0]} - ${l.user ? l.user.email : 'System'} - ${l.action} (${getSeverity(l.action, l.details)})`);
+      });
+      if(data.length > 100) doc.text('... (truncated for PDF)');
+    } else {
+       Object.entries(data[0]).forEach(([k,v]) => { doc.fontSize(12).text(`${k}: ${v}`); });
+    }
+    doc.end();
+  } else {
+    res.status(400);
+    throw new Error('Unsupported format');
+  }
 });
 

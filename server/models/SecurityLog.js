@@ -15,6 +15,7 @@ const securityLogSchema = new mongoose.Schema(
 // user index already exists (inline on field definition above)
 securityLogSchema.index({ action: 1, timestamp: -1 });  // filter by action + sort by time
 securityLogSchema.index({ user: 1, timestamp: -1 });    // user activity timeline
+securityLogSchema.index({ timestamp: -1 });             // chronological timeline queries
 
 const SecurityLog = mongoose.model('SecurityLog', securityLogSchema);
 export default SecurityLog;

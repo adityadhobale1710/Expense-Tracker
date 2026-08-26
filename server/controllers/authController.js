@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -381,7 +382,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc  Forgot Password - Send OTP
+// @desc  Forgot Password - Send OTP (temporarily replaced with direct token)
 // @route POST /api/auth/forgot-password
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -393,45 +394,20 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
   if (!user) {
     // AUDIT-AUTH-004: Generic response — do not reveal whether email is registered
-    return sendSuccess(res, 200, 'If that email is registered, a verification code has been sent');
+    return sendSuccess(res, 200, 'If that email is registered, you can proceed to reset your password');
   }
 
-  // Generate 6-digit random token/OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // Temporary development password-reset flow without email verification.
+  // Restore email-based verification before production deployment.
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
   // Token expires in 15 minutes
-  user.resetPasswordToken = otp;
+  user.resetPasswordToken = hashedToken;
   user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
   await user.save();
 
-  // Send Email
-  const emailHtml = getHtmlTemplate({
-    title: 'Reset Password Code',
-    greeting: `Hello ${user.name}`,
-    body: 'We received a request to reset the password associated with your account. Please enter the verification code below to authorize the password change. This code is valid for 15 minutes.',
-    code: otp,
-    footerText: 'If you did not request a password reset, you can safely ignore this email or contact support if you have security concerns.',
-  });
-
-  // A4 fix: propagate SMTP failures — clear token so user must retry
-  const emailResult = await sendEmail({
-    to: user.email,
-    subject: 'Your verification code',
-    html: emailHtml,
-    text: `Hello ${user.name},\n\nWe received a request to reset your password. Your 6-digit verification code is:\n\n${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this reset, please ignore this email.`,
-  });
-
-  if (!emailResult.success && !emailResult.mocked) {
-    // Roll back the token so a stale OTP is not persisted without delivery
-    user.resetPasswordToken = null;
-    user.resetPasswordExpire = null;
-    await user.save();
-    logger.error(`[forgotPassword] SMTP delivery failed for ${user.email}: ${emailResult.error}`);
-    res.status(502);
-    throw new Error('Failed to send reset email. Please try again later.');
-  }
-
-  sendSuccess(res, 200, 'Verification code sent to email');
+  sendSuccess(res, 200, 'Temporary reset token generated', { resetToken });
 });
 
 // @desc  Reset Password
@@ -440,43 +416,36 @@ export const resetPassword = asyncHandler(async (req, res) => {
   const { email, token, newPassword } = req.body;
   if (!email || !token || !newPassword) {
     res.status(400);
-    throw new Error('Email, code, and new password are required');
+    throw new Error('Email, token, and new password are required');
   }
+
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
   const user = await User.findOne({
     email,
-    resetPasswordToken: token,
+    resetPasswordToken: hashedToken,
     resetPasswordExpire: { $gt: Date.now() },
   });
 
   if (!user) {
     res.status(400);
-    throw new Error('Invalid code/OTP or code has expired');
+    throw new Error('Invalid or expired reset token');
   }
 
   // Set new password
   user.password = newPassword;
   user.resetPasswordToken = null;
   user.resetPasswordExpire = null;
+  user.refreshToken = null; // Clear refresh token
+  user.tokenVersion = (user.tokenVersion || 0) + 1; // Invalidate sessions
   await user.save();
 
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-  const confirmHtml = getHtmlTemplate({
-    title: 'Password Updated',
-    greeting: `Hello ${user.name}`,
-    body: 'The password associated with your account has been successfully updated. You can now log in securely using your new credentials.',
-    ctaText: 'Go to Login',
-    ctaUrl: `${clientUrl}/login`,
-    footerText: 'If you did not make this change, please contact support immediately to lock and secure your account.',
-  });
-
-  // Best-effort confirmation email — do not fail the reset if delivery fails
-  await sendEmail({
-    to: user.email,
-    subject: 'Password successfully updated',
-    html: confirmHtml,
-    text: `Hello ${user.name},\n\nYour account password has been successfully updated. You can now log in using your new credentials at: ${clientUrl}/login\n\nIf you did not make this change, please contact support immediately.`,
-  });
+  // Invalidate all existing sessions in the database for this user
+  try {
+    await Session.updateMany({ user: user._id }, { isActive: false });
+  } catch (err) {
+    logger.error(`Failed to revoke sessions on password reset: ${err.message}`);
+  }
 
   sendSuccess(res, 200, 'Password has been reset successfully');
 });

@@ -70,6 +70,7 @@ export default function Login() {
   const [forgotStep, setForgotStep] = useState(1);
   const [forgotCode, setForgotCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleSendResetCode = async (e) => {
@@ -77,11 +78,13 @@ export default function Login() {
     if (!forgotEmail) return toast.error('Please enter your email');
     setForgotLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email: forgotEmail });
-      toast.success('Verification code sent to your email!');
+      const response = await api.post('/auth/forgot-password', { email: forgotEmail });
+      const token = response.data?.data?.resetToken;
+      setForgotCode(token || '');
+      toast.success('Proceed to reset password');
       setForgotStep(2);
     } catch (err) {
-      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Failed to send reset code'));
+      toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Failed to start reset flow'));
     } finally {
       setForgotLoading(false);
     }
@@ -89,11 +92,17 @@ export default function Login() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (!forgotCode || !newPassword) {
-      return toast.error('Please enter the verification code and your new password');
+    if (!newPassword || !confirmPassword) {
+      return toast.error('Please enter and confirm your new password');
+    }
+    if (newPassword !== confirmPassword) {
+      return toast.error('Passwords do not match');
     }
     if (newPassword.length < 6) {
       return toast.error('New password must be at least 6 characters');
+    }
+    if (!forgotCode || forgotCode.trim().length === 0) {
+      return toast.error('Invalid or expired reset session. Please try again.');
     }
     setForgotLoading(true);
     try {
@@ -102,12 +111,13 @@ export default function Login() {
         token: forgotCode,
         newPassword,
       });
-      toast.success('Password reset successful! You can now sign in.');
+      toast.success('Password reset successfully. Continue to Login');
       setShowForgotModal(false);
       setForgotStep(1);
       setForgotEmail('');
       setForgotCode('');
       setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
       toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Failed to reset password'));
     } finally {
@@ -759,7 +769,7 @@ export default function Login() {
             {forgotStep === 1 ? (
               <form onSubmit={handleSendResetCode} className="space-y-4 mt-4">
                 <p className="text-xs text-[#475569] leading-relaxed font-medium">
-                  Enter your email address and we'll send you a 6-digit verification code to reset your password.
+                  Enter your email address to continue to password reset.
                 </p>
                 <div className="form-group">
                   <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
@@ -785,32 +795,18 @@ export default function Login() {
                   {forgotLoading ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Sending Code...
+                      Loading...
                     </span>
                   ) : (
-                    'Send Verification Code'
+                    'Continue'
                   )}
                 </button>
               </form>
             ) : (
               <form onSubmit={handleResetPassword} className="space-y-4 mt-4">
                 <p className="text-xs text-[#475569] leading-relaxed font-medium">
-                  A 6-digit verification code has been sent to <strong>{forgotEmail}</strong>. Please enter the code and your new password.
+                  Please enter your new password below.
                 </p>
-                <div className="form-group">
-                  <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
-                    Verification Code
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    className="w-full h-[48px] bg-[#F1F5F9] border border-transparent rounded-[14px] text-center tracking-[0.5em] font-mono text-lg text-[#0F172A] focus:outline-none focus:bg-white focus:border-[#5B4CF0] focus:ring-4 focus:ring-[#5B4CF0]/12 transition-all duration-200"
-                    placeholder="000000"
-                    value={forgotCode}
-                    onChange={(e) => setForgotCode(e.target.value)}
-                    required
-                  />
-                </div>
                 <div className="form-group">
                   <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
                     New Password
@@ -823,6 +819,22 @@ export default function Login() {
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
+                    Confirm New Password
+                  </label>
+                  <div className="relative flex items-center">
+                    <Lock className="w-4 h-4 absolute left-4 text-slate-400 pointer-events-none" />
+                    <input
+                      type="password"
+                      className="w-full h-[48px] pl-11 pr-4 bg-[#F1F5F9] border border-transparent rounded-[14px] text-[#0F172A] text-sm font-medium placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#5B4CF0] focus:ring-4 focus:ring-[#5B4CF0]/12 transition-all duration-200"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                     />
                   </div>

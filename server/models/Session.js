@@ -18,6 +18,7 @@ const sessionSchema = new mongoose.Schema(
 // user index already exists (inline on field definition above)
 sessionSchema.index({ isActive: 1 });                  // filter active sessions
 sessionSchema.index({ user: 1, lastActive: -1 });      // Last Seen lookup per user
+sessionSchema.index({ lastActive: -1 });               // global analytics by time
 
 const Session = mongoose.model('Session', sessionSchema);
 export default Session;
