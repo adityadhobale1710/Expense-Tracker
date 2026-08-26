@@ -13,6 +13,7 @@ import Feedback from '../models/Feedback.js';
 import SecurityLog from '../models/SecurityLog.js';
 import Session from '../models/Session.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 
@@ -230,8 +231,8 @@ export const getUsersList = asyncHandler(async (req, res) => {
   if (search) {
     // Case-insensitive search on name and email only (no credential fields)
     filter.$or = [
-      { name:  { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } },
+      { name:  { $regex: escapeRegex(search), $options: 'i' } },
+      { email: { $regex: escapeRegex(search), $options: 'i' } },
     ];
   }
 
@@ -880,8 +881,8 @@ export const getSecurityEvents = asyncHandler(async (req, res) => {
   if (user) {
     const matchingUsers = await User.find({
       $or: [
-        { email: { $regex: user, $options: 'i' } },
-        { name: { $regex: user, $options: 'i' } }
+        { email: { $regex: escapeRegex(user), $options: 'i' } },
+        { name: { $regex: escapeRegex(user), $options: 'i' } }
       ]
     }).select('_id').lean();
     filter.user = { $in: matchingUsers.map(u => u._id) };
@@ -995,8 +996,8 @@ export const getAdminAnalytics = asyncHandler(async (req, res) => {
     User.countDocuments({ createdAt: { $gte: prevStart, $lte: prevEnd } }),
     // "Active Users = users who generated authenticated activity during the selected period"
     Session.distinct('user', { lastActive: { $gte: start, $lte: end } }).then(docs => docs.length),
-    // "Active Accounts = not blocked and not disabled"
-    User.countDocuments({ isBlocked: false, isDisabled: false }),
+    // "Active Accounts = not blocked and not disabled" (Bug 4 fix: use $ne to match getAdminStats)
+    User.countDocuments({ isBlocked: { $ne: true }, isDisabled: { $ne: true } }),
     User.countDocuments()
   ]);
 

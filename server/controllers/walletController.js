@@ -7,9 +7,7 @@ import Loan from '../models/Loan.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { invalidateAICache, CACHE_MODULES } from '../utils/CacheInvalidator.js';
 import { awardBusinessXP } from '../services/gamificationService.js';
-
-// B5/B6 fix: escape regex metacharacters from user input to prevent ReDoS
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+import { escapeRegex } from '../utils/escapeRegex.js';
 
 // @desc    Get all wallets for user
 // @route   GET /api/wallets

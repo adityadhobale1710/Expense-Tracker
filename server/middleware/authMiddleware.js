@@ -16,7 +16,7 @@ export const protect = asyncHandler(async (req, res, next) => {
         throw new Error('User not found');
       }
       // MASTER-036: Reject blocked/disabled users even if their token is still valid
-      if (req.user.isBlocked || req.user.isDisabled || req.user.status === 'disabled' || req.user.status === 'blocked') {
+      if (req.user.isBlocked || req.user.isDisabled) {
         res.status(403);
         throw new Error('Account has been disabled. Please contact support.');
       }
@@ -68,7 +68,11 @@ export const protect = asyncHandler(async (req, res, next) => {
   } else if (req.query.token) {
     // Issue #7 fix: use .startsWith() NOT .includes() to prevent bypass via
     // crafted URLs like /api/other?injected=/api/analytics/export/&token=...
-    const isDownloadRoute = req.originalUrl.startsWith('/api/analytics/export/');
+    const DOWNLOAD_ROUTE_PREFIXES = [
+      '/api/analytics/export/',
+      '/api/admin/analytics/export/',
+    ];
+    const isDownloadRoute = DOWNLOAD_ROUTE_PREFIXES.some(p => req.originalUrl.startsWith(p));
     if (!isDownloadRoute) {
       res.status(401);
       throw new Error('Not authorized, query token only permitted for export requests');
@@ -83,7 +87,7 @@ export const protect = asyncHandler(async (req, res, next) => {
         throw new Error('User not found');
       }
       // MASTER-036: Reject blocked/disabled users for query-token export path too
-      if (req.user.isBlocked || req.user.isDisabled || req.user.status === 'disabled' || req.user.status === 'blocked') {
+      if (req.user.isBlocked || req.user.isDisabled) {
         res.status(403);
         throw new Error('Account has been disabled. Please contact support.');
       }

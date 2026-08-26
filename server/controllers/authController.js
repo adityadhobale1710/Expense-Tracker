@@ -185,13 +185,15 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  if (user.isDisabled || user.isBlocked || user.status === 'disabled' || user.status === 'blocked') {
+  if (user.isDisabled || user.isBlocked) {
     res.status(403);
     return res.json({
       success: false,
       message: 'Your account has been temporarily disabled. Please contact support.'
     });
   }
+
+  const isMatch = await user.matchPassword(password);
 
   if (!isMatch) {
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
@@ -342,7 +344,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
   }
 
   // MASTER-036: Blocked users must not be able to silently renew sessions
-  if (user.isBlocked || user.isDisabled || user.status === 'disabled' || user.status === 'blocked') {
+  if (user.isBlocked || user.isDisabled) {
     res.status(403);
     throw new Error('Account has been disabled. Please contact support.');
   }

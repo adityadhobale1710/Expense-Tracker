@@ -85,6 +85,15 @@ export default function AdminAnalytics() {
       if (customEnd) params.append('endDate', new Date(customEnd).toISOString());
     }
     params.append('format', format);
+    
+    // Bug 2 Fix: Get access token and append as query parameter
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      toast.error('Authentication token missing. Please log in again.');
+      return;
+    }
+    params.append('token', token);
+    
     window.location.href = `${import.meta.env.VITE_API_URL}/admin/analytics/export/${type}?${params.toString()}`;
   };
 
