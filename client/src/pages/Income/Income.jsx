@@ -99,7 +99,7 @@ const SummaryCard = memo(({ icon: Icon, label, value, trend, trendUp, color, spa
         </div>
       </div>
       {trend !== undefined && !loading && (
-        <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
           trendUp ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
         }`}>
           {trendUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
@@ -592,7 +592,7 @@ export default function Income() {
                             <div>
                               <p className="text-slate-100 font-semibold text-sm leading-tight">{item.title}</p>
                               {item.description && (
-                                <p className="text-slate-500 text-[11px] truncate max-w-[180px]">{item.description}</p>
+                                <p className="text-slate-500 text-xs truncate max-w-[180px]">{item.description}</p>
                               )}
                             </div>
                           </div>
@@ -603,7 +603,7 @@ export default function Income() {
                         <td>
                           <div>
                             <p className="text-slate-300 text-sm">{new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                            <p className="text-slate-500 text-[11px]">{new Date(item.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-slate-500 text-xs">{new Date(item.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
                           </div>
                         </td>
                         <td className="text-right">
@@ -648,7 +648,7 @@ export default function Income() {
                       {item.source && <SourceBadge source={item.source} />}
                       <PMBadge method={item.paymentMethod} />
                     </div>
-                    <p className="text-slate-500 text-[11px] mt-0.5">{new Date(item.date).toLocaleDateString('en-IN')}</p>
+                    <p className="text-slate-500 text-xs mt-0.5">{new Date(item.date).toLocaleDateString('en-IN')}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                     <span className="text-emerald-400 font-black text-sm">+{fmt(item.amount)}</span>
@@ -673,7 +673,7 @@ export default function Income() {
                 </p>
                 <div className="flex gap-1">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-700 text-slate-400 disabled:opacity-75 disabled:cursor-not-allowed transition-colors">
                     <ChevronLeft size={15} />
                   </button>
                   {[...Array(Math.min(5, totalPages))].map((_, i) => {
@@ -686,7 +686,7 @@ export default function Income() {
                     );
                   })}
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-700 text-slate-400 disabled:opacity-75 disabled:cursor-not-allowed transition-colors">
                     <ChevronRight size={15} />
                   </button>
                 </div>
@@ -702,7 +702,7 @@ export default function Income() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Basic Info */}
           <div>
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <span className="w-4 h-0.5 bg-emerald-500 rounded" /> Basic Information
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -734,7 +734,7 @@ export default function Income() {
 
           {/* Financial Details */}
           <div>
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <span className="w-4 h-0.5 bg-emerald-500 rounded" /> Details
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

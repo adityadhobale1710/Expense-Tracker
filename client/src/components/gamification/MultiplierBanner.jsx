@@ -13,12 +13,12 @@ export default function MultiplierBanner() {
           <span className="text-2xl animate-bounce select-none">{multiplier.icon}</span>
           <div>
             <p className="text-xs font-black text-slate-100">{multiplier.label} — Active Now!</p>
-            <p className="text-[10px] text-slate-400 font-medium">All XP actions earn {multiplier.value}× more until midnight</p>
+            <p className="text-xs text-slate-400 font-medium">All XP actions earn {multiplier.value}× more until midnight</p>
           </div>
         </div>
         <div className="text-right flex-shrink-0 ml-4">
           <p className="text-2xl font-black text-white">{multiplier.value}×</p>
-          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Multiplier</p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Multiplier</p>
         </div>
 
         {/* Shimmer overlay */}

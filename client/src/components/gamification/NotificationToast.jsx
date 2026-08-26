@@ -37,10 +37,10 @@ export default function NotificationToast() {
           >
             <div className="text-2xl flex-shrink-0">{n.icon || cfg.icon}</div>
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{cfg.label}</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{cfg.label}</p>
               <p className="text-sm font-bold text-slate-100 truncate mt-0.5">{n.title}</p>
               {n.xp > 0 && (
-                <p className="text-[10px] font-bold text-indigo-400 mt-0.5">+{n.xp} XP</p>
+                <p className="text-xs font-bold text-indigo-400 mt-0.5">+{n.xp} XP</p>
               )}
             </div>
             <button

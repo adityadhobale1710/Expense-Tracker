@@ -419,7 +419,7 @@ export default function Login() {
                 id="login-submit"
                 type="submit"
                 disabled={loading}
-                className={`w-full h-[50px] mt-2 rounded-[14px] font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed font-jakarta text-white ${
+                className={`w-full h-[50px] mt-2 rounded-[14px] font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed font-jakarta text-white ${
                   loginMode === 'admin'
                     ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25'
                     : 'bg-[#4F46E5] hover:bg-[#4338CA] shadow-[#4F46E5]/25'
@@ -444,7 +444,7 @@ export default function Login() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200"></div>
               </div>
-              <span className="relative bg-white px-3 text-[11px] font-semibold tracking-wider uppercase text-[#64748B]">
+              <span className="relative bg-white px-3 text-xs font-semibold tracking-wider uppercase text-[#64748B]">
                 OR CONTINUE WITH
               </span>
             </div>
@@ -573,7 +573,7 @@ export default function Login() {
             >
               <div className="flex items-center justify-between">
                 <div className="w-6 h-1.5 rounded-full bg-[#7C4DFF]/70" />
-                <span className="text-[8px] font-bold text-[#22C55E] font-sans">+₹8,450</span>
+                <span className="text-xs font-bold text-[#22C55E] font-sans">+₹8,450</span>
               </div>
               <div className="w-14 h-1 rounded-full bg-[#64748B]/15" />
               <div className="w-9 h-1 rounded-full bg-[#64748B]/10" />
@@ -593,7 +593,7 @@ export default function Login() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[6.5px] font-semibold text-[#64748B]">Savings</span>
-                <span className="text-[9px] font-bold text-[#1E293B]">64.2%</span>
+                <span className="text-xs font-bold text-[#1E293B]">64.2%</span>
               </div>
             </motion.div>
 

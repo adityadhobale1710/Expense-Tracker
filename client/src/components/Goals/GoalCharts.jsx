@@ -26,7 +26,7 @@ export function SavingsGrowthChart({ data = [] }) {
     <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-4">
       <div>
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Savings Growth & Velocity</h3>
-        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Historical cumulative totals tracking monthly deposits</p>
+        <p className="text-xs text-slate-500 font-semibold mt-0.5">Historical cumulative totals tracking monthly deposits</p>
       </div>
 
       <div className="h-64 w-full">
@@ -90,7 +90,7 @@ export function CategoryComparisonChart({ data = [] }) {
     <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-4">
       <div>
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Breakdown By Category</h3>
-        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Contrasting targeted balances against accumulated savings by category</p>
+        <p className="text-xs text-slate-500 font-semibold mt-0.5">Contrasting targeted balances against accumulated savings by category</p>
       </div>
 
       <div className="h-64 w-full">

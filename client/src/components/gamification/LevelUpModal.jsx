@@ -81,7 +81,7 @@ export default function LevelUpModal() {
 
         {/* Text */}
         <div className="mb-6 space-y-1">
-          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.25em]">Level Up!</p>
+          <p className="text-xs font-black text-indigo-400 uppercase tracking-[0.25em]">Level Up!</p>
           <h2 className="text-3xl font-black text-slate-100 tracking-tight">
             {newLevelInfo?.name || `Level ${levelUpData.to}`}
           </h2>
@@ -93,7 +93,7 @@ export default function LevelUpModal() {
         {/* Rewards */}
         {newLevelInfo?.reward && (
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 mb-6">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Rewards Unlocked</p>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Rewards Unlocked</p>
             <p className="text-sm font-bold text-amber-400">🎁 {newLevelInfo.reward}</p>
           </div>
         )}

@@ -27,7 +27,7 @@ export default function GoalFilters({
     <div className="flex flex-wrap items-center gap-3 bg-dark-800/40 p-4 border border-slate-700/30 rounded-3xl backdrop-blur-sm">
       {/* Status Filter */}
       <div className="flex flex-col space-y-1">
-        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Status</label>
+        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
         <select
           value={filters.status || 'All'}
           onChange={(e) => handleSelect('status', e.target.value)}
@@ -41,7 +41,7 @@ export default function GoalFilters({
 
       {/* Category Filter */}
       <div className="flex flex-col space-y-1">
-        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Category</label>
+        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Category</label>
         <select
           value={filters.category || 'All'}
           onChange={(e) => handleSelect('category', e.target.value)}
@@ -56,7 +56,7 @@ export default function GoalFilters({
 
       {/* Priority Filter */}
       <div className="flex flex-col space-y-1">
-        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Priority</label>
+        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Priority</label>
         <select
           value={filters.priority || 'All'}
           onChange={(e) => handleSelect('priority', e.target.value)}
@@ -70,7 +70,7 @@ export default function GoalFilters({
 
       {/* Sorting */}
       <div className="flex flex-col space-y-1 ml-0 sm:ml-auto">
-        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
+        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
         <select
           value={filters.sort || 'newest'}
           onChange={(e) => onChange({ ...filters, sort: e.target.value })}
@@ -86,7 +86,7 @@ export default function GoalFilters({
       {hasActiveFilters && (
         <button
           onClick={onClear}
-          className="mt-4 sm:mt-0 text-[10px] font-bold text-slate-400 hover:text-slate-200 uppercase tracking-wider px-3 py-2 bg-dark-900 border border-slate-700/30 rounded-xl hover:border-slate-600 transition-colors"
+          className="mt-4 sm:mt-0 text-xs font-bold text-slate-400 hover:text-slate-200 uppercase tracking-wider px-3 py-2 bg-dark-900 border border-slate-700/30 rounded-xl hover:border-slate-600 transition-colors"
         >
           Clear Filters
         </button>

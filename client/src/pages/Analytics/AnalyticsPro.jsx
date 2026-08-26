@@ -584,7 +584,7 @@ export default function AnalyticsPro() {
                 }`}>
                 {savingsRateVal}% Savings Rate
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">Net liquidity</span>
+              <span className="text-xs text-slate-400 font-medium">Net liquidity</span>
             </div>
           </div>
         </div>
@@ -602,7 +602,7 @@ export default function AnalyticsPro() {
             <h3 className="text-xl font-extrabold text-amber-300 tracking-tight">
               {savingsRateVal >= 30 ? '🌟 Excellent Saver' : savingsRateVal >= 15 ? '⚖️ Balanced Flow' : '⚠️ Alert: High Spending'}
             </h3>
-            <p className="text-[11px] text-slate-400 mt-2 line-clamp-1 font-medium">
+            <p className="text-xs text-slate-400 mt-2 line-clamp-1 font-medium">
               {savingsRateVal >= 30
                 ? 'You save over 30% of earnings consistently!'
                 : savingsRateVal >= 15

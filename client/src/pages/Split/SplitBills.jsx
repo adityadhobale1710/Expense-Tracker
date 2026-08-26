@@ -448,7 +448,7 @@ export default function SplitBills() {
             <div className="absolute inset-0 bg-gradient-to-br opacity-50 group-hover:opacity-100 transition-opacity" style={{ background: stat.glow }} />
             <span className="text-3xl select-none relative z-10">{stat.icon}</span>
             <div className="relative z-10 min-w-0">
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
               <p className={`text-base font-extrabold mt-0.5 font-mono truncate ${stat.color}`}>{stat.value}</p>
             </div>
           </div>
@@ -527,7 +527,7 @@ export default function SplitBills() {
                         </div>
                         <div>
                           <h3 className="text-sm font-black text-slate-100">{split.title}</h3>
-                          <p className="text-[10px] text-slate-500 mt-0.5">
+                          <p className="text-xs text-slate-500 mt-0.5">
                             Category: {split.groupName} • Paid by: {creatorName}
                           </p>
                         </div>
@@ -535,7 +535,7 @@ export default function SplitBills() {
 
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                             split.status === 'settled'
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                               : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
@@ -564,7 +564,7 @@ export default function SplitBills() {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                      <div className="flex justify-between text-xs font-bold text-slate-500">
                         <span>Settlement Progress</span>
                         <span>
                           {settledMembers}/{totalMembers} Settled ({progressPct}%)
@@ -580,12 +580,12 @@ export default function SplitBills() {
 
                     <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-800/50">
                       <div>
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Total Bill</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Total Bill</p>
                         <p className="text-sm font-black text-slate-200">₹{split.amount.toLocaleString('en-IN')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Created Date</p>
-                        <p className="text-[10px] text-slate-400">{new Date(split.createdAt).toLocaleDateString('en-IN')}</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Created Date</p>
+                        <p className="text-xs text-slate-400">{new Date(split.createdAt).toLocaleDateString('en-IN')}</p>
                       </div>
                     </div>
 
@@ -598,7 +598,7 @@ export default function SplitBills() {
                           exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden space-y-3 pt-3 border-t border-slate-800/50"
                         >
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Workspace Debts Ledger</p>
+                          <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Workspace Debts Ledger</p>
                           <div className="space-y-2">
                             {split.members.map((member) => (
                               <div
@@ -614,12 +614,12 @@ export default function SplitBills() {
                                   {member.status === 'pending' ? (
                                     <button
                                       onClick={() => handleSettle(split._id, member.userEmail)}
-                                      className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg hover:bg-indigo-600 hover:text-slate-950 font-black transition-all text-[9px] cursor-pointer"
+                                      className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg hover:bg-indigo-600 hover:text-slate-950 font-black transition-all text-xs cursor-pointer"
                                     >
                                       Settle Debt
                                     </button>
                                   ) : (
-                                    <span className="text-emerald-400 text-[9px] font-black uppercase bg-emerald-500/10 border border-emerald-500/15 px-2 py-0.5 rounded-full">
+                                    <span className="text-emerald-400 text-[10px] font-black uppercase bg-emerald-500/10 border border-emerald-500/15 px-2 py-0.5 rounded-full">
                                       Settled
                                     </span>
                                   )}
@@ -642,7 +642,7 @@ export default function SplitBills() {
             <div className="card space-y-4 shadow-xl">
               <div>
                 <h3 className="text-sm font-black text-slate-100">⚡ Split Shortcuts</h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">Quick split presets and workspace configurations</p>
+                <p className="text-xs text-slate-400 mt-0.5">Quick split presets and workspace configurations</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -663,7 +663,7 @@ export default function SplitBills() {
                     className="p-3 bg-slate-900/35 border border-slate-800 hover:border-indigo-500/30 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all text-center cursor-pointer"
                   >
                     <span className="text-xl">{act.icon}</span>
-                    <span className="text-[9px] font-extrabold text-slate-300">{act.title}</span>
+                    <span className="text-xs font-extrabold text-slate-300">{act.title}</span>
                   </button>
                 ))}
               </div>
@@ -673,14 +673,14 @@ export default function SplitBills() {
             <div className="card space-y-4 shadow-xl">
               <div>
                 <h3 className="text-sm font-black text-slate-100">⚖️ Workspace Balances</h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">Net liability calculations for current group participants</p>
+                <p className="text-xs text-slate-400 mt-0.5">Net liability calculations for current group participants</p>
               </div>
 
               <div className="space-y-3">
                 {stats.owe > 0 && (
                   <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3.5 flex justify-between items-center gap-3">
                     <div>
-                      <p className="text-[9px] font-bold text-rose-400 uppercase tracking-wide">You Owe Others</p>
+                      <p className="text-xs font-bold text-rose-400 uppercase tracking-wide">You Owe Others</p>
                       <p className="text-base font-black text-rose-400 font-mono mt-0.5">₹{inrMoney(stats.owe)}</p>
                     </div>
                     <span className="text-2xl">📉</span>
@@ -690,7 +690,7 @@ export default function SplitBills() {
                 {stats.owed > 0 && (
                   <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3.5 flex justify-between items-center gap-3">
                     <div>
-                      <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wide">You Are Owed By Others</p>
+                      <p className="text-xs font-bold text-emerald-400 uppercase tracking-wide">You Are Owed By Others</p>
                       <p className="text-base font-black text-emerald-400 font-mono mt-0.5">₹{inrMoney(stats.owed)}</p>
                     </div>
                     <span className="text-2xl">📈</span>
@@ -723,7 +723,7 @@ export default function SplitBills() {
                     <Scale size={18} className="text-indigo-400" />
                     <span>Create Split Bill</span>
                   </h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Log shared expenses and assign debt ratios.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Log shared expenses and assign debt ratios.</p>
                 </div>
                 <button
                   onClick={() => setShowCreate(false)}
@@ -833,14 +833,14 @@ export default function SplitBills() {
                     className="input py-2 text-xs bg-dark-900 border-slate-700 resize-none"
                     required
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Adds participant members to this split workspace.
                   </p>
                 </div>
 
                 {/* Live Allocator visual summary */}
                 <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2">
-                  <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  <div className="flex justify-between items-center text-xs text-slate-400 font-bold uppercase tracking-wider">
                     <span>Summary</span>
                     <div className="flex items-center gap-1.5">
                       {isBalanced ? (
@@ -857,17 +857,17 @@ export default function SplitBills() {
 
                   <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1.5 border-t border-slate-800/50">
                     <div>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase">Total Bill</p>
+                      <p className="text-xs text-slate-500 font-bold uppercase">Total Bill</p>
                       <p className="font-extrabold text-slate-200 mt-0.5">₹{Number(amount || 0).toLocaleString('en-IN')}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase">Allocated</p>
+                      <p className="text-xs text-slate-500 font-bold uppercase">Allocated</p>
                       <p className="font-extrabold text-slate-200 mt-0.5">
                         ₹{splitMethod === 'Equal' ? Number(amount || 0).toLocaleString('en-IN') : manualTotalSum.toLocaleString('en-IN')}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase">Remaining</p>
+                      <p className="text-xs text-slate-500 font-bold uppercase">Remaining</p>
                       <p className={`font-extrabold mt-0.5 ${remainingBalance === 0 ? 'text-slate-400' : 'text-amber-400'}`}>
                         ₹{remainingBalance.toLocaleString('en-IN')}
                       </p>
@@ -880,28 +880,28 @@ export default function SplitBills() {
                       <button
                         type="button"
                         onClick={handleEqualize}
-                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-[9px] font-bold text-slate-400 transition-all cursor-pointer"
+                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-xs font-bold text-slate-400 transition-all cursor-pointer"
                       >
                         ⚖️ Equalize
                       </button>
                       <button
                         type="button"
                         onClick={handleAutoBalance}
-                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-[9px] font-bold text-slate-400 transition-all cursor-pointer"
+                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-xs font-bold text-slate-400 transition-all cursor-pointer"
                       >
                         ⚡ Auto-Balance
                       </button>
                       <button
                         type="button"
                         onClick={handleRoundAmounts}
-                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-[9px] font-bold text-slate-400 transition-all cursor-pointer"
+                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-xs font-bold text-slate-400 transition-all cursor-pointer"
                       >
                         🪙 Round
                       </button>
                       <button
                         type="button"
                         onClick={handleResetSplit}
-                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-[9px] font-bold text-slate-400 transition-all cursor-pointer"
+                        className="py-1 px-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-slate-200 rounded text-xs font-bold text-slate-400 transition-all cursor-pointer"
                       >
                         🔄 Reset
                       </button>
@@ -911,7 +911,7 @@ export default function SplitBills() {
 
                 {/* Participant Allocation Table / Stacked Cards */}
                 <div className="space-y-2">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Participant Ledger</span>
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Participant Ledger</span>
                   <div className="max-h-[160px] overflow-y-auto space-y-1.5 pr-1">
                     {participants.map((email, idx) => {
                       const shareValue = computedShares[email] || '0.00';
@@ -924,14 +924,14 @@ export default function SplitBills() {
                           className="flex flex-col sm:flex-row justify-between sm:items-center bg-slate-950 border border-slate-800 p-2.5 rounded-xl gap-2 transition-all"
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-[10px] uppercase">
+                            <div className="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-xs uppercase">
                               {email[0]}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[11px] font-bold text-slate-200 truncate">
+                              <p className="text-xs font-bold text-slate-200 truncate">
                                 {isMe ? 'Aditya (You)' : email}
                               </p>
-                              <span className="text-[8px] text-slate-500 font-black uppercase tracking-wide">
+                              <span className="text-xs text-slate-500 font-black uppercase tracking-wide">
                                 Member Participant
                               </span>
                             </div>
@@ -939,7 +939,7 @@ export default function SplitBills() {
 
                           <div className="flex items-center justify-between sm:justify-end gap-3.5">
                             {/* percentage share */}
-                            <span className="px-1.5 py-px bg-slate-900 text-slate-400 text-[8px] font-extrabold uppercase rounded">
+                            <span className="px-1.5 py-px bg-slate-900 text-slate-400 text-xs font-extrabold uppercase rounded">
                               {pct}% Share
                             </span>
 
@@ -980,7 +980,7 @@ export default function SplitBills() {
                   <button
                     type="submit"
                     disabled={!isBalanced}
-                    className="btn bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs py-2.5 px-6 cursor-pointer rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs py-2.5 px-6 cursor-pointer rounded-xl disabled:opacity-75 disabled:cursor-not-allowed"
                   >
                     Create Split
                   </button>

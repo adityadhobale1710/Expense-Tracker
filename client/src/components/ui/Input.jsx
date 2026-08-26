@@ -27,7 +27,7 @@ export const Input = React.forwardRef(({
         {...props}
       />
       {error && (
-        <p className="text-[11px] text-rose-400 font-bold leading-normal animate-fade-in">
+        <p className="text-xs text-rose-400 font-bold leading-normal animate-fade-in">
           ⚠️ {error}
         </p>
       )}

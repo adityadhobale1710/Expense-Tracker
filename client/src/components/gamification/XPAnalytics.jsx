@@ -59,7 +59,7 @@ export default function XPAnalytics() {
           <div key={s.label} className="bg-dark-800 border border-slate-700/50 rounded-2xl p-4 flex items-center gap-3">
             <span className="text-2xl">{s.icon}</span>
             <div>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{s.label}</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{s.label}</p>
               <p className={`text-sm font-extrabold mt-0.5 capitalize ${s.color}`}>{s.value}</p>
             </div>
           </div>
@@ -76,7 +76,7 @@ export default function XPAnalytics() {
           <span className="text-xs font-mono font-bold text-indigo-400">{(stats.xpThisWeek || 0).toLocaleString('en-IN')} / {maxWeekly.toLocaleString('en-IN')}</span>
         </div>
         <MiniBar value={stats.xpThisWeek || 0} maxValue={maxWeekly} color="bg-gradient-to-r from-indigo-500 to-emerald-500" />
-        <p className="text-[10px] text-slate-500">Target: earn {maxWeekly.toLocaleString('en-IN')} XP this week</p>
+        <p className="text-xs text-slate-500">Target: earn {maxWeekly.toLocaleString('en-IN')} XP this week</p>
       </div>
 
       {/* 7-day activity trend */}
@@ -89,7 +89,7 @@ export default function XPAnalytics() {
                 className={`w-full rounded-t-md transition-all duration-500 ${active ? 'bg-indigo-500' : 'bg-slate-800'}`}
                 style={{ height: active ? '60px' : '10px' }}
               />
-              <span className="text-[8px] text-slate-600 font-bold">{orderedLabels[i].slice(0, 2)}</span>
+              <span className="text-xs text-slate-600 font-bold">{orderedLabels[i].slice(0, 2)}</span>
             </div>
           ))}
         </div>
@@ -100,14 +100,14 @@ export default function XPAnalytics() {
         <h4 className="text-sm font-black text-slate-100">XP Breakdown</h4>
         <div className="space-y-3">
           <div className="space-y-1">
-            <div className="flex justify-between text-[10px] font-bold text-slate-400">
+            <div className="flex justify-between text-xs font-bold text-slate-400">
               <span>Lifetime XP (all seasons)</span>
               <span className="font-mono text-violet-400">{(lifetimeXP || stats.lifetimeXP || xp).toLocaleString('en-IN')}</span>
             </div>
             <MiniBar value={lifetimeXP || xp} maxValue={Math.max(lifetimeXP || xp, 1000)} color="bg-gradient-to-r from-violet-500 to-purple-500" />
           </div>
           <div className="space-y-1">
-            <div className="flex justify-between text-[10px] font-bold text-slate-400">
+            <div className="flex justify-between text-xs font-bold text-slate-400">
               <span>This Month's XP</span>
               <span className="font-mono text-indigo-400">{(stats.xpThisMonth || 0).toLocaleString('en-IN')}</span>
             </div>

@@ -64,21 +64,21 @@ function ProgressionTab({ xp, simulatedActions, applyReward }) {
                   <p className={`text-xs mt-3 font-extrabold ${isCurrent ? 'text-indigo-400' : isUnlocked ? 'text-slate-200' : 'text-slate-600'}`}>
                     Level {lvl.level}
                   </p>
-                  <p className={`text-[10px] font-bold mt-0.5 truncate max-w-[90px] ${isCurrent ? 'text-amber-400' : isUnlocked ? 'text-slate-400' : 'text-slate-700'}`}>
+                  <p className={`text-xs font-bold mt-0.5 truncate max-w-[90px] ${isCurrent ? 'text-amber-400' : isUnlocked ? 'text-slate-400' : 'text-slate-700'}`}>
                     {lvl.name}
                   </p>
-                  <p className="text-[8px] text-slate-600 font-mono mt-1">
+                  <p className="text-xs text-slate-600 font-mono mt-1">
                     {lvl.xpRequired.toLocaleString('en-IN')} XP
                   </p>
                   {/* Every 5 levels = chest */}
                   {lvl.level % 5 === 0 && (
-                    <span className="text-[9px] mt-1 text-amber-400">🎁</span>
+                    <span className="text-xs mt-1 text-amber-400">🎁</span>
                   )}
 
                   {/* Reward tooltip */}
                   <div className="absolute top-[calc(100%+8px)] scale-95 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 w-36 bg-slate-900 border border-slate-700/80 rounded-xl p-2 z-20 pointer-events-none shadow-xl">
-                    <p className="text-[8px] text-slate-500 border-b border-slate-800 pb-1 mb-1 uppercase font-black text-center">Reward</p>
-                    <p className="text-[9px] text-slate-300 text-center font-bold">{lvl.reward}</p>
+                    <p className="text-xs text-slate-500 border-b border-slate-800 pb-1 mb-1 uppercase font-black text-center">Reward</p>
+                    <p className="text-xs text-slate-300 text-center font-bold">{lvl.reward}</p>
                   </div>
                 </div>
               );
@@ -109,9 +109,9 @@ function ProgressionTab({ xp, simulatedActions, applyReward }) {
                 style={isReached ? { borderColor: `${tier.color}40`, background: `${tier.color}10` } : {}}
               >
                 <div className="text-2xl mb-1">{tier.icon}</div>
-                <p className="text-[10px] font-extrabold" style={{ color: isReached ? tier.color : '#475569' }}>{tier.name}</p>
-                <p className="text-[8px] text-slate-600 font-mono mt-0.5">{tier.minXP.toLocaleString('en-IN')}+ XP</p>
-                {isReached && <p className="text-[9px] text-emerald-400 font-bold mt-1">✓ Earned</p>}
+                <p className="text-xs font-extrabold" style={{ color: isReached ? tier.color : '#475569' }}>{tier.name}</p>
+                <p className="text-xs text-slate-600 font-mono mt-0.5">{tier.minXP.toLocaleString('en-IN')}+ XP</p>
+                {isReached && <p className="text-xs text-emerald-400 font-bold mt-1">✓ Earned</p>}
               </div>
             );
           })}
@@ -157,8 +157,8 @@ function ProgressionTab({ xp, simulatedActions, applyReward }) {
                   {action.label} {isCompleted && '✓'}
                 </span>
                 <div className="flex justify-between items-center w-full mt-2 pt-1 border-t border-slate-800/60">
-                  <span className={`text-[10px] font-bold ${isCompleted ? 'text-slate-600' : 'text-indigo-400'}`}>+{action.xp} XP</span>
-                  <span className={`text-[10px] font-bold ${isCompleted ? 'text-slate-600' : 'text-yellow-500'}`}>+{action.coins}🪙</span>
+                  <span className={`text-xs font-bold ${isCompleted ? 'text-slate-600' : 'text-indigo-400'}`}>+{action.xp} XP</span>
+                  <span className={`text-xs font-bold ${isCompleted ? 'text-slate-600' : 'text-yellow-500'}`}>+{action.coins}🪙</span>
                 </div>
               </button>
             );

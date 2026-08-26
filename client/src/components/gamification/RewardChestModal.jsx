@@ -28,7 +28,7 @@ export default function RewardChestModal() {
           <div className="w-48 h-48 bg-amber-500/20 rounded-full blur-3xl" />
         </div>
 
-        <p className="text-[10px] font-black text-amber-400 uppercase tracking-[0.25em] mb-2">Level {chestData.level} Reward</p>
+        <p className="text-xs font-black text-amber-400 uppercase tracking-[0.25em] mb-2">Level {chestData.level} Reward</p>
         <h2 className="text-2xl font-black text-slate-100 mb-6">{rewards?.label || 'Mystery Chest'}</h2>
 
         {/* Chest visual */}

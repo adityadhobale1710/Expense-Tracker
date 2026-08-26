@@ -25,7 +25,7 @@ function CodeBlock({ className, children, ...props }) {
     <div className="my-6 rounded-xl border border-ai-border ai-surface-main shadow-ai-soft max-w-full overflow-hidden flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 ai-surface-card border-b border-ai-border !rounded-b-none !shadow-none">
-        <span className="text-[11px] font-bold text-ai-text-muted uppercase tracking-wider">
+        <span className="text-xs font-bold text-ai-text-muted uppercase tracking-wider">
           {language || 'text'}
         </span>
         <div className="flex items-center gap-1">
@@ -44,12 +44,12 @@ function CodeBlock({ className, children, ...props }) {
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-450">Copied</span>
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-450">Copied</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-medium">Copy</span>
+                <span className="text-xs font-medium">Copy</span>
               </>
             )}
           </button>

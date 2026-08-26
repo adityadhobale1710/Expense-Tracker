@@ -36,7 +36,7 @@ export const StatCard = ({
             </div>
           )}
           <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
+            <p className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none">
               {label}
             </p>
             {loading ? (
@@ -64,7 +64,7 @@ export const StatCard = ({
       </div>
 
       {description && !loading && (
-        <p className="text-[10px] text-slate-400 font-semibold mt-3 relative z-10">
+        <p className="text-xs text-slate-400 font-semibold mt-3 relative z-10">
           {description}
         </p>
       )}

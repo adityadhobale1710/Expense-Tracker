@@ -936,7 +936,7 @@ export default function BillCalendar() {
               className="card relative overflow-hidden flex flex-col justify-between p-5 bg-gradient-to-br bg-dark-800/80 border-slate-700/50 shadow-lg hover:shadow-primary-500/5"
             >
               <div className="flex justify-between items-start">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Upcoming Bills</span>
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Upcoming Bills</span>
                 <div className="p-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
                   <Clock size={16} />
                 </div>
@@ -945,7 +945,7 @@ export default function BillCalendar() {
                 <p className="text-2xl font-black text-slate-100">
                   <CountUp value={stats?.upcomingAmount || 0} />
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1 font-semibold">{stats?.upcomingCount || 0} bills pending payment</p>
+                <p className="text-xs text-slate-400 mt-1 font-semibold">{stats?.upcomingCount || 0} bills pending payment</p>
               </div>
               <div className="w-full h-8 mt-4 overflow-hidden rounded opacity-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -961,7 +961,7 @@ export default function BillCalendar() {
               className="card relative overflow-hidden flex flex-col justify-between p-5 bg-gradient-to-br bg-dark-800/80 border-slate-700/50 shadow-lg"
             >
               <div className="flex justify-between items-start">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Paid This Month</span>
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Paid This Month</span>
                 <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
                   <CheckCircle2 size={16} />
                 </div>
@@ -970,7 +970,7 @@ export default function BillCalendar() {
                 <p className="text-2xl font-black text-slate-100">
                   <CountUp value={stats?.paidAmountThisMonth || 0} />
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1 font-semibold">{stats?.paidCountThisMonth || 0} invoices settled</p>
+                <p className="text-xs text-slate-400 mt-1 font-semibold">{stats?.paidCountThisMonth || 0} invoices settled</p>
               </div>
               <div className="w-full h-8 mt-4 overflow-hidden rounded opacity-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -986,7 +986,7 @@ export default function BillCalendar() {
               className="card relative overflow-hidden flex flex-col justify-between p-5 bg-gradient-to-br bg-dark-800/80 border-slate-700/50 shadow-lg hover:shadow-rose-500/5"
             >
               <div className="flex justify-between items-start">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Overdue Bills</span>
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Overdue Bills</span>
                 <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
                   <AlertCircle size={16} />
                 </div>
@@ -995,7 +995,7 @@ export default function BillCalendar() {
                 <p className="text-2xl font-black text-rose-400">
                   <CountUp value={stats?.overdueAmount || 0} />
                 </p>
-                <p className="text-[10px] text-rose-400 mt-1 font-semibold">{stats?.overdueCount || 0} accounts needing action</p>
+                <p className="text-xs text-rose-400 mt-1 font-semibold">{stats?.overdueCount || 0} accounts needing action</p>
               </div>
               <div className="w-full h-8 mt-4 overflow-hidden rounded opacity-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1011,7 +1011,7 @@ export default function BillCalendar() {
               className="card relative overflow-hidden flex flex-col justify-between p-5 bg-gradient-to-br bg-dark-800/80 border-slate-700/50 shadow-lg"
             >
               <div className="flex justify-between items-start">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Monthly Obligation</span>
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Monthly Obligation</span>
                 <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
                   <CalendarIcon size={16} />
                 </div>
@@ -1020,7 +1020,7 @@ export default function BillCalendar() {
                 <p className="text-2xl font-black text-slate-100">
                   <CountUp value={stats?.totalDueAmount || 0} />
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1 font-semibold">{stats?.billsThisMonthCount || 0} total active items</p>
+                <p className="text-xs text-slate-400 mt-1 font-semibold">{stats?.billsThisMonthCount || 0} total active items</p>
               </div>
               <div className="w-full h-8 mt-4 overflow-hidden rounded opacity-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1100,7 +1100,7 @@ export default function BillCalendar() {
               </div>
 
               {/* Weekday Headers */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] font-black text-slate-400 tracking-wider mb-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-xs font-black text-slate-400 tracking-wider mb-2">
                 <div>SUN</div>
                 <div>MON</div>
                 <div>TUE</div>
@@ -1153,7 +1153,7 @@ export default function BillCalendar() {
                           </span>
                         )}
                         {isCurrent && (
-                          <span className="text-[8px] font-black text-primary-500 uppercase tracking-widest hidden sm:inline-block">
+                          <span className="text-xs font-black text-primary-500 uppercase tracking-widest hidden sm:inline-block">
                             Today
                           </span>
                         )}
@@ -1165,7 +1165,7 @@ export default function BillCalendar() {
                           <div
                             key={ob.id}
                             style={{ borderLeftColor: ob.color }}
-                            className="border-l-2 bg-slate-900/80 px-1 py-0.5 rounded text-[8px] sm:text-[9px] font-bold text-slate-300 truncate transition-all hover:bg-slate-900"
+                            className="border-l-2 bg-slate-900/80 px-1 py-0.5 rounded text-xs sm:text-xs font-bold text-slate-300 truncate transition-all hover:bg-slate-900"
                             title={`${ob.title}: ₹${ob.amount}`}
                           >
                             <span className="mr-0.5">{ob.icon}</span>
@@ -1174,7 +1174,7 @@ export default function BillCalendar() {
                           </div>
                         ))}
                         {extra > 0 && (
-                          <div className="text-[8px] font-black text-center py-0.5 rounded bg-slate-700/20 text-slate-400 border border-slate-700/30">
+                          <div className="text-xs font-black text-center py-0.5 rounded bg-slate-700/20 text-slate-400 border border-slate-700/30">
                             +{extra} more
                           </div>
                         )}
@@ -1270,7 +1270,7 @@ export default function BillCalendar() {
               <div className="card bg-dark-800/80 border-slate-700/50 shadow-lg">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between">
                   Upcoming 7-Day Timeline
-                  <span className="text-[9px] font-bold text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-full">
                     Active
                   </span>
                 </h3>
@@ -1291,9 +1291,9 @@ export default function BillCalendar() {
                         <div className="p-2.5 bg-dark-900/60 border border-slate-800/80 rounded-xl hover:border-slate-700 transition-all">
                           <div className="flex justify-between items-center text-xs">
                             <span className="font-bold text-slate-300">{ev.title}</span>
-                            <span className="text-[10px] text-slate-400 font-semibold uppercase">{ev.label}</span>
+                            <span className="text-xs text-slate-400 font-semibold uppercase">{ev.label}</span>
                           </div>
-                          <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1">
+                          <div className="flex justify-between items-center text-xs text-slate-400 mt-1">
                             <span>{ev.icon} Utility</span>
                             <span className="font-bold text-slate-200">₹{ev.amount}</span>
                           </div>
@@ -1402,7 +1402,7 @@ export default function BillCalendar() {
                   className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 border-t border-slate-700/30 pt-4 mt-2"
                 >
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Category</label>
+                    <label className="label text-xs font-bold text-slate-400 uppercase tracking-wide">Category</label>
                     <select
                       value={filterCategory}
                       onChange={(e) => setFilterCategory(e.target.value)}
@@ -1425,7 +1425,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Status</label>
+                    <label className="label text-xs font-bold text-slate-400 uppercase tracking-wide">Status</label>
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
@@ -1441,7 +1441,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Priority</label>
+                    <label className="label text-xs font-bold text-slate-400 uppercase tracking-wide">Priority</label>
                     <select
                       value={filterPriority}
                       onChange={(e) => setFilterPriority(e.target.value)}
@@ -1455,7 +1455,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Recurring</label>
+                    <label className="label text-xs font-bold text-slate-400 uppercase tracking-wide">Recurring</label>
                     <select
                       value={filterRecurring}
                       onChange={(e) => setFilterRecurring(e.target.value)}
@@ -1468,7 +1468,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Method</label>
+                    <label className="label text-xs font-bold text-slate-400 uppercase tracking-wide">Method</label>
                     <select
                       value={filterPaymentMethod}
                       onChange={(e) => setFilterPaymentMethod(e.target.value)}
@@ -1484,7 +1484,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Min Amount (₹)</label>
+                    <label className="label text-xs font-bold text-slate-400 uppercase tracking-wide">Min Amount (₹)</label>
                     <input
                       type="number"
                       placeholder="Min"
@@ -1495,7 +1495,7 @@ export default function BillCalendar() {
                   </div>
 
                   <div>
-                    <label className="label text-[11px] font-bold text-slate-400 uppercase tracking-wide">Max Amount (₹)</label>
+                    <label className="label text-xs font-bold text-slate-400 uppercase tracking-wide">Max Amount (₹)</label>
                     <input
                       type="number"
                       placeholder="Max"
@@ -1538,7 +1538,7 @@ export default function BillCalendar() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-700/40 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    <tr className="border-b border-slate-700/40 text-xs font-black text-slate-400 uppercase tracking-wider">
                       <th className="py-3 px-4">Title</th>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4">Due Date</th>
@@ -1571,7 +1571,7 @@ export default function BillCalendar() {
                           <td className="py-3.5 px-4 text-slate-400">{bill.category}</td>
                           <td className="py-3.5 px-4">
                             <div>{new Date(bill.dueDate).toLocaleDateString('en-IN')}</div>
-                            <div className="text-[10px] text-slate-500 font-semibold">
+                            <div className="text-xs text-slate-500 font-semibold">
                               {daysLeft < 0 ? (
                                 <span className="text-rose-400">Overdue by {Math.abs(daysLeft)}d</span>
                               ) : daysLeft === 0 ? (
@@ -1585,7 +1585,7 @@ export default function BillCalendar() {
                           </td>
                           <td className="py-3.5 px-4">
                             {bill.recurring ? (
-                              <span className="inline-block text-[9px] font-extrabold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+                              <span className="inline-block text-[10px] font-extrabold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">
                                 {bill.frequency}
                               </span>
                             ) : (
@@ -1594,7 +1594,7 @@ export default function BillCalendar() {
                           </td>
                           <td className="py-3.5 px-4">
                             <span
-                              className={`inline-block text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                              className={`inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
                                 bill.priority === 'high'
                                   ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                   : bill.priority === 'medium'
@@ -1607,7 +1607,7 @@ export default function BillCalendar() {
                           </td>
                           <td className="py-3.5 px-4">
                             <span
-                              className={`inline-block text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${getStatusColorClasses(
+                              className={`inline-block text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${getStatusColorClasses(
                                 bill.status
                               )}`}
                             >
@@ -1705,7 +1705,7 @@ export default function BillCalendar() {
                 </div>
                 <div className="mt-6 flex justify-between items-end">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Due Amount</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Due Amount</span>
                     <span className="text-3xl font-black text-slate-100 tracking-tight">
                       ₹{selectedBill.amount.toLocaleString('en-IN')}
                     </span>
@@ -1725,25 +1725,25 @@ export default function BillCalendar() {
                 {/* Meta details list */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-dark-900/40 border border-slate-800/60 rounded-2xl">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">Due Date</span>
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">Due Date</span>
                     <span className="text-xs font-bold text-slate-200 mt-0.5 block">
                       {new Date(selectedBill.dueDate).toLocaleDateString('en-IN')}
                     </span>
                   </div>
                   <div className="p-3 bg-dark-900/40 border border-slate-800/60 rounded-2xl">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">Payment Method</span>
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">Payment Method</span>
                     <span className="text-xs font-bold text-slate-200 mt-0.5 block uppercase">
                       {selectedBill.paymentMethod || 'other'}
                     </span>
                   </div>
                   <div className="p-3 bg-dark-900/40 border border-slate-800/60 rounded-2xl">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">Recurring System</span>
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">Recurring System</span>
                     <span className="text-xs font-bold text-slate-200 mt-0.5 block">
                       {selectedBill.recurring ? `Every ${selectedBill.frequency}` : 'One-off Obligation'}
                     </span>
                   </div>
                   <div className="p-3 bg-dark-900/40 border border-slate-800/60 rounded-2xl">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">Priority Tier</span>
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">Priority Tier</span>
                     <span className="text-xs font-bold text-slate-200 mt-0.5 block uppercase">
                       {selectedBill.priority}
                     </span>
@@ -1753,7 +1753,7 @@ export default function BillCalendar() {
                 {/* Notes Block */}
                 {selectedBill.notes && (
                   <div className="p-4 bg-slate-900/20 border border-slate-800 rounded-2xl space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Notes & Details</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Notes & Details</span>
                     <p className="text-xs text-slate-300 leading-relaxed">{selectedBill.notes}</p>
                   </div>
                 )}
@@ -1774,7 +1774,7 @@ export default function BillCalendar() {
                         >
                           <div>
                             <span className="text-xs font-semibold text-slate-300">Settled occurrence</span>
-                            <span className="text-[10px] text-slate-500 block">
+                            <span className="text-xs text-slate-500 block">
                               {new Date(hist.paidAt).toLocaleDateString('en-IN')}
                             </span>
                           </div>
@@ -1928,7 +1928,7 @@ export default function BillCalendar() {
             <div className="form-group col-span-2 p-3 bg-slate-900/30 border border-slate-800/80 rounded-2xl flex items-center justify-between">
               <div>
                 <label className="text-xs font-bold text-slate-200 block">Recurring Billing System</label>
-                <span className="text-[10px] text-slate-500">Automatically advance schedules when paid</span>
+                <span className="text-xs text-slate-500">Automatically advance schedules when paid</span>
               </div>
               <input
                 type="checkbox"
@@ -2075,13 +2075,13 @@ export default function BillCalendar() {
                   <span className="text-2xl">{ob.icon}</span>
                   <div>
                     <h4 className="text-xs font-bold text-slate-200">{ob.title}</h4>
-                    <span className="text-[10px] text-slate-500 uppercase font-semibold">{ob.category}</span>
+                    <span className="text-xs text-slate-500 uppercase font-semibold">{ob.category}</span>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-black text-slate-100">₹{ob.amount.toLocaleString('en-IN')}</p>
                   <span
-                    className={`inline-block text-[8px] font-black uppercase px-2 py-0.5 rounded-full border mt-1 ${getStatusColorClasses(
+                    className={`inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-full border mt-1 ${getStatusColorClasses(
                       ob.status
                     )}`}
                   >

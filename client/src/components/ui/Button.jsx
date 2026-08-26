@@ -13,7 +13,7 @@ export const Button = React.forwardRef(({
   ...props
 }, ref) => {
   
-  const baseStyles = 'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] select-none';
+  const baseStyles = 'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed active:scale-[0.98] select-none';
   
   const variants = {
     primary: 'bg-primary-600 hover:bg-primary-500 text-white shadow-md shadow-primary-600/10 hover:shadow-lg hover:shadow-primary-500/20 border border-transparent',

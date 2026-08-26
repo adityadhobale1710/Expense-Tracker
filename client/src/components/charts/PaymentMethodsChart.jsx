@@ -104,7 +104,7 @@ export default function PaymentMethodsChart({ rawExpenses = [], currencySymbol =
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute text-center flex flex-col items-center justify-center">
-            <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Top Channel</span>
+            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Top Channel</span>
             <span className="text-xs font-black text-slate-200">
               {paymentData[0]?.name}
             </span>
@@ -122,7 +122,7 @@ export default function PaymentMethodsChart({ rawExpenses = [], currencySymbol =
               </div>
               <div className="flex items-center gap-1.5 font-mono text-right flex-shrink-0">
                 <span className="font-bold text-slate-200">{currencySymbol}{Math.round(item.total).toLocaleString()}</span>
-                <span className="text-[9px] text-slate-500 font-bold">({item.percentage.toFixed(0)}%)</span>
+                <span className="text-xs text-slate-500 font-bold">({item.percentage.toFixed(0)}%)</span>
               </div>
             </div>
           ))}

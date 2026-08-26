@@ -268,7 +268,7 @@ export default function Register() {
                       {/* Requirements indicator list */}
                       {pwd && (
                         <div className="mt-2.5 space-y-2 bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl">
-                          <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                          <div className="flex justify-between items-center text-xs font-bold text-slate-400">
                             <span>Password Security Level</span>
                             <span className={strength.score === 3 ? 'text-emerald-500' : strength.score === 2 ? 'text-amber-500' : 'text-rose-500'}>
                               {strength.text}
@@ -281,7 +281,7 @@ export default function Register() {
                             <div className={`h-full flex-1 rounded ${strength.score >= 3 ? strength.color : 'bg-slate-200'}`} />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-1 text-[10px] font-medium text-slate-500">
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-1 text-xs font-medium text-slate-500">
                             <div className="flex items-center gap-1">
                               {isMinLength ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>6+ characters</span>
@@ -333,7 +333,7 @@ export default function Register() {
                         </button>
                       </div>
                       {form.confirmPassword && form.password !== form.confirmPassword && (
-                        <p className="text-[10px] text-rose-500 font-semibold mt-1 flex items-center gap-1">
+                        <p className="text-xs text-rose-500 font-semibold mt-1 flex items-center gap-1">
                           <XCircle size={11} /> Passwords do not match
                         </p>
                       )}
@@ -344,7 +344,7 @@ export default function Register() {
                       id="reg-submit"
                       type="submit"
                       disabled={loading}
-                      className="w-full h-[48px] rounded-[14px] bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm shadow-md shadow-[#4F46E5]/25 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed font-jakarta"
+                      className="w-full h-[48px] rounded-[14px] bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm shadow-md shadow-[#4F46E5]/25 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed font-jakarta"
                     >
                       {loading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -445,7 +445,7 @@ export default function Register() {
             >
               <div className="flex items-center justify-between">
                 <div className="w-6 h-1.5 rounded-full bg-[#7C4DFF]/70" />
-                <span className="text-[8px] font-bold text-[#22C55E] font-sans">+₹8,450</span>
+                <span className="text-xs font-bold text-[#22C55E] font-sans">+₹8,450</span>
               </div>
               <div className="w-14 h-1 rounded-full bg-[#64748B]/15" />
               <div className="w-9 h-1 rounded-full bg-[#64748B]/10" />
@@ -465,7 +465,7 @@ export default function Register() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[6.5px] font-semibold text-[#64748B]">Savings</span>
-                <span className="text-[9px] font-bold text-[#1E293B]">64.2%</span>
+                <span className="text-xs font-bold text-[#1E293B]">64.2%</span>
               </div>
             </motion.div>
 

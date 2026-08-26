@@ -174,41 +174,41 @@ export default function GoalsDashboard() {
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-primary-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Goals</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Goals</span>
                 <span className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-400"><Target size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">{stats.activeGoals || 0}</h3>
-              <p className="text-[10px] text-slate-400 mt-1">{stats.completedGoals || 0} goals completed</p>
+              <p className="text-xs text-slate-400 mt-1">{stats.completedGoals || 0} goals completed</p>
             </motion.div>
 
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-emerald-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Saved</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Saved</span>
                 <span className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400"><Wallet size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">₹{(stats.totalSaved || 0).toLocaleString('en-IN')}</h3>
-              <p className="text-[10px] text-emerald-400 mt-1">{averageProgress}% Avg Progress</p>
+              <p className="text-xs text-emerald-400 mt-1">{averageProgress}% Avg Progress</p>
             </motion.div>
 
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-indigo-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Target</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Target</span>
                 <span className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400"><Shield size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">₹{totalTarget.toLocaleString('en-IN')}</h3>
-              <p className="text-[10px] text-slate-400 mt-1">Remaining: ₹{(stats.totalRemaining || 0).toLocaleString('en-IN')}</p>
+              <p className="text-xs text-slate-400 mt-1">Remaining: ₹{(stats.totalRemaining || 0).toLocaleString('en-IN')}</p>
             </motion.div>
 
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-amber-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monthly Saving</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Monthly Saving</span>
                 <span className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400"><Calendar size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">₹{(stats.monthlySaving || 0).toLocaleString('en-IN')}</h3>
-              <p className="text-[10px] text-slate-400 mt-1">Required contribution / month</p>
+              <p className="text-xs text-slate-400 mt-1">Required contribution / month</p>
             </motion.div>
           </>
         )}
@@ -280,7 +280,7 @@ export default function GoalsDashboard() {
                 <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
                   <Sparkles size={14} className="text-primary-400" /> Goal Templates
                 </h3>
-                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Quick start options for savings</p>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">Quick start options for savings</p>
               </div>
               <div className="grid grid-cols-1 gap-2.5">
                 {templates.slice(0, 4).map(t => (
@@ -293,12 +293,12 @@ export default function GoalsDashboard() {
                       <span className="text-lg w-8 h-8 rounded-lg bg-dark-800 flex items-center justify-center border border-slate-700/30">{t.icon}</span>
                       <div>
                         <h4 className="text-xs font-bold text-slate-200">{t.name}</h4>
-                        <span className="text-[9px] text-slate-500">Category: {t.category}</span>
+                        <span className="text-xs text-slate-500">Category: {t.category}</span>
                       </div>
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-bold text-slate-100 block">₹{t.targetAmount.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-primary-400 font-bold flex items-center gap-0.5 justify-end">Apply <ChevronRight size={10} /></span>
+                      <span className="text-xs text-primary-400 font-bold flex items-center gap-0.5 justify-end">Apply <ChevronRight size={10} /></span>
                     </div>
                   </button>
                 ))}

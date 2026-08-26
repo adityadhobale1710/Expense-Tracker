@@ -124,7 +124,7 @@ export default function DailyChallenges() {
 
       {/* Overall progress bar */}
       <div className="space-y-1">
-        <div className="flex justify-between text-[10px] text-slate-500 font-bold">
+        <div className="flex justify-between text-xs text-slate-500 font-bold">
           <span>Progress</span>
           <span>{progressPct}%</span>
         </div>
@@ -165,17 +165,17 @@ export default function DailyChallenges() {
                     {challenge.title}
                   </p>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 ml-7 leading-snug">
+                <p className="text-xs text-slate-500 mt-0.5 ml-7 leading-snug">
                   {challenge.description}
                 </p>
               </div>
 
               {/* Reward */}
               <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                <span className={`text-[11px] font-extrabold ${isDone ? 'text-slate-600' : 'text-indigo-400'}`}>
+                <span className={`text-xs font-extrabold ${isDone ? 'text-slate-600' : 'text-indigo-400'}`}>
                   +{challenge.xp} XP
                 </span>
-                <span className={`text-[10px] font-bold ${isDone ? 'text-slate-600' : 'text-yellow-500'}`}>
+                <span className={`text-xs font-bold ${isDone ? 'text-slate-600' : 'text-yellow-500'}`}>
                   +{challenge.coins}🪙
                 </span>
               </div>

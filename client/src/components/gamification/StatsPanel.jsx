@@ -29,7 +29,7 @@ export default function StatsPanel() {
         >
           <span className="text-2xl select-none group-hover:scale-110 transition-transform">{stat.icon}</span>
           <div>
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
             <p className={`text-base font-extrabold mt-0.5 ${stat.color}`}>{stat.value}</p>
           </div>
         </div>

@@ -76,7 +76,7 @@ export default function Leaderboard() {
       ) : (
         <div className="space-y-2">
           {/* Column headers */}
-          <div className="grid grid-cols-[40px_1fr_60px_60px_50px] gap-2 px-2 text-[9px] font-bold text-slate-600 uppercase tracking-wider">
+          <div className="grid grid-cols-[40px_1fr_60px_60px_50px] gap-2 px-2 text-xs font-bold text-slate-600 uppercase tracking-wider">
             <span>Rank</span>
             <span>Player</span>
             <span className="text-center">Level</span>
@@ -108,7 +108,7 @@ export default function Leaderboard() {
                 </div>
                 <div className="min-w-0">
                   <p className={`text-xs font-bold truncate ${entry.isCurrentUser ? 'text-indigo-300' : 'text-slate-200'}`}>
-                    {entry.name} {entry.isCurrentUser && <span className="text-[9px] text-indigo-400">(You)</span>}
+                    {entry.name} {entry.isCurrentUser && <span className="text-xs text-indigo-400">(You)</span>}
                   </p>
                   <div className="mt-0.5">
                     <RankBadge size="xs" lifetimeXPOverride={entry.lifetimeXP || entry.xp} />

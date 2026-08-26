@@ -101,7 +101,7 @@ export default function BadgeGrid() {
           >
             <span>{CATEGORY_ICONS[f] || '•'}</span>
             <span>{f}</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${filter === f ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-500'}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${filter === f ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-500'}`}>
               {counts[f] || 0}
             </span>
           </button>
@@ -150,7 +150,7 @@ export default function BadgeGrid() {
           <button
             disabled={page === 1}
             onClick={() => setPage(p => Math.max(p - 1, 1))}
-            className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+            className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-75 disabled:pointer-events-none transition-all cursor-pointer"
           >
             ← Prev
           </button>
@@ -158,7 +158,7 @@ export default function BadgeGrid() {
           <button
             disabled={page === totalPages}
             onClick={() => setPage(p => Math.min(p + 1, totalPages))}
-            className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+            className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-75 disabled:pointer-events-none transition-all cursor-pointer"
           >
             Next →
           </button>

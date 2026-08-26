@@ -81,13 +81,13 @@ export default function BadgeCard({ ach, onPin, isPinned = false }) {
       {/* Progress / Complete */}
       <div className="mt-4 pt-3 border-t border-slate-700/20">
         {ach.unlocked ? (
-          <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400">
+          <div className="flex justify-between items-center text-xs font-bold text-emerald-400">
             <span>✓ Completed</span>
             <span>+{ach.xpReward} XP</span>
           </div>
         ) : (
           <div className="space-y-1">
-            <div className="flex justify-between text-[10px]">
+            <div className="flex justify-between text-xs">
               <span className="text-slate-500 font-semibold truncate max-w-[120px]">{ach.requirement}</span>
               <span className="text-slate-400 font-bold font-mono">
                 {ach.currentProgress.toLocaleString('en-IN')} / {ach.progressNeeded.toLocaleString('en-IN')}
@@ -114,15 +114,15 @@ export default function BadgeCard({ ach, onPin, isPinned = false }) {
         <p className="text-xs font-black text-slate-100 flex items-center gap-2">
           <span>{ach.icon}</span><span>{ach.title}</span>
         </p>
-        <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
           {ach.unlocked ? `✅ ${ach.description}` : `Target: ${ach.requirement}`}
         </p>
-        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex justify-between text-[10px] font-bold text-slate-400">
+        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex justify-between text-xs font-bold text-slate-400">
           <span>Reward:</span>
           <span className="text-indigo-400">+{ach.xpReward} XP / +{ach.coinsReward}🪙</span>
         </div>
         {ach.unlocked && ach.unlockedAt && (
-          <p className="text-[9px] text-slate-600 mt-1 font-semibold">
+          <p className="text-xs text-slate-600 mt-1 font-semibold">
             Unlocked {new Date(ach.unlockedAt).toLocaleDateString('en-IN')}
           </p>
         )}

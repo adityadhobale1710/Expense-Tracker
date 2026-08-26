@@ -100,7 +100,7 @@ export default function ContributionModal({
               <h3 className="text-sm font-black text-slate-100">
                 Savings Transfer
               </h3>
-              <p className="text-[9px] text-slate-500 font-semibold mt-0.5">Allocate savings from a cash wallet to "{goal.title}"</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Allocate savings from a cash wallet to "{goal.title}"</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg bg-dark-900 border border-slate-700/30 text-slate-400 hover:text-slate-200">
@@ -119,7 +119,7 @@ export default function ContributionModal({
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           
           {/* Target Reference */}
-          <div className="p-3 bg-dark-900/60 border border-slate-700/30 rounded-2xl flex justify-between text-[10px] font-bold text-slate-400">
+          <div className="p-3 bg-dark-900/60 border border-slate-700/30 rounded-2xl flex justify-between text-xs font-bold text-slate-400">
             <span>Remaining Target:</span>
             <span className="text-slate-200 font-black">₹{remaining.toLocaleString('en-IN')}</span>
           </div>
@@ -127,9 +127,9 @@ export default function ContributionModal({
           {/* Amount input */}
           <div className="flex flex-col space-y-1">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Transfer Amount (INR)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Transfer Amount (INR)</label>
               {/* Quick pre-fills */}
-              <div className="flex gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="flex gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
                 <button type="button" onClick={() => handlePrefill(10)} className="hover:text-primary-400">10%</button>
                 <button type="button" onClick={() => handlePrefill(25)} className="hover:text-primary-400">25%</button>
                 <button type="button" onClick={() => handlePrefill(50)} className="hover:text-primary-400">50%</button>
@@ -147,7 +147,7 @@ export default function ContributionModal({
 
           {/* Wallet Select */}
           <div className="flex flex-col space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Source Wallet</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source Wallet</label>
             {isLoadingWallets ? (
               <div className="h-9 bg-dark-900 border border-slate-700 rounded-xl animate-pulse" />
             ) : (
@@ -169,7 +169,7 @@ export default function ContributionModal({
           {/* Note & Date */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Date</label>
               <input
                 type="date"
                 value={date}
@@ -178,7 +178,7 @@ export default function ContributionModal({
               />
             </div>
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Type</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Type</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
@@ -194,7 +194,7 @@ export default function ContributionModal({
 
           {/* Notes */}
           <div className="flex flex-col space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Transfer Notes</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Transfer Notes</label>
             <input
               type="text"
               value={note}

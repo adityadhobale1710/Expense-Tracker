@@ -66,7 +66,7 @@ const CustomPieTooltip = ({ active, payload }) => {
   const avgExpense = data.count > 0 ? (data.total / data.count).toFixed(0) : 0;
   return (
     <div className="border rounded-xl p-3.5 shadow-xl text-xs space-y-1.5 min-w-[150px]" style={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', color: 'var(--chart-tooltip-text)' }}>
-      <p className="text-[10px] uppercase font-black tracking-wider flex items-center gap-1.5" style={{ color: 'var(--chart-text)' }}>
+      <p className="text-xs uppercase font-black tracking-wider flex items-center gap-1.5" style={{ color: 'var(--chart-text)' }}>
         <span>{data.icon}</span> <span>{data.name}</span>
       </p>
       <div className="my-1 pt-1 space-y-1" style={{ borderTop: '1px solid var(--chart-tooltip-border)' }}>
@@ -228,7 +228,7 @@ export default function Reports() {
           <p className="page-subtitle">Track trends, breakdown categories, and inspect budget indexes</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider hidden xl:block mr-1">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider hidden xl:block mr-1">
             Export
           </span>
           {EXPORT_FORMATS.map(({ format, label, ext }) => (
@@ -237,7 +237,7 @@ export default function Reports() {
               type="button"
               disabled={!!exporting}
               onClick={() => handleExport({ format, ext })}
-              className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 disabled:opacity-60"
+              className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 disabled:opacity-75"
             >
               {exporting === format ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
               {label}
@@ -256,12 +256,12 @@ export default function Reports() {
           {/* Month & Year Selectors */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Select Month</label>
+              <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Select Month</label>
               <select
                 disabled={!!customStartDate || !!customEndDate}
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="select py-2 text-xs bg-dark-900 border-slate-700 disabled:opacity-50"
+                className="select py-2 text-xs bg-dark-900 border-slate-700 disabled:opacity-75"
               >
                 {MONTH_NAMES.map((name, idx) => (
                   <option key={name} value={idx}>{name}</option>
@@ -270,12 +270,12 @@ export default function Reports() {
             </div>
             
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Select Year</label>
+              <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Select Year</label>
               <select
                 disabled={!!customStartDate || !!customEndDate}
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="select py-2 text-xs bg-dark-900 border-slate-700 disabled:opacity-50"
+                className="select py-2 text-xs bg-dark-900 border-slate-700 disabled:opacity-75"
               >
                 <option value={2024}>2024</option>
                 <option value={2025}>2025</option>
@@ -287,7 +287,7 @@ export default function Reports() {
           {/* Custom Date Range */}
           <form onSubmit={handleCustomRangeSubmit} className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Start Date</label>
+              <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Start Date</label>
               <input
                 type="date"
                 value={customStartDate}
@@ -296,7 +296,7 @@ export default function Reports() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">End Date</label>
+              <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">End Date</label>
               <input
                 type="date"
                 value={customEndDate}
@@ -347,14 +347,14 @@ export default function Reports() {
               <div key={label} className="card hover:border-slate-600 transition-all duration-300 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{label}</span>
+                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{label}</span>
                     <span className="text-base">{icon}</span>
                   </div>
                   <p className={`text-[28px] font-bold mt-1.5 leading-none ${color}`}>
                     {raw ? value : `₹${Number(value || 0).toLocaleString('en-IN')}`}
                   </p>
                 </div>
-                <div className="mt-3 pt-2.5 border-t border-slate-700/20 flex items-center gap-1 text-[9px] text-slate-500 font-bold uppercase">
+                <div className="mt-3 pt-2.5 border-t border-slate-700/20 flex items-center gap-1 text-xs text-slate-500 font-bold uppercase">
                   {up ? <TrendingUp size={12} className="text-emerald-400" /> : <TrendingDown size={12} className="text-rose-400" />}
                   <span>{trend}</span>
                 </div>
@@ -372,7 +372,7 @@ export default function Reports() {
                   <h3 className="text-lg font-bold text-slate-100">Expenses by Category</h3>
                   <p className="text-xs text-slate-400 mt-0.5">Overall category weight analysis</p>
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded-xl">
+                <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded-xl">
                   {customStartDate ? 'Custom Range' : MONTH_NAMES[selectedMonth]}
                 </span>
               </div>
@@ -424,11 +424,11 @@ export default function Reports() {
 
                     {/* Perfectly centered labels inside doughnut */}
                     <div className="absolute text-center flex flex-col items-center">
-                      <span className="text-[9px] uppercase font-black tracking-widest text-slate-500">Total Expenses</span>
+                      <span className="text-xs uppercase font-black tracking-widest text-slate-500">Total Expenses</span>
                       <span className="text-xl font-bold text-slate-100 mt-0.5">
                         ₹{totalCategoryExpenses.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-[9px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">
+                      <span className="text-xs text-slate-400 font-bold mt-0.5 uppercase tracking-wider">
                         {customStartDate ? 'Custom' : 'Monthly Spend'}
                       </span>
                     </div>
@@ -459,7 +459,7 @@ export default function Reports() {
                           </div>
                           <div className="text-right text-xs">
                             <p className="font-extrabold text-slate-100">₹{Number(c.total).toLocaleString('en-IN')}</p>
-                            <span className="text-[9px] text-slate-400 font-bold">{sharePct}% share</span>
+                            <span className="text-xs text-slate-400 font-bold">{sharePct}% share</span>
                           </div>
                         </div>
                       );
@@ -527,12 +527,12 @@ export default function Reports() {
                           <span className="text-lg">{c.icon || '🛍️'}</span>
                           <div>
                             <span className="text-xs font-bold text-slate-200">{c.name}</span>
-                            <span className="text-[9px] text-slate-500 font-bold ml-2">({c.count} txns)</span>
+                            <span className="text-xs text-slate-500 font-bold ml-2">({c.count} txns)</span>
                           </div>
                         </div>
                         <div className="text-right text-xs">
                           <span className="font-extrabold text-slate-100">₹{Number(c.total).toLocaleString('en-IN')}</span>
-                          <span className="text-[9px] text-slate-400 block font-bold mt-0.5">{sharePct}% share</span>
+                          <span className="text-xs text-slate-400 block font-bold mt-0.5">{sharePct}% share</span>
                         </div>
                       </div>
 

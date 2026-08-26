@@ -63,7 +63,7 @@ export default function GoalCard({
               <h4 className="font-extrabold text-sm text-slate-100 truncate max-w-[140px] leading-tight">
                 {title}
               </h4>
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 mt-1 block">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-500 mt-1 block">
                 {goal.category}
               </span>
             </div>
@@ -95,17 +95,17 @@ export default function GoalCard({
                   cy={radius}
                 />
               </svg>
-              <span className="absolute text-[9px] font-black text-slate-200">{progressPct}%</span>
+              <span className="absolute text-xs font-black text-slate-200">{progressPct}%</span>
             </div>
           </div>
         </div>
 
         {/* Priority & Status Badges Row */}
         <div className="flex gap-2">
-          <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md ${getStatusBadgeClass(status)}`}>
+          <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md ${getStatusBadgeClass(status)}`}>
             {status}
           </span>
-          <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md ${getPriorityBadgeClass(priority)}`}>
+          <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md ${getPriorityBadgeClass(priority)}`}>
             {priority}
           </span>
         </div>
@@ -113,15 +113,15 @@ export default function GoalCard({
         {/* Financial metrics grid */}
         <div className="grid grid-cols-3 gap-2 py-2 px-3 bg-dark-900/50 border border-slate-800/40 rounded-xl text-left">
           <div>
-            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Target</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Target</span>
             <span className="text-xs font-black text-slate-100">₹{targetAmount.toLocaleString('en-IN')}</span>
           </div>
           <div>
-            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Saved</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Saved</span>
             <span className="text-xs font-black text-emerald-400">₹{savedAmount.toLocaleString('en-IN')}</span>
           </div>
           <div className="text-right">
-            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Left</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Left</span>
             <span className="text-xs font-black text-rose-400">₹{remainingAmount.toLocaleString('en-IN')}</span>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function GoalCard({
         <div className="space-y-1.5">
           <GoalProgressBar progress={progressPct} />
           {suggestedMonthlySaving > 0 && status !== 'Completed' && (
-            <p className="text-[9px] text-slate-400 font-semibold leading-tight">
+            <p className="text-xs text-slate-400 font-semibold leading-tight">
               Needs <span className="text-primary-400 font-bold">₹{Math.round(suggestedMonthlySaving).toLocaleString('en-IN')}</span> / month
             </p>
           )}
@@ -139,7 +139,7 @@ export default function GoalCard({
 
       {/* Footer details & Buttons */}
       <div className="mt-5 pt-3 border-t border-slate-700/20 space-y-3.5 flex flex-col justify-end">
-        <div className="flex justify-between items-center text-[10px] font-semibold">
+        <div className="flex justify-between items-center text-xs font-semibold">
           <div className="flex items-center gap-1.5 text-slate-400">
             <Calendar size={12} className="text-slate-500" />
             <span>{new Date(targetDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>

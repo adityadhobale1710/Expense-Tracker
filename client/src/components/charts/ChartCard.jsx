@@ -42,7 +42,7 @@ export default function ChartCard({
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className="absolute left-0 mt-1 w-64 bg-dark-950 border border-slate-700/80 p-3 rounded-xl shadow-2xl z-50 text-[10px] text-slate-300 leading-relaxed font-medium backdrop-blur-md"
+                      className="absolute left-0 mt-1 w-64 bg-dark-950 border border-slate-700/80 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-300 leading-relaxed font-medium backdrop-blur-md"
                     >
                       {infoText}
                     </motion.div>
@@ -51,7 +51,7 @@ export default function ChartCard({
               </div>
             )}
           </div>
-          {subtitle && <p className="text-[10px] text-slate-500 font-semibold mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-slate-500 font-semibold mt-0.5">{subtitle}</p>}
         </div>
 
         {/* Action Controls */}

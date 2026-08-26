@@ -78,7 +78,7 @@ export default function Toast({ toast, onClose }) {
 
       <div className="flex-1 min-w-0 pr-2">
         <h4 className="text-xs font-black text-slate-100 truncate">{toast.title || toast.type.toUpperCase()}</h4>
-        <p className="text-[10px] text-slate-400 leading-relaxed mt-0.5">{toast.message}</p>
+        <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{toast.message}</p>
       </div>
 
       <button

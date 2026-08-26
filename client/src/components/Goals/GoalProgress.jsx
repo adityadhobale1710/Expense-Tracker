@@ -58,7 +58,7 @@ export function GoalProgressRing({ progress = 0, size = 48, strokeWidth = 4 }) {
         />
       </svg>
       {/* Percentage Center Text */}
-      <span className="absolute text-[10px] font-black text-slate-100">{progress}%</span>
+      <span className="absolute text-xs font-black text-slate-100">{progress}%</span>
     </div>
   );
 }

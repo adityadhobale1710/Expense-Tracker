@@ -13,17 +13,17 @@
   --slate-50: 248 250 252;
   --slate-100: 241 245 249;
   --slate-200: 226 232 240;
-  --slate-300: 203 213 225;
-  --slate-400: 148 163 184;
-  --slate-500: 100 116 139;
-  --slate-600: 71 85 105;
-  --slate-700: 51 65 85;
+  --slate-300: 226 232 240;
+  --slate-400: 203 213 225;
+  --slate-500: 148 163 184;
+  --slate-600: 100 116 139;
+  --slate-700: 71 85 105;
   --slate-800: 30 41 59;
   --slate-900: 15 23 42;
 
   /* Chart colors */
   --chart-grid: #1e293b;
-  --chart-text: #64748b;
+  --chart-text: #94a3b8;
   --chart-tooltip-bg: #0f172a;
   --chart-tooltip-border: #334155;
   --chart-tooltip-text: #f8fafc;
@@ -40,17 +40,17 @@ html[data-theme="light"] {
   --slate-50: 15 23 42;
   --slate-100: 30 41 59;
   --slate-200: 51 65 85;
-  --slate-300: 71 85 105;
+  --slate-300: 148 163 184;
   --slate-400: 100 116 139;
-  --slate-500: 148 163 184;
-  --slate-600: 203 213 225;
+  --slate-500: 71 85 105;
+  --slate-600: 51 65 85;
   --slate-700: 226 232 240;
   --slate-800: 241 245 249;
   --slate-900: 248 250 252;
 
   /* Chart colors */
   --chart-grid: #e2e8f0;
-  --chart-text: #64748b;
+  --chart-text: #475569;
   --chart-tooltip-bg: #ffffff;
   --chart-tooltip-border: #cbd5e1;
   --chart-tooltip-text: #0f172a;
@@ -69,17 +69,17 @@ html[data-theme="dark-blue"] {
   --slate-50: 239 246 255;
   --slate-100: 191 219 254;
   --slate-200: 147 197 253;
-  --slate-300: 96 165 250;
-  --slate-400: 59 130 246;
-  --slate-500: 59 130 246;
-  --slate-600: 37 99 235;
+  --slate-300: 147 197 253;
+  --slate-400: 96 165 250;
+  --slate-500: 96 165 250;
+  --slate-600: 59 130 246;
   --slate-700: 29 78 216;
   --slate-800: 20 40 80;
   --slate-900: 10 25 55;
 
   /* Chart colors */
   --chart-grid: #1e3a8a;
-  --chart-text: #93c5fd;
+  --chart-text: #bfdbfe;
   --chart-tooltip-bg: #081224;
   --chart-tooltip-border: #1e3a8a;
   --chart-tooltip-text: #eff6ff;
@@ -123,7 +123,7 @@ html[data-theme="dark-blue"] {
 
   /* ── Buttons ────────────────────────────────────────── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-primary-600 hover:bg-primary-500 text-white shadow-lg shadow-primary-600/25 hover:shadow-primary-500/30 active:scale-95;

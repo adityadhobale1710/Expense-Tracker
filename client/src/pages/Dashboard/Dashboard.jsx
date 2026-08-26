@@ -355,7 +355,7 @@ export default function Dashboard() {
               <AlertCircle size={20} className="text-red-400" />
             </span>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-red-400">
+              <p className="text-xs font-black uppercase tracking-widest text-red-400">
                 {dueContext.dueTodayCount} bill{dueContext.dueTodayCount > 1 ? 's' : ''} due today
               </p>
               <p className="text-lg font-black text-slate-100">
@@ -367,13 +367,13 @@ export default function Dashboard() {
             {dueContext.dueTodayBills.slice(0, 3).map((b, i) => (
               <span
                 key={i}
-                className="rounded-lg border border-red-500/20 bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-200"
+                className="rounded-lg border border-red-500/20 bg-slate-800/60 px-2.5 py-1 text-xs font-semibold text-slate-200"
               >
                 {b.title} · ₹{Number(b.amount || 0).toLocaleString('en-IN')}
               </span>
             ))}
             {dueContext.dueTodayCount > 3 && (
-              <span className="rounded-lg bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-400">
+              <span className="rounded-lg bg-slate-800/60 px-2.5 py-1 text-xs font-semibold text-slate-400">
                 +{dueContext.dueTodayCount - 3} more
               </span>
             )}
@@ -482,7 +482,7 @@ export default function Dashboard() {
                         <td className="text-slate-400 text-xs">
                           <div className="flex flex-col">
                             <span>{new Date(item.date).toLocaleDateString('en-IN')}</span>
-                            <span className="text-[10px] text-slate-500 font-bold">
+                            <span className="text-xs text-slate-500 font-bold">
                               {new Date(item.date).toLocaleTimeString('en-IN', {
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -548,7 +548,7 @@ export default function Dashboard() {
                   <p className="text-[28px] font-bold text-slate-100 tracking-tight group-hover:text-primary-400 transition-colors">
                     ₹{weeklySpend.toLocaleString('en-IN')}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 flex items-center gap-1">
+                  <p className="text-xs text-slate-500 font-bold mt-1.5 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
                     Logs in last 7 days
                   </p>
@@ -573,7 +573,7 @@ export default function Dashboard() {
                   <p className="text-[28px] font-bold text-slate-100 tracking-tight group-hover:text-primary-400 transition-colors">
                     ₹{monthlySpend.toLocaleString('en-IN')}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 flex items-center gap-1">
+                  <p className="text-xs text-slate-500 font-bold mt-1.5 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     Total current monthly volume
                   </p>
@@ -598,7 +598,7 @@ export default function Dashboard() {
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Remaining Budget</h3>
                   </div>
                   {totalLimit > 0 && (
-                    <span className="text-[9px] font-bold text-slate-400">{budgetProgressPct}% spent</span>
+                    <span className="text-xs font-bold text-slate-400">{budgetProgressPct}% spent</span>
                   )}
                 </div>
                 <div className="pt-3 pb-1">
@@ -612,7 +612,7 @@ export default function Dashboard() {
                         style={{ width: `${budgetProgressPct}%` }}
                       ></div>
                     </div>
-                    <div className="flex justify-between text-[8px] font-bold text-slate-500 mt-1">
+                    <div className="flex justify-between text-xs font-bold text-slate-500 mt-1">
                       <span>Spent: ₹{totalSpent.toLocaleString('en-IN')}</span>
                       <span>Limit: ₹{totalLimit.toLocaleString('en-IN')}</span>
                     </div>
@@ -642,33 +642,33 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Wallet Summary</h3>
                   </div>
-                  <Link to="/wallets" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                  <Link to="/wallets" className="text-xs text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     Manage <ChevronRight size={10} />
                   </Link>
                 </div>
                 <div className="pt-3 pb-1 space-y-2.5">
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total Balance</span>
+                    <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Total Balance</span>
                     <p className="text-[28px] font-bold text-slate-100 mt-0.5">₹{totalWalletBalance.toLocaleString('en-IN')}</p>
                   </div>
                   
                   <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl space-y-2">
-                    <div className="flex justify-between items-center text-[10px]">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Primary: {primaryWlt?.name || 'None'}</span>
                       <span className="text-slate-200 font-bold">{primaryShare}% Share</span>
                     </div>
                     <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
                       <div className="bg-[#5B4CF0] h-full rounded-full" style={{ width: `${primaryShare}%` }} />
                     </div>
-                    <div className="flex justify-between items-center text-[9px] text-slate-500 pt-0.5">
+                    <div className="flex justify-between items-center text-xs text-slate-500 pt-0.5">
                       <span>Highest: {highestWlt?.name || '—'}</span>
                       <span className="font-bold">₹{highestWlt?.balance.toLocaleString('en-IN') || 0}</span>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1">
+                  <div className="flex justify-between items-center text-xs text-slate-400 pt-1">
                     <span>Active wallets: <strong>{dashWallets.length}</strong></span>
-                    <Link to="/wallets" className="text-[9px] font-extrabold uppercase tracking-wider text-[#5B4CF0] hover:text-[#4338CA]">
+                    <Link to="/wallets" className="text-xs font-extrabold uppercase tracking-wider text-[#5B4CF0] hover:text-[#4338CA]">
                       Transfer Funds
                     </Link>
                   </div>
@@ -708,7 +708,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Goals Progress</h3>
                   </div>
-                  <Link to="/goals" className="text-[10px] font-bold text-primary-400 hover:underline flex items-center gap-0.5">
+                  <Link to="/goals" className="text-xs font-bold text-primary-400 hover:underline flex items-center gap-0.5">
                     View All <ChevronRight size={10} />
                   </Link>
                 </div>
@@ -722,24 +722,24 @@ export default function Dashboard() {
                           <circle cx={size / 2} cy={size / 2} r={radius} stroke={primaryGoal.color || '#10b981'} strokeWidth={strokeWidth} fill="transparent"
                             strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-700" />
                         </svg>
-                        <span className="absolute text-[11px] font-black text-slate-100">{pct}%</span>
+                        <span className="absolute text-xs font-black text-slate-100">{pct}%</span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="text-xs font-bold text-slate-200 truncate leading-tight">{primaryGoal.title}</h4>
-                        <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">{primaryGoal.category}</span>
-                        <div className="text-[9px] font-semibold text-slate-400 mt-1">
+                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{primaryGoal.category}</span>
+                        <div className="text-xs font-semibold text-slate-400 mt-1">
                           Saved: <span className="text-emerald-400 font-bold">₹{primaryGoal.savedAmount.toLocaleString('en-IN')}</span> / ₹{primaryGoal.targetAmount.toLocaleString('en-IN')}
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold">
+                    <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
                       <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl">
-                        <span className="text-slate-500 block text-[8px] font-bold uppercase">Nearest Goal</span>
+                        <span className="text-slate-500 block text-xs font-bold uppercase">Nearest Goal</span>
                         <span className="text-slate-300 font-bold truncate block">{nearestGoal ? nearestGoal.title : 'None'}</span>
                       </div>
                       <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl">
-                        <span className="text-slate-500 block text-[8px] font-bold uppercase">Deadline</span>
+                        <span className="text-slate-500 block text-xs font-bold uppercase">Deadline</span>
                         <span className="text-amber-400 font-bold block">{daysLeft > 0 ? `${daysLeft}d left` : 'Expired'}</span>
                       </div>
                     </div>
@@ -749,7 +749,7 @@ export default function Dashboard() {
                         setSelectedGoal(primaryGoal);
                         setIsContributionOpen(true);
                       }}
-                      className="w-full py-2 bg-emerald-500/20 border border-emerald-500/35 hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-400 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2 bg-emerald-500/20 border border-emerald-500/35 hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-400 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus size={12} />
                       <span>Quick Add Money</span>
@@ -758,7 +758,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                     <p className="text-xs text-slate-500">No active goals logged.</p>
-                    <Link to="/goals" className="text-[10px] font-bold text-primary-400 hover:underline mt-2">Create your first goal</Link>
+                    <Link to="/goals" className="text-xs font-bold text-primary-400 hover:underline mt-2">Create your first goal</Link>
                   </div>
                 )}
               </div>
@@ -780,7 +780,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Largest Expense</h3>
                   </div>
-                  <Link to="/expenses" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                  <Link to="/expenses" className="text-xs text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     View Details <ChevronRight size={10} />
                   </Link>
                 </div>
@@ -788,12 +788,12 @@ export default function Dashboard() {
                   {largestExpenseObj ? (
                     <>
                       <div>
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{largestExpenseObj.title}</span>
+                        <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">{largestExpenseObj.title}</span>
                         <p className="text-[28px] font-bold text-red-450 mt-0.5">₹{largestExpenseObj.amount.toLocaleString('en-IN')}</p>
                       </div>
 
                       <div className="bg-slate-900/30 p-2 border border-slate-800 rounded-xl space-y-2">
-                        <div className="flex justify-between items-center text-[10px]">
+                        <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-400 flex items-center gap-1">
                             <span>{largestExpenseObj.category?.icon || '🛍️'}</span>
                             <span>{largestExpenseObj.category?.name || 'Category'}</span>
@@ -803,7 +803,7 @@ export default function Dashboard() {
                         <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
                           <div className="bg-rose-500 h-full rounded-full" style={{ width: `${expShare}%` }} />
                         </div>
-                        <div className="flex justify-between text-[9px] text-slate-500 pt-0.5">
+                        <div className="flex justify-between text-xs text-slate-500 pt-0.5">
                           <span>Wallet: {largestExpenseObj.paymentMethod?.toUpperCase()}</span>
                           <span>{new Date(largestExpenseObj.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</span>
                         </div>
@@ -835,13 +835,13 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Top Category</h3>
                   </div>
-                  <Link to="/reports" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                  <Link to="/reports" className="text-xs text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     Analyze <ChevronRight size={10} />
                   </Link>
                 </div>
                 <div className="pt-3 pb-1 space-y-2.5">
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                    <span className="text-xs text-slate-500 uppercase font-bold tracking-wider flex items-center gap-1.5">
                       <span>{topCategoryExpenses[0]?.category?.icon || '📊'}</span>
                       <span>{mostUsedCategory}</span>
                     </span>
@@ -849,7 +849,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="bg-slate-900/30 p-2.5 border border-slate-800 rounded-xl space-y-2">
-                    <div className="flex justify-between items-center text-[10px]">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Total Share</span>
                       <span className="text-[#5B4CF0] font-black">{categoryShare}% spent</span>
                     </div>
@@ -858,7 +858,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center text-[10px] text-slate-400 pt-0.5">
+                  <div className="flex justify-between items-center text-xs text-slate-400 pt-0.5">
                     <span className="flex items-center gap-1 text-emerald-400">
                       <TrendingUp size={11} /> 5% less than last month
                     </span>
@@ -879,7 +879,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Health Score</h3>
                   </div>
-                  <Link to="/reports" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                  <Link to="/reports" className="text-xs text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     View Details <ChevronRight size={10} />
                   </Link>
                 </div>
@@ -897,7 +897,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="col-span-7 space-y-1.5 text-[10px] font-bold">
+                  <div className="col-span-7 space-y-1.5 text-xs font-bold">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Savings Index:</span>
                       <span className="text-slate-200">
@@ -975,7 +975,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">Upcoming Obligations</h3>
                   </div>
-                  <Link to="/calendar" className="text-[10px] text-primary-400 hover:underline font-bold flex items-center gap-0.5">
+                  <Link to="/calendar" className="text-xs text-primary-400 hover:underline font-bold flex items-center gap-0.5">
                     View All <ChevronRight size={10} />
                   </Link>
                 </div>
@@ -992,11 +992,11 @@ export default function Dashboard() {
                               <span className="px-1 py-px rounded bg-emerald-500/10 text-emerald-400 text-[7px] font-extrabold uppercase">Auto</span>
                             )}
                           </div>
-                          <p className="text-[8px] text-slate-500 font-bold mt-0.5">{ob.date} ({ob.daysRemaining > 0 ? `${ob.daysRemaining}d remaining` : 'due'})</p>
+                          <p className="text-xs text-slate-500 font-bold mt-0.5">{ob.date} ({ob.daysRemaining > 0 ? `${ob.daysRemaining}d remaining` : 'due'})</p>
                         </div>
                         <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
                           <span className="font-black text-slate-100">₹{ob.cost.toLocaleString('en-IN')}</span>
-                          <span className={`px-1.5 py-px rounded text-[8px] font-extrabold ${ob.status === 'Urgent' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                          <span className={`px-1.5 py-px rounded text-xs font-extrabold ${ob.status === 'Urgent' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
                             {ob.status}
                           </span>
                         </div>
@@ -1022,7 +1022,7 @@ export default function Dashboard() {
                 </div>
                 <div className="pt-2.5 pb-1 space-y-1.5">
                   {recentNotifications.map((n, idx) => (
-                    <div key={idx} className="p-2 bg-slate-900/30 border border-slate-700/30 rounded-xl text-[10px] hover:border-slate-700/50 transition-colors">
+                    <div key={idx} className="p-2 bg-slate-900/30 border border-slate-700/30 rounded-xl text-xs hover:border-slate-700/50 transition-colors">
                       <p className="text-slate-300 leading-normal font-semibold">{n.message}</p>
                       <span className="text-slate-500 font-bold block text-right mt-0.5">{n.date}</span>
                     </div>
@@ -1050,7 +1050,7 @@ export default function Dashboard() {
                     <span className="text-xl flex-shrink-0">💡</span>
                     <div>
                       <h4 className="text-xs font-bold text-slate-200">{tipOfTheDay?.title}</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
+                      <p className="text-xs text-slate-400 mt-0.5 leading-normal">
                         {tipOfTheDay?.text}
                       </p>
                     </div>

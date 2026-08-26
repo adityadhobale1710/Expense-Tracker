@@ -77,7 +77,7 @@ export default function Timeline() {
           {/* Date group header */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-slate-800" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap px-2">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest whitespace-nowrap px-2">
               {formatDate(date)}
             </span>
             <div className="flex-1 h-px bg-slate-800" />
@@ -103,14 +103,14 @@ export default function Timeline() {
                     </p>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {event.xp > 0 && (
-                        <span className="text-[10px] font-extrabold text-indigo-400">+{event.xp} XP</span>
+                        <span className="text-xs font-extrabold text-indigo-400">+{event.xp} XP</span>
                       )}
                       {event.coins > 0 && (
-                        <span className="text-[10px] font-extrabold text-yellow-500">+{event.coins}🪙</span>
+                        <span className="text-xs font-extrabold text-yellow-500">+{event.coins}🪙</span>
                       )}
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-600 mt-0.5 font-medium">
+                  <p className="text-xs text-slate-600 mt-0.5 font-medium">
                     {event.timestamp ? new Date(event.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
                   </p>
                 </div>
@@ -126,7 +126,7 @@ export default function Timeline() {
           <button
             onClick={() => load(page + 1)}
             disabled={loading}
-            className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-6 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer hover:border-slate-700"
+            className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-6 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-75 cursor-pointer hover:border-slate-700"
           >
             {loading ? 'Loading...' : 'Load More'}
           </button>

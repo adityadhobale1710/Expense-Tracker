@@ -223,7 +223,7 @@ export default function GoalDetails() {
             {/* Visual circle progress */}
             <div className="flex-shrink-0 flex flex-col items-center justify-center space-y-2 p-4 bg-dark-900/60 border border-slate-700/30 rounded-2xl">
               <span className="text-4xl">{goal.icon}</span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{goal.category}</span>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{goal.category}</span>
             </div>
 
             {/* Metrics */}
@@ -240,10 +240,10 @@ export default function GoalDetails() {
               <div>
                 <div className="flex items-center gap-2.5">
                   <h3 className="text-lg font-black text-slate-100">{goal.title}</h3>
-                  <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-lg ${getStatusBadgeClass(goal.status)}`}>
+                  <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg ${getStatusBadgeClass(goal.status)}`}>
                     {goal.status}
                   </span>
-                  <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-lg ${getPriorityBadgeClass(goal.priority)}`}>
+                  <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg ${getPriorityBadgeClass(goal.priority)}`}>
                     {goal.priority}
                   </span>
                 </div>
@@ -255,19 +255,19 @@ export default function GoalDetails() {
               {/* Targets Progress */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs font-bold border-t border-slate-700/25">
                 <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Target</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Target</span>
                   <span className="text-slate-100 font-black text-base">{fmt(goal.targetAmount)}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Accumulated</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Accumulated</span>
                   <span className="text-emerald-400 font-black text-base">{fmt(goal.savedAmount)}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Remaining</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Remaining</span>
                   <span className="text-rose-400 font-black text-base">{fmt(goal.remainingAmount)}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Progress</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Progress</span>
                   <span className="text-primary-400 font-black text-base">{goal.progressPct}%</span>
                 </div>
               </div>
@@ -286,11 +286,11 @@ export default function GoalDetails() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Savings History</h3>
-                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Chronological record of deposits</p>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">Chronological record of deposits</p>
               </div>
               <button
                 onClick={handleExportCSV}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-900 border border-slate-700/40 text-[9px] font-bold text-slate-400 hover:text-slate-200 rounded-xl transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-900 border border-slate-700/40 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-xl transition-all"
               >
                 <Download size={10} />
                 <span>Export CSV</span>
@@ -307,7 +307,7 @@ export default function GoalDetails() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-700/25 text-slate-500 font-bold uppercase text-[9px]">
+                      <tr className="border-b border-slate-700/25 text-slate-500 font-bold uppercase text-xs">
                         <th className="pb-2">Date</th>
                         <th className="pb-2">Amount</th>
                         <th className="pb-2">Type</th>
@@ -321,7 +321,7 @@ export default function GoalDetails() {
                           <td className="py-2.5">{new Date(c.date).toLocaleDateString()}</td>
                           <td className="py-2.5 text-emerald-400 font-bold">₹{c.amount.toLocaleString('en-IN')}</td>
                           <td className="py-2.5">
-                            <span className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-lg bg-slate-800 border border-slate-700 text-slate-400">
+                            <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg bg-slate-800 border border-slate-700 text-slate-400">
                               {c.type}
                             </span>
                           </td>
@@ -343,20 +343,20 @@ export default function GoalDetails() {
 
                 {/* Pagination */}
                 {pages > 1 && (
-                  <div className="flex justify-between items-center pt-2 text-[10px] font-bold text-slate-500 border-t border-slate-700/15">
+                  <div className="flex justify-between items-center pt-2 text-xs font-bold text-slate-500 border-t border-slate-700/15">
                     <span>Page {page} of {pages}</span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page === 1}
-                        className="px-2.5 py-1 bg-dark-900 border border-slate-700/30 rounded disabled:opacity-30"
+                        className="px-2.5 py-1 bg-dark-900 border border-slate-700/30 rounded disabled:opacity-75"
                       >
                         Prev
                       </button>
                       <button
                         onClick={() => setPage(p => Math.min(pages, p + 1))}
                         disabled={page === pages}
-                        className="px-2.5 py-1 bg-dark-900 border border-slate-700/30 rounded disabled:opacity-30"
+                        className="px-2.5 py-1 bg-dark-900 border border-slate-700/30 rounded disabled:opacity-75"
                       >
                         Next
                       </button>
@@ -375,7 +375,7 @@ export default function GoalDetails() {
           <div className="card p-6 space-y-4">
             <div>
               <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Repay Forecast</h3>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Automated savings allocations</p>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Automated savings allocations</p>
             </div>
 
             <div className="space-y-3 font-semibold text-xs text-slate-300">
@@ -441,13 +441,13 @@ export default function GoalDetails() {
               </div>
 
               <h2 className="text-lg font-black text-slate-100 leading-tight">🏆 Goal Accomplished!</h2>
-              <p className="text-[11px] text-slate-400 font-semibold mt-2 max-w-xs mx-auto leading-relaxed">
+              <p className="text-xs text-slate-400 font-semibold mt-2 max-w-xs mx-auto leading-relaxed">
                 Congratulations! You successfully accumulated <span className="text-yellow-400 font-bold">₹{goal.targetAmount.toLocaleString('en-IN')}</span> and completed your target: <span className="text-slate-200 font-bold">"{goal.title}"</span>!
               </p>
 
               {/* Reward stats */}
               <div className="bg-dark-950/60 p-3 rounded-2xl border border-slate-800 my-6">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">XP Earned</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">XP Earned</span>
                 <span className="text-primary-400 font-black">+500 XP</span>
               </div>
 

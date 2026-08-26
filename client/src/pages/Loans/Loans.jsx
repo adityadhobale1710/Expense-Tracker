@@ -347,41 +347,41 @@ export default function Loans() {
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-rose-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Outstanding Debt</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Outstanding Debt</span>
                 <span className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-400"><Landmark size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">{fmt(stats.totalOutstanding)}</h3>
-              <p className="text-[10px] text-slate-400 mt-1">{stats.activeCount} active loans</p>
+              <p className="text-xs text-slate-400 mt-1">{stats.activeCount} active loans</p>
             </motion.div>
 
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-amber-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monthly Outflow</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Monthly Outflow</span>
                 <span className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400"><CreditCard size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">{fmt(stats.monthlyEmi)}</h3>
-              <p className="text-[10px] text-slate-400 mt-1">Aggregate monthly EMI commitment</p>
+              <p className="text-xs text-slate-400 mt-1">Aggregate monthly EMI commitment</p>
             </motion.div>
 
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-emerald-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Principal Paid</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Principal Paid</span>
                 <span className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400"><Wallet size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">{fmt(stats.totalPaid)}</h3>
-              <p className="text-[10px] text-emerald-400 mt-1">{stats.paidPct}% aggregate payoff rate</p>
+              <p className="text-xs text-emerald-400 mt-1">{stats.paidPct}% aggregate payoff rate</p>
             </motion.div>
 
             <motion.div whileHover={{ y: -2 }} className="card p-5 cursor-default relative overflow-hidden group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-indigo-500/5 to-transparent" />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Aggregate Balance</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Aggregate Balance</span>
                 <span className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400"><Activity size={15} /></span>
               </div>
               <h3 className="text-2xl font-black text-slate-100 mt-2">{fmt(stats.totalPrincipal)}</h3>
-              <p className="text-[10px] text-slate-400 mt-1">{stats.paidOffCount} settled/closed loans</p>
+              <p className="text-xs text-slate-400 mt-1">{stats.paidOffCount} settled/closed loans</p>
             </motion.div>
           </>
         )}
@@ -478,11 +478,11 @@ export default function Loans() {
                           <IconComp size={20} />
                         </span>
                         <div>
-                          <span className="badge text-[8px] tracking-wide font-black uppercase" style={{ backgroundColor: `${typeConfig.color}18`, color: typeConfig.color }}>
+                          <span className="badge text-[10px] tracking-wide font-black uppercase" style={{ backgroundColor: `${typeConfig.color}18`, color: typeConfig.color }}>
                             {typeConfig.label}
                           </span>
                           <h3 className="text-base font-extrabold text-slate-100 mt-1 leading-tight">{loan.name}</h3>
-                          <p className="text-[9px] text-slate-500 mt-1 font-semibold">
+                          <p className="text-xs text-slate-500 mt-1 font-semibold">
                             Interest: <span className="text-slate-400 font-bold">{loan.interestRate}% p.a.</span> • Term: <span className="text-slate-400 font-bold">{loan.durationMonths}m</span>
                           </p>
                         </div>
@@ -496,14 +496,14 @@ export default function Loans() {
 
                     {/* Progress tracking */}
                     <div className="space-y-1 bg-dark-900/40 p-3 rounded-xl border border-slate-800/40 text-left">
-                      <div className="flex justify-between text-[10px] font-bold">
+                      <div className="flex justify-between text-xs font-bold">
                         <span className="text-slate-500">Paid Off Principal</span>
                         <span className="text-emerald-400">{pctPaid}% Settled</span>
                       </div>
                       <div className="progress-bar mt-1.5">
                         <div className="progress-fill bg-rose-500" style={{ width: `${pctPaid}%`, backgroundColor: typeConfig.color }} />
                       </div>
-                      <div className="flex justify-between text-[9px] text-slate-500 pt-1 font-semibold">
+                      <div className="flex justify-between text-xs text-slate-500 pt-1 font-semibold">
                         <span>Paid: {fmt(paidPrincipal)}</span>
                         <span>Outstanding: {fmt(loan.remainingBalance)}</span>
                       </div>
@@ -512,9 +512,9 @@ export default function Loans() {
 
                   {/* Payment Info & CTA */}
                   <div className="mt-5 pt-3 border-t border-slate-700/25 flex items-center justify-between pl-2">
-                    <div className="text-[10px] text-slate-500 space-y-0.5">
+                    <div className="text-xs text-slate-500 space-y-0.5">
                       <p className="font-semibold">EMI: <span className="text-slate-200 font-bold">{fmt(loan.emiAmount)} / mo</span></p>
-                      <p className="text-[9px]">Next Due: <span className="text-slate-400 font-bold">{!isSettled ? new Date(loan.nextEmiDate).toLocaleDateString('en-IN') : 'Settled'}</span></p>
+                      <p className="text-xs">Next Due: <span className="text-slate-400 font-bold">{!isSettled ? new Date(loan.nextEmiDate).toLocaleDateString('en-IN') : 'Settled'}</span></p>
                     </div>
 
                     {!isSettled ? (
@@ -535,7 +535,7 @@ export default function Loans() {
                         {payingLoanId === loan._id && (
                           <div className="flex gap-1.5 items-center mt-1 z-25 bg-dark-900 border border-slate-700/40 rounded-xl p-1 shadow-2xl absolute right-5 bottom-12">
                             <select
-                              className="select text-[10px] py-1 px-2 border-0 bg-transparent text-slate-200 font-bold focus:ring-0 min-h-[30px]"
+                              className="select text-xs py-1 px-2 border-0 bg-transparent text-slate-200 font-bold focus:ring-0 min-h-[30px]"
                               value={selectedWalletId}
                               onChange={(e) => setSelectedWalletId(e.target.value)}
                             >
@@ -684,7 +684,7 @@ export default function Loans() {
                   </div>
                   <div className="text-right">
                     <p className="text-rose-400 font-bold block">{fmt(emiAmount)} / mo</p>
-                    <p className="text-[10px] text-slate-500">Over {durationMonths || 0} months</p>
+                    <p className="text-xs text-slate-500">Over {durationMonths || 0} months</p>
                   </div>
                 </div>
               )}

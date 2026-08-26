@@ -68,29 +68,29 @@ export default function StreakCard() {
         </div>
         <div className="text-right">
           <p className="text-3xl font-extrabold text-orange-400 font-mono leading-none">{streak}</p>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">day streak</p>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">day streak</p>
         </div>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 text-center">
-          <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">Current</p>
+          <p className="text-xs text-slate-500 uppercase font-bold tracking-wide">Current</p>
           <p className="text-lg font-extrabold text-orange-400 font-mono mt-0.5">{streak}d</p>
         </div>
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 text-center">
-          <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">Best Ever</p>
+          <p className="text-xs text-slate-500 uppercase font-bold tracking-wide">Best Ever</p>
           <p className="text-lg font-extrabold text-emerald-400 font-mono mt-0.5">{longestStreak}d</p>
         </div>
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 text-center">
-          <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">Next Goal</p>
+          <p className="text-xs text-slate-500 uppercase font-bold tracking-wide">Next Goal</p>
           <p className="text-lg font-extrabold text-indigo-400 font-mono mt-0.5">{nextMilestone}d</p>
         </div>
       </div>
 
       {/* Next milestone progress */}
       <div className="space-y-1.5">
-        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+        <div className="flex justify-between text-xs font-bold text-slate-400">
           <span>Progress to {nextMilestone}-day streak</span>
           <span className="font-mono">{streak}/{nextMilestone}</span>
         </div>
@@ -101,7 +101,7 @@ export default function StreakCard() {
           />
         </div>
         {streak >= nextMilestone && (
-          <p className="text-[10px] text-amber-400 font-bold text-center">
+          <p className="text-xs text-amber-400 font-bold text-center">
             🎉 +50 Bonus XP unlocked at this milestone!
           </p>
         )}
@@ -109,7 +109,7 @@ export default function StreakCard() {
 
       {/* GitHub-style heatmap */}
       <div className="min-h-[120px]">
-        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">7-Week Activity</p>
+        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">7-Week Activity</p>
 
         {/* Loading spinner */}
         {heatmap === null && (
@@ -125,7 +125,7 @@ export default function StreakCard() {
               {/* Day labels column */}
               <div className="flex flex-col gap-1 pr-1">
                 {WEEKDAY_LABELS.map((label, i) => (
-                  <span key={i} className="text-[8px] text-slate-600 font-bold h-3 flex items-center">{label}</span>
+                  <span key={i} className="text-xs text-slate-600 font-bold h-3 flex items-center">{label}</span>
                 ))}
               </div>
 
@@ -153,17 +153,17 @@ export default function StreakCard() {
 
             {/* Legend */}
             <div className="flex items-center gap-2 mt-2 justify-end">
-              <span className="text-[9px] text-slate-600">Less</span>
+              <span className="text-xs text-slate-600">Less</span>
               <div className="flex gap-0.5">
                 {['bg-slate-800', 'bg-emerald-900', 'bg-emerald-700', 'bg-emerald-500', 'bg-emerald-400'].map((c, i) => (
                   <div key={i} className={`w-2.5 h-2.5 rounded-sm ${c}`} />
                 ))}
               </div>
-              <span className="text-[9px] text-slate-600">More</span>
+              <span className="text-xs text-slate-600">More</span>
             </div>
 
             {fetchError && (
-              <p className="text-[9px] text-slate-500 text-center mt-1">
+              <p className="text-xs text-slate-500 text-center mt-1">
                 Activity data unavailable — connect to sync your real history.
               </p>
             )}

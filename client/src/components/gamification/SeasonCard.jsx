@@ -29,20 +29,20 @@ export default function SeasonCard() {
           <span className="text-xl">🌌</span>
           <div>
             <h3 className="text-sm font-black text-slate-100">{season.name || `Season ${season.number || 1}`}</h3>
-            <p className="text-[10px] text-slate-400">Season {season.number || 1}</p>
+            <p className="text-xs text-slate-400">Season {season.number || 1}</p>
           </div>
         </div>
         <div className="text-right">
           <p className={`text-lg font-extrabold font-mono ${isEnding ? 'text-rose-400' : 'text-amber-400'}`}>
             {daysLeft}d
           </p>
-          <p className="text-[9px] text-slate-500 font-bold uppercase">remaining</p>
+          <p className="text-xs text-slate-500 font-bold uppercase">remaining</p>
         </div>
       </div>
 
       {/* Season progress */}
       <div className="space-y-1.5">
-        <div className="flex justify-between text-[10px] font-bold text-slate-500">
+        <div className="flex justify-between text-xs font-bold text-slate-500">
           <span>Season Progress</span>
           <span>{progressPct}% elapsed</span>
         </div>
@@ -58,7 +58,7 @@ export default function SeasonCard() {
 
       {/* Seasonal XP */}
       <div className="flex items-center justify-between bg-slate-900/30 rounded-xl border border-slate-800/50 px-3 py-2">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Season XP</span>
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Season XP</span>
         <span className="text-sm font-extrabold text-indigo-400 font-mono">
           {(season.seasonalXP || 0).toLocaleString('en-IN')} XP
         </span>
@@ -66,7 +66,7 @@ export default function SeasonCard() {
 
       {isEnding && (
         <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-center">
-          <p className="text-[10px] font-bold text-rose-400">⚠️ Season ending soon! Badges & titles carry over.</p>
+          <p className="text-xs font-bold text-rose-400">⚠️ Season ending soon! Badges & titles carry over.</p>
         </div>
       )}
     </div>

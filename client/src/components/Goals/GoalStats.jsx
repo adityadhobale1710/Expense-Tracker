@@ -52,9 +52,9 @@ export default function GoalStats({ stats = {} }) {
           className="card flex items-center justify-between p-5 hover:border-primary-500/20 transition-all duration-200"
         >
           <div className="space-y-1">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{item.title}</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{item.title}</p>
             <h3 className="text-lg font-bold text-slate-100">{item.value}</h3>
-            <p className="text-[10px] text-slate-400 font-semibold">{item.sub}</p>
+            <p className="text-xs text-slate-400 font-semibold">{item.sub}</p>
           </div>
           <div className="p-3 bg-dark-900 border border-slate-700/30 rounded-xl">
             {item.icon}

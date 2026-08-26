@@ -51,9 +51,9 @@ function KpiCard({ icon, label, value, sub, color = 'border-primary-500', loadin
     <div className={`card-sm flex items-center gap-3 border-l-4 ${color} hover:border-opacity-80 transition-all`}>
       <span className="text-xl flex-shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-tight">{label}</p>
+        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider leading-tight">{label}</p>
         <p className="text-xl font-extrabold text-slate-100 mt-0.5 leading-tight">{value}</p>
-        {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -103,7 +103,7 @@ function Pagination({ page, totalPages, total, limit, onPageChange }) {
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
-          className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-75 disabled:cursor-not-allowed transition-all"
           aria-label="Previous page"
         >
           ← Prev
@@ -130,7 +130,7 @@ function Pagination({ page, totalPages, total, limit, onPageChange }) {
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages || totalPages === 0}
-          className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-75 disabled:cursor-not-allowed transition-all"
           aria-label="Next page"
         >
           Next →
@@ -170,13 +170,13 @@ function UserSessionsPanel({ userId, onRevokeSession }) {
               <span className={`w-2 h-2 rounded-full ${s.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`} />
               <span className="text-xs font-bold text-slate-200 truncate">{s.deviceName}</span>
             </div>
-            <p className="text-[10px] text-slate-500 font-mono">{s.ipAddress} • {s.browser}</p>
-            <p className="text-[10px] text-slate-400">Last seen: {fmtDateTime(s.lastActive)}</p>
+            <p className="text-xs text-slate-500 font-mono">{s.ipAddress} • {s.browser}</p>
+            <p className="text-xs text-slate-400">Last seen: {fmtDateTime(s.lastActive)}</p>
           </div>
           {s.isActive && (
             <button
               onClick={() => onRevokeSession(s._id, fetchSessions)}
-              className="btn btn-ghost text-red-400 text-[10px] py-1 px-2 h-fit"
+              className="btn btn-ghost text-red-400 text-xs py-1 px-2 h-fit"
             >
               Revoke
             </button>
@@ -227,9 +227,9 @@ function UserActivityPanel({ userId }) {
       </div>
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 pt-2">
-          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="btn btn-secondary py-1 px-3 text-[10px]">Newer</button>
-          <span className="text-[10px] text-slate-500 py-1">{page} / {totalPages}</span>
-          <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary py-1 px-3 text-[10px]">Older</button>
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="btn btn-secondary py-1 px-3 text-xs">Newer</button>
+          <span className="text-xs text-slate-500 py-1">{page} / {totalPages}</span>
+          <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary py-1 px-3 text-xs">Older</button>
         </div>
       )}
     </div>
@@ -479,12 +479,12 @@ function UserDetailDrawer({ userId, onClose, onActionComplete }) {
               </div>
               
               <div className="space-y-3">
-                <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active &amp; Recent Sessions</h5>
+                <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active &amp; Recent Sessions</h5>
                 <UserSessionsPanel userId={userId} onRevokeSession={handleRevokeIndividual} />
               </div>
 
               <div className="space-y-3">
-                <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Activity Timeline</h5>
+                <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Activity Timeline</h5>
                 <UserActivityPanel userId={userId} />
               </div>
             </section>
@@ -819,7 +819,7 @@ export default function AdminPortal() {
 
       {/* ── Tab Navigation ────────────────────────────────────────────────── */}
       <div
-        className="flex bg-slate-900 border border-slate-700/50 p-1 rounded-xl gap-0.5 overflow-x-auto"
+        className="flex bg-slate-900 border border-slate-700/50 p-1.5 rounded-xl gap-1 overflow-x-auto relative z-10 flex-shrink-0"
         role="tablist"
         aria-label="Admin sections"
       >
@@ -867,7 +867,7 @@ export default function AdminPortal() {
               <KpiCard loading={statsLoading} icon="📅" label="New This Week"  value={fmt(stats?.userMetrics?.newThisWeek)} sub="since Sunday 00:00 UTC"       color="border-indigo-500" />
               <KpiCard loading={statsLoading} icon="📆" label="New This Month" value={fmt(stats?.userMetrics?.newThisMonth)} sub="since 1st 00:00 UTC"         color="border-teal-500" />
             </div>
-            <p className="text-[10px] text-slate-600 mt-2">
+            <p className="text-xs text-slate-600 mt-2">
               Status groups are mutually exclusive: Active + Blocked-Only + Disabled-Only + Blocked+Disabled = Total Users. Timezone: UTC.
             </p>
           </div>
@@ -905,14 +905,14 @@ export default function AdminPortal() {
                     <div key={i} className="flex items-start justify-between gap-3 p-3 bg-slate-900/40 rounded-xl border border-slate-800">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-slate-200">{log.action}</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5 truncate">{log.details}</p>
+                        <p className="text-xs text-slate-500 mt-0.5 truncate">{log.details}</p>
                         {log.user && (
-                          <p className="text-[10px] text-slate-600 mt-0.5">
+                          <p className="text-xs text-slate-600 mt-0.5">
                             by {log.user.name} ({log.user.email})
                           </p>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500 whitespace-nowrap flex-shrink-0">{timeAgo(log.timestamp)}</p>
+                      <p className="text-xs text-slate-500 whitespace-nowrap flex-shrink-0">{timeAgo(log.timestamp)}</p>
                     </div>
                   ))}
                 </div>
@@ -1232,7 +1232,7 @@ export default function AdminPortal() {
                         <td className="px-4 py-3 text-xs font-semibold text-slate-200">
                           {evt.action}
                           {evt.details && (
-                            <p className="font-normal text-[10px] text-slate-500 max-w-xs truncate" title={evt.details}>
+                            <p className="font-normal text-xs text-slate-500 max-w-xs truncate" title={evt.details}>
                               {evt.details}
                             </p>
                           )}
@@ -1290,7 +1290,7 @@ export default function AdminPortal() {
               <div className="card flex flex-col col-span-1 md:col-span-2">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-700/50 mb-4">
                   Node Process Memory
-                  <span className="ml-2 text-[10px] font-normal text-slate-500 normal-case">
+                  <span className="ml-2 text-xs font-normal text-slate-500 normal-case">
                     (this Node.js process — not total server RAM)
                   </span>
                 </h4>
@@ -1302,7 +1302,7 @@ export default function AdminPortal() {
                     { label: 'External',   desc: 'C++ objects bound to JS',          value: stats?.diagnostics?.nodeMemory?.external,  color: 'text-amber-400' },
                   ].map(({ label, desc, value, color }) => (
                     <div key={label} className="bg-slate-900/40 rounded-xl p-4 border border-slate-800">
-                      <p className="text-[10px] text-slate-500 mb-0.5">{desc}</p>
+                      <p className="text-xs text-slate-500 mb-0.5">{desc}</p>
                       <p className="text-xs font-bold text-slate-300 mb-1">{label}</p>
                       <p className={`text-xl font-extrabold ${color}`}>
                         {value ?? '—'} <span className="text-xs font-medium text-slate-500">MB</span>
@@ -1349,7 +1349,7 @@ export default function AdminPortal() {
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] text-slate-600 mt-auto">
+                <p className="text-xs text-slate-600 mt-auto">
                   MERN Stack — Node process metrics only. Not total server hardware.
                 </p>
               </div>
@@ -1383,7 +1383,7 @@ export default function AdminPortal() {
                       <span className="font-bold text-xs text-slate-200">{item.subject}</span>
                     </div>
                     <p className="text-xs text-slate-400 leading-normal">{item.message}</p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       From: {item.user?.name} ({item.user?.email})
                     </p>
                   </div>
@@ -1392,13 +1392,13 @@ export default function AdminPortal() {
                       <>
                         <button
                           onClick={() => handleUpdateFeedback(item._id, 'reviewed')}
-                          className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg text-[10px] font-bold hover:bg-amber-500 hover:text-white transition-all"
+                          className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg text-xs font-bold hover:bg-amber-500 hover:text-white transition-all"
                         >
                           Mark Reviewed
                         </button>
                         <button
                           onClick={() => handleUpdateFeedback(item._id, 'resolved')}
-                          className="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/20 rounded-lg text-[10px] font-bold hover:bg-green-500 hover:text-white transition-all"
+                          className="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/20 rounded-lg text-xs font-bold hover:bg-green-500 hover:text-white transition-all"
                         >
                           Resolve Issue
                         </button>
@@ -1407,7 +1407,7 @@ export default function AdminPortal() {
                     {item.status === 'reviewed' && (
                       <button
                         onClick={() => handleUpdateFeedback(item._id, 'resolved')}
-                        className="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/20 rounded-lg text-[10px] font-bold hover:bg-green-500 hover:text-white transition-all"
+                        className="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/20 rounded-lg text-xs font-bold hover:bg-green-500 hover:text-white transition-all"
                       >
                         Resolve Issue
                       </button>

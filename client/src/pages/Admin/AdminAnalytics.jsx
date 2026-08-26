@@ -14,9 +14,9 @@ function KpiCard({ icon, label, value, sub, color = 'border-primary-500', loadin
     <div className={`card-sm flex items-center gap-3 border-l-4 ${color} hover:border-opacity-80 transition-all`}>
       <span className="text-xl flex-shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-tight">{label}</p>
+        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider leading-tight">{label}</p>
         <p className="text-xl font-extrabold text-slate-100 mt-0.5 leading-tight">{value}</p>
-        {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
       </div>
     </div>
   );

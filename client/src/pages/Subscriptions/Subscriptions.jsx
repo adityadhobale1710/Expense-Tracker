@@ -205,7 +205,7 @@ const PremiumSummaryCard = memo(({ icon: Icon, label, value, sub, trend, trendUp
     
     <div className="flex items-start justify-between gap-2">
       <div className="space-y-1">
-        <p className="text-[10px] font-bold text-slate-400/90 uppercase tracking-wider">{label}</p>
+        <p className="text-xs font-bold text-slate-400/90 uppercase tracking-wider">{label}</p>
         <h3 className="text-2xl font-black text-slate-100 tracking-tight">
           {typeof value === 'number' ? <AnimatedCounter value={value} prefix={label.includes('Health') || label.includes('Active') || label.includes('Trials') || label.includes('Renewals') ? '' : '₹'} suffix={label.includes('Score') ? '%' : ''} /> : value}
         </h3>
@@ -219,12 +219,12 @@ const PremiumSummaryCard = memo(({ icon: Icon, label, value, sub, trend, trendUp
     <div className="flex items-end justify-between mt-4 pt-3 border-t border-slate-800/50">
       <div className="space-y-0.5">
         {trend && (
-          <span className={`text-[10px] font-bold flex items-center gap-0.5 ${trendUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <span className={`text-xs font-bold flex items-center gap-0.5 ${trendUp ? 'text-emerald-400' : 'text-rose-400'}`}>
             {trendUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
             {trend}
           </span>
         )}
-        <span className="text-[9px] text-slate-400 block font-medium truncate max-w-[110px]">{sub}</span>
+        <span className="text-xs text-slate-400 block font-medium truncate max-w-[110px]">{sub}</span>
       </div>
       <div className="pt-1 flex items-center">
         <Sparkline data={sparkData} color={color} />
@@ -1018,19 +1018,19 @@ export default function Subscriptions() {
                                 {sub.name}
                                 {sub.isPinned && <Star size={10} className="fill-amber-400 text-amber-400" />}
                               </h3>
-                              <span className="text-[10px] text-slate-400 font-semibold truncate block mt-0.5">
+                              <span className="text-xs text-slate-400 font-semibold truncate block mt-0.5">
                                 {sub.plan}
                               </span>
                             </div>
                           </div>
 
                           <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${config.bg} ${config.text}`}>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${config.bg} ${config.text}`}>
                               {config.label}
                             </span>
                             
                             {/* Days counter info */}
-                            <span className="text-[9px] font-semibold text-slate-500">
+                            <span className="text-xs font-semibold text-slate-500">
                               {days < 0 ? `Expired ${Math.abs(days)}d ago` : days === 0 ? 'Today' : `${days} days left`}
                             </span>
                           </div>
@@ -1039,8 +1039,8 @@ export default function Subscriptions() {
                         {/* Middle status section */}
                         <div className="flex items-center justify-between text-xs py-2 px-2.5 bg-slate-900/40 rounded-xl border border-slate-800/40">
                           <div>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Priority</span>
-                            <span className={`text-[10px] font-bold ${
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Priority</span>
+                            <span className={`text-xs font-bold ${
                               sub.priority === 'high' ? 'text-red-400' :
                               sub.priority === 'medium' ? 'text-amber-400' : 'text-slate-400'
                             }`}>
@@ -1048,14 +1048,14 @@ export default function Subscriptions() {
                             </span>
                           </div>
                           <div>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Payments</span>
-                            <span className="text-slate-300 text-[10px] font-bold uppercase tracking-wider">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Payments</span>
+                            <span className="text-slate-300 text-xs font-bold uppercase tracking-wider">
                               {sub.paymentMethod.replace('_', ' ')}
                             </span>
                           </div>
                           <div className="text-right">
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Autopay</span>
-                            <span className={`text-[10px] font-extrabold ${sub.autoRenewal ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Autopay</span>
+                            <span className={`text-xs font-extrabold ${sub.autoRenewal ? 'text-emerald-400' : 'text-slate-500'}`}>
                               {sub.autoRenewal ? 'ON 🟢' : 'OFF 🔴'}
                             </span>
                           </div>
@@ -1064,7 +1064,7 @@ export default function Subscriptions() {
 
                       {/* Card Footer Actions */}
                       <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-200">
+                        <div className="flex items-center gap-1 text-xs font-bold text-slate-200">
                           <span className="text-base font-extrabold">{fmt(sub.cost)}</span>
                           <span className="text-slate-500">/{sub.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                         </div>
@@ -1105,7 +1105,7 @@ export default function Subscriptions() {
 
                           <button
                             onClick={() => setSelectedDetailsId(sub._id)}
-                            className="text-[10px] font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-0.5 ml-1 transition-colors"
+                            className="text-xs font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-0.5 ml-1 transition-colors"
                           >
                             <span>Details</span>
                             <ChevronRight size={10} />
@@ -1127,10 +1127,10 @@ export default function Subscriptions() {
                   <h3 className="font-bold text-slate-100 flex items-center gap-2">
                     <BarChart3 size={16} className="text-indigo-400" /> Subscription Spend Analytics
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-medium">Real-time analytical graphs mapping commitments</p>
+                  <p className="text-xs text-slate-400 font-medium">Real-time analytical graphs mapping commitments</p>
                 </div>
                 
-                <div className="flex rounded-lg bg-slate-900/60 p-0.5 border border-slate-800 self-stretch sm:self-auto text-[10px] font-bold">
+                <div className="flex rounded-lg bg-slate-900/60 p-0.5 border border-slate-800 self-stretch sm:self-auto text-xs font-bold">
                   <button
                     onClick={() => setActiveChartTab('monthly')}
                     className={`px-3 py-1.5 rounded-md transition-colors ${activeChartTab === 'monthly' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
@@ -1255,7 +1255,7 @@ export default function Subscriptions() {
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
                 <Sparkles size={14} className="text-indigo-400" /> Cognitive Audits
               </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">AI-powered renewal pacing alerts</p>
+              <p className="text-xs text-slate-400 font-semibold mt-0.5">AI-powered renewal pacing alerts</p>
             </div>
 
             <div className="space-y-3">
@@ -1273,7 +1273,7 @@ export default function Subscriptions() {
                       <CheckCircle2 size={13} className="text-emerald-400" />
                     )}
                   </div>
-                  <p className="text-slate-300 leading-relaxed font-semibold text-[11px]">
+                  <p className="text-slate-300 leading-relaxed font-semibold text-xs">
                     {item.message}
                   </p>
                 </div>
@@ -1287,7 +1287,7 @@ export default function Subscriptions() {
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
                 <Calendar size={14} className="text-indigo-400" /> Renewal Calendar
               </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Grouped calendar view of upcoming bills</p>
+              <p className="text-xs text-slate-400 font-semibold mt-0.5">Grouped calendar view of upcoming bills</p>
             </div>
 
             <div className="space-y-3 max-h-[300px] overflow-y-auto text-xs">
@@ -1295,7 +1295,7 @@ export default function Subscriptions() {
               {/* Today */}
               {calendarGroups.today.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-rose-400 uppercase tracking-wider block">Today 🚨</span>
+                  <span className="text-xs font-extrabold text-rose-400 uppercase tracking-wider block">Today 🚨</span>
                   {calendarGroups.today.map(s => (
                     <div key={s._id} className="p-2 bg-rose-500/5 border border-rose-500/10 rounded-lg flex justify-between items-center">
                       <span className="font-bold text-slate-200">{s.name}</span>
@@ -1308,7 +1308,7 @@ export default function Subscriptions() {
               {/* Tomorrow */}
               {calendarGroups.tomorrow.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-orange-400 uppercase tracking-wider block">Tomorrow ⏳</span>
+                  <span className="text-xs font-extrabold text-orange-400 uppercase tracking-wider block">Tomorrow ⏳</span>
                   {calendarGroups.tomorrow.map(s => (
                     <div key={s._id} className="p-2 bg-orange-500/5 border border-orange-500/10 rounded-lg flex justify-between items-center">
                       <span className="font-bold text-slate-200">{s.name}</span>
@@ -1321,7 +1321,7 @@ export default function Subscriptions() {
               {/* This Week */}
               {calendarGroups.thisWeek.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-blue-400 uppercase tracking-wider block">This Week</span>
+                  <span className="text-xs font-extrabold text-blue-400 uppercase tracking-wider block">This Week</span>
                   {calendarGroups.thisWeek.map(s => (
                     <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
                       <span className="font-bold text-slate-200">{s.name}</span>
@@ -1334,7 +1334,7 @@ export default function Subscriptions() {
               {/* Next Week */}
               {calendarGroups.nextWeek.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-indigo-400 uppercase tracking-wider block">Next Week</span>
+                  <span className="text-xs font-extrabold text-indigo-400 uppercase tracking-wider block">Next Week</span>
                   {calendarGroups.nextWeek.map(s => (
                     <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
                       <span className="font-bold text-slate-200">{s.name}</span>
@@ -1347,7 +1347,7 @@ export default function Subscriptions() {
               {/* Next Month */}
               {calendarGroups.nextMonth.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">Next Month</span>
+                  <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">Next Month</span>
                   {calendarGroups.nextMonth.map(s => (
                     <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
                       <span className="font-bold text-slate-300">{s.name}</span>
@@ -1358,7 +1358,7 @@ export default function Subscriptions() {
               )}
 
               {Object.values(calendarGroups).every(arr => arr.length === 0) && (
-                <p className="text-[10px] text-slate-500 text-center py-6">No scheduled renewals in the next 30 days.</p>
+                <p className="text-xs text-slate-500 text-center py-6">No scheduled renewals in the next 30 days.</p>
               )}
             </div>
           </div>
@@ -1369,12 +1369,12 @@ export default function Subscriptions() {
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
                 <ShieldAlert size={14} className="text-amber-400" /> Alerts & Warnings
               </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Critical recurring payment markers</p>
+              <p className="text-xs text-slate-400 font-semibold mt-0.5">Critical recurring payment markers</p>
             </div>
 
             <div className="space-y-2.5">
               {notifications.length === 0 ? (
-                <p className="text-[10px] text-slate-500 text-center py-4">No active warning alerts.</p>
+                <p className="text-xs text-slate-500 text-center py-4">No active warning alerts.</p>
               ) : (
                 notifications.map(notif => (
                   <div
@@ -1382,7 +1382,7 @@ export default function Subscriptions() {
                     className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2.5 text-xs"
                   >
                     <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-slate-300 text-[10px] leading-relaxed font-semibold">
+                    <p className="text-slate-300 text-xs leading-relaxed font-semibold">
                       {notif.message}
                     </p>
                   </div>
@@ -1442,19 +1442,19 @@ export default function Subscriptions() {
               {/* Primary values card */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Billing cost</span>
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Billing cost</span>
                   <span className="text-xl font-black text-slate-200 mt-2">{fmt(selectedDetails.cost)}</span>
-                  <span className="text-[8px] text-slate-500 uppercase font-bold tracking-wider mt-1">
+                  <span className="text-xs text-slate-500 uppercase font-bold tracking-wider mt-1">
                     Charged {selectedDetails.billingCycle}
                   </span>
                 </div>
                 
                 <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Remaining Pacing</span>
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Remaining Pacing</span>
                   <span className={`text-xl font-black mt-2 ${daysRemaining < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {daysRemaining < 0 ? `Expired` : daysRemaining === 0 ? 'Renews Today' : `${daysRemaining} days`}
                   </span>
-                  <span className="text-[8px] text-slate-500 uppercase font-bold tracking-wider mt-1">
+                  <span className="text-xs text-slate-500 uppercase font-bold tracking-wider mt-1">
                     Until {new Date(selectedDetails.renewalDate).toLocaleDateString('en-IN')}
                   </span>
                 </div>
@@ -1462,7 +1462,7 @@ export default function Subscriptions() {
 
               {/* Status and priorities check */}
               <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan settings</h4>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan settings</h4>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400 font-semibold">Service Plan</span>
@@ -1489,7 +1489,7 @@ export default function Subscriptions() {
 
               {/* Notepad Usage notes */}
               <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <FileText size={11} className="text-slate-500" /> Usage & Settings Notes
                 </h4>
                 <textarea
@@ -1511,9 +1511,9 @@ export default function Subscriptions() {
 
               {/* Tag system settings */}
               <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Configuration Tags</span>
-                  <span className="text-[8px] text-slate-500 font-bold">Comma separated values</span>
+                  <span className="text-xs text-slate-500 font-bold">Comma separated values</span>
                 </h4>
                 <input
                   type="text"
@@ -1535,12 +1535,12 @@ export default function Subscriptions() {
 
               {/* Renewal History visual feed */}
               <div className="space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Billing History</h4>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Billing History</h4>
                 <div className="space-y-2">
                   <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center">
                     <div className="space-y-0.5">
                       <span className="font-bold text-slate-200 block">Cycle renewal charge</span>
-                      <span className="text-[9px] text-slate-500 block">
+                      <span className="text-xs text-slate-500 block">
                         Renews: {new Date(selectedDetails.renewalDate).toLocaleDateString('en-IN')}
                       </span>
                     </div>
@@ -1549,7 +1549,7 @@ export default function Subscriptions() {
                   <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center opacity-60">
                     <div className="space-y-0.5">
                       <span className="font-bold text-slate-300 block">Previous billing settlement</span>
-                      <span className="text-[9px] text-slate-500 block">Settled successfully via linked wallet</span>
+                      <span className="text-xs text-slate-500 block">Settled successfully via linked wallet</span>
                     </div>
                     <span className="font-bold text-slate-400">{fmt(selectedDetails.cost)}</span>
                   </div>
@@ -1592,7 +1592,7 @@ export default function Subscriptions() {
               
               {/* Service Auto matching tips */}
               <div className="border-b border-slate-800 pb-2 mb-3">
-                <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
+                <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                   Recurring details parameters
                 </span>
               </div>
@@ -1741,8 +1741,8 @@ export default function Subscriptions() {
 
               <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
                 <div className="space-y-0.5">
-                  <span className="text-[11px] font-bold text-slate-200 block">Auto-Renewal Autopay</span>
-                  <span className="text-[9px] text-slate-500 block">Auto billing settles automatically</span>
+                  <span className="text-xs font-bold text-slate-200 block">Auto-Renewal Autopay</span>
+                  <span className="text-xs text-slate-500 block">Auto billing settles automatically</span>
                 </div>
                 <input
                   type="checkbox"
@@ -1754,8 +1754,8 @@ export default function Subscriptions() {
 
               <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
                 <div className="space-y-0.5">
-                  <span className="text-[11px] font-bold text-slate-200 block">Free Trial account</span>
-                  <span className="text-[9px] text-slate-500 block">This represents an active trial before charges apply</span>
+                  <span className="text-xs font-bold text-slate-200 block">Free Trial account</span>
+                  <span className="text-xs text-slate-500 block">This represents an active trial before charges apply</span>
                 </div>
                 <input
                   type="checkbox"
@@ -1767,8 +1767,8 @@ export default function Subscriptions() {
 
               <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
                 <div className="space-y-0.5">
-                  <span className="text-[11px] font-bold text-slate-200 block">Reminder Alerts</span>
-                  <span className="text-[9px] text-slate-500 block">Enable notification flags before renewal date</span>
+                  <span className="text-xs font-bold text-slate-200 block">Reminder Alerts</span>
+                  <span className="text-xs text-slate-500 block">Enable notification flags before renewal date</span>
                 </div>
                 <input
                   type="checkbox"

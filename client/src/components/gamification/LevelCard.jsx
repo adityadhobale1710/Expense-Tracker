@@ -69,7 +69,7 @@ export default function LevelCard() {
               </span>
             </div>
             {/* Issue 5 fix: clarify that Level and Rank are based on different XP pools */}
-            <p className="text-[9px] text-slate-600 text-center md:text-left mt-0.5 italic">
+            <p className="text-xs text-slate-600 text-center md:text-left mt-0.5 italic">
               Level = current-season XP · Rank = lifetime XP
             </p>
           </div>
@@ -83,7 +83,7 @@ export default function LevelCard() {
             <div key={stat.label} className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-3 flex items-center gap-2.5 min-w-[120px]">
               <span className="text-xl select-none">{stat.icon}</span>
               <div>
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">{stat.label}</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{stat.label}</p>
                 <p className={`text-sm font-extrabold font-mono ${stat.color}`}>{stat.value}</p>
               </div>
             </div>

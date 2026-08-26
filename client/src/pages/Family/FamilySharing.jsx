@@ -448,7 +448,7 @@ export default function FamilySharing() {
                   <div className="relative z-10 flex-shrink-0 w-12 h-12 flex items-center justify-center">{stat.icon}</div>
                 )}
                 <div className="relative z-10 min-w-0">
-                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
                   <p className={`text-base font-extrabold mt-0.5 font-mono truncate ${stat.color}`}>{stat.value}</p>
                 </div>
               </motion.div>
@@ -466,9 +466,9 @@ export default function FamilySharing() {
                 <div className="pb-3 border-b border-slate-700/50 flex justify-between items-center">
                   <div>
                     <h3 className="text-sm font-black text-slate-100 flex items-center gap-1.5">👥 Workspace Directory</h3>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Active family group members and administration roles</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Active family group members and administration roles</p>
                   </div>
-                  <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5">
+                  <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5">
                     Hub Name: {family?.name}
                   </span>
                 </div>
@@ -493,14 +493,14 @@ export default function FamilySharing() {
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-slate-200 truncate">{member.email}</p>
                           <div className="flex gap-1.5 items-center mt-1 flex-wrap">
-                            <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                               member.role === 'owner' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
                               member.role === 'admin' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
                               'bg-slate-800 text-slate-400 border border-slate-700'
                             }`}>
                               {member.role}
                             </span>
-                            <span className="text-[9px] text-slate-500">Joined</span>
+                            <span className="text-xs text-slate-500">Joined</span>
                           </div>
                         </div>
 
@@ -518,7 +518,7 @@ export default function FamilySharing() {
               <div className="card space-y-5 shadow-xl">
                 <div>
                   <h3 className="text-sm font-black text-slate-100">📊 Contribution Metrics</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Share of monthly shared expenses computed by requester</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Share of monthly shared expenses computed by requester</p>
                 </div>
 
                 <div className="space-y-4">
@@ -549,7 +549,7 @@ export default function FamilySharing() {
               <div className="card space-y-5 shadow-xl">
                 <div>
                   <h3 className="text-sm font-black text-slate-100">🎯 Shared Savings Goals</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Track group milestones and mutual savings targets</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Track group milestones and mutual savings targets</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -570,14 +570,14 @@ export default function FamilySharing() {
                           </div>
                           <div>
                             <h4 className="text-xs font-black text-slate-200 truncate">{goal.title}</h4>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Target: ₹{goal.targetAmount.toLocaleString('en-IN')}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Target: ₹{goal.targetAmount.toLocaleString('en-IN')}</p>
                           </div>
 
                           <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
                             <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
                           </div>
 
-                          <div className="flex justify-between items-center text-[9px] font-bold text-slate-500">
+                          <div className="flex justify-between items-center text-xs font-bold text-slate-500">
                             <span>Saved: ₹{goal.savedAmount.toLocaleString('en-IN')}</span>
                             <span>{goal.deadline ? new Date(goal.deadline).toLocaleDateString('en-IN') : 'No date'}</span>
                           </div>
@@ -597,7 +597,7 @@ export default function FamilySharing() {
               <div className="card space-y-4 shadow-xl">
                 <div>
                   <h3 className="text-sm font-black text-slate-100">⚖️ Expense Approvals</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Pending validation and payout authorizations</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Pending validation and payout authorizations</p>
                 </div>
 
                 <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
@@ -609,13 +609,13 @@ export default function FamilySharing() {
                         <div className="flex justify-between items-start gap-2">
                           <div className="min-w-0">
                             <p className="text-xs font-black text-slate-200 truncate">{req.title}</p>
-                            <p className="text-[9px] text-slate-500 truncate mt-0.5">From: {req.requesterEmail}</p>
+                            <p className="text-xs text-slate-500 truncate mt-0.5">From: {req.requesterEmail}</p>
                           </div>
                           <span className="text-sm font-extrabold text-indigo-400 font-mono">₹{req.amount.toLocaleString('en-IN')}</span>
                         </div>
 
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-800/60 text-[10px]">
-                          <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-800/60 text-xs">
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                             req.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
                             req.status === 'rejected' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
                             'bg-orange-500/10 text-orange-405 border border-orange-500/20'
@@ -651,7 +651,7 @@ export default function FamilySharing() {
                 <div className="card space-y-4 shadow-xl border-dashed border-orange-500/30">
                   <div>
                     <h3 className="text-sm font-black text-slate-100 flex items-center gap-1.5">⌛ Pending Invitations</h3>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Awaiting verification from invited family members</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Awaiting verification from invited family members</p>
                   </div>
 
                   <div className="space-y-2.5">
@@ -659,9 +659,9 @@ export default function FamilySharing() {
                       <div key={invite._id} className="bg-slate-900/30 border border-slate-800 rounded-xl p-3 flex justify-between items-center gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-slate-200 truncate">{invite.email}</p>
-                          <p className="text-[9px] text-slate-500 mt-0.5">Role: {invite.role}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Role: {invite.role}</p>
                         </div>
-                        <span className="text-[8px] font-black uppercase bg-orange-500/10 text-orange-400 border border-orange-500/25 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black uppercase bg-orange-500/10 text-orange-400 border border-orange-500/25 px-2 py-0.5 rounded-full">
                           Sent
                         </span>
                       </div>
@@ -674,7 +674,7 @@ export default function FamilySharing() {
               <div className="card space-y-4 shadow-xl">
                 <div>
                   <h3 className="text-sm font-black text-slate-100">📜 Activity Log</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Timeline of changes in the workspace</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Timeline of changes in the workspace</p>
                 </div>
 
                 <div className="relative space-y-4 pl-4 border-l border-slate-800/80">
@@ -686,7 +686,7 @@ export default function FamilySharing() {
                     <div key={i} className="relative space-y-0.5">
                       <span className="absolute -left-[21px] top-1 bg-slate-900 text-xs">{act.icon}</span>
                       <p className="text-xs font-semibold text-slate-300 leading-tight">{act.text}</p>
-                      <p className="text-[9px] text-slate-500">{act.time}</p>
+                      <p className="text-xs text-slate-500">{act.time}</p>
                     </div>
                   ))}
                 </div>
@@ -700,7 +700,7 @@ export default function FamilySharing() {
           <div className="card space-y-5 shadow-xl">
             <div>
               <h3 className="text-sm font-black text-slate-100">👛 Shared Wallets</h3>
-              <p className="text-[10px] text-slate-400 mt-0.5">Digital wallets and checking assets mapped to this workspace</p>
+              <p className="text-xs text-slate-400 mt-0.5">Digital wallets and checking assets mapped to this workspace</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -713,7 +713,7 @@ export default function FamilySharing() {
                   <div key={wallet._id} className="relative overflow-hidden bg-slate-900/35 border border-slate-800/80 hover:border-indigo-500/30 rounded-2xl p-4.5 space-y-3 transition-all hover:scale-[1.02] cursor-default">
                     <div className="flex justify-between items-center">
                       <span className="text-2xl">👛</span>
-                      <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                         wallet.isPrimary ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-slate-800 text-slate-500'
                       }`}>
                         {wallet.isPrimary ? 'Primary' : 'Secondary'}
@@ -734,7 +734,7 @@ export default function FamilySharing() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-slate-700/40">
               <div>
                 <h3 className="text-sm font-black text-slate-100">🧾 Workspace Ledger</h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">Chronological record of transactions recorded on the tracker</p>
+                <p className="text-xs text-slate-400 mt-0.5">Chronological record of transactions recorded on the tracker</p>
               </div>
 
               {/* Filter controls */}
@@ -805,7 +805,7 @@ export default function FamilySharing() {
                 <button
                   disabled={txPage === 1}
                   onClick={() => setTxPage(p => Math.max(p - 1, 1))}
-                  className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-75 disabled:pointer-events-none transition-all cursor-pointer"
                 >
                   ←
                 </button>
@@ -813,7 +813,7 @@ export default function FamilySharing() {
                 <button
                   disabled={txPage === totalTxPages}
                   onClick={() => setTxPage(p => Math.min(p + 1, totalTxPages))}
-                  className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  className="bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-75 disabled:pointer-events-none transition-all cursor-pointer"
                 >
                   →
                 </button>

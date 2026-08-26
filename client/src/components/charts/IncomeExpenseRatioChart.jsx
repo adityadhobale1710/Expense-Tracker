@@ -87,13 +87,13 @@ export default function IncomeExpenseRatioChart({ summary = {} }) {
         {/* Summary Footer */}
         <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-700/60">
           <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-700/40 hover:bg-slate-800/60 transition-colors">
-            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-1">Net Savings</p>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Net Savings</p>
             <p className="text-xl font-mono font-black" style={{ color: netSavings >= 0 ? CHART_COLORS.savings : CHART_COLORS.expense }}>
               {netSavings >= 0 ? '+' : ''}{formatCurrency(netSavings)}
             </p>
           </div>
           <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-700/40 hover:bg-slate-800/60 transition-colors">
-            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-1">Savings Rate</p>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Savings Rate</p>
             <p className="text-xl font-mono font-black" style={{ color: Number(savingsRate) > 0 ? CHART_COLORS.savings : CHART_COLORS.warning }}>
               {savingsRate}%
             </p>

@@ -88,7 +88,7 @@ export default function ConfirmDialog({
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-700/60 transition-all disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-700/60 transition-all disabled:opacity-75 cursor-pointer"
               >
                 {cancelText}
               </button>
@@ -97,7 +97,7 @@ export default function ConfirmDialog({
                 type="button"
                 onClick={onConfirm}
                 disabled={loading}
-                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer ${getConfirmButtonClasses()}`}
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-75 cursor-pointer ${getConfirmButtonClasses()}`}
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{loading ? 'Deleting...' : confirmText}</span>

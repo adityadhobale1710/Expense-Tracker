@@ -114,7 +114,7 @@ export default function SummaryCards({ summary }) {
           {/* Amount Display */}
           <div className="mt-3 flex flex-col">
             <span className="text-2xl font-black text-slate-100 tracking-tight">{card.value}</span>
-            {card.subText && <span className="text-[10px] text-slate-500 font-semibold mt-0.5">{card.subText}</span>}
+            {card.subText && <span className="text-xs text-slate-500 font-semibold mt-0.5">{card.subText}</span>}
           </div>
 
           {/* Trend & Sparkline bottom footer */}
@@ -132,10 +132,10 @@ export default function SummaryCards({ summary }) {
                     <span>{Math.abs(card.trend).toFixed(1)}%</span>
                   </div>
                 )}
-                <span className="text-[10px] text-slate-500 font-bold">vs last period</span>
+                <span className="text-xs text-slate-500 font-bold">vs last period</span>
               </div>
             ) : (
-              <span className="text-[10px] text-slate-500 font-bold">Performance check</span>
+              <span className="text-xs text-slate-500 font-bold">Performance check</span>
             )}
 
             {/* Sparkline mini-graph */}

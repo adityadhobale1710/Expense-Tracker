@@ -37,7 +37,7 @@ export default function ExpandableLegend({
                 transition={{ duration: 0.25, ease: 'easeOut' }}
                 onClick={() => onItemClick && onItemClick(item)}
                 onDoubleClick={() => onItemDoubleClick && onItemDoubleClick(item)}
-                className={`flex justify-between items-center text-[11px] font-semibold py-1.5 px-2.5 rounded-xl border cursor-pointer transition-colors ${
+                className={`flex justify-between items-center text-xs font-semibold py-1.5 px-2.5 rounded-xl border cursor-pointer transition-colors ${
                   selectedItemName
                     ? isSelected
                       ? 'bg-slate-800/80 border-slate-700 text-slate-100 font-bold shadow-sm'
@@ -56,7 +56,7 @@ export default function ExpandableLegend({
                   <span className="font-bold text-slate-200">
                     {currencySymbol}{Math.round(Number(value)).toLocaleString('en-IN')}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-bold w-7 text-right">
+                  <span className="text-xs text-slate-500 font-bold w-7 text-right">
                     {Number(percentage).toFixed(0)}%
                   </span>
                 </div>
@@ -70,7 +70,7 @@ export default function ExpandableLegend({
         <motion.button
           layout
           onClick={() => setShowAll(!showAll)}
-          className="mt-3 text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-colors w-full text-center py-2 bg-slate-800/30 hover:bg-slate-800/60 rounded-xl"
+          className="mt-3 text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors w-full text-center py-2 bg-slate-800/30 hover:bg-slate-800/60 rounded-xl"
         >
           {showAll ? 'Show Less' : `+${hiddenCount} More`}
         </motion.button>

@@ -153,7 +153,7 @@ export default function Navbar({ onMenuToggle }) {
           >
             🔔
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-indigo-500 text-white text-[9px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
+              <span className="absolute -top-1.5 -right-1.5 bg-indigo-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
                 {unreadCount}
               </span>
             )}
@@ -164,7 +164,7 @@ export default function Navbar({ onMenuToggle }) {
               <div className="flex justify-between items-center pb-2 border-b border-slate-800">
                 <span className="text-xs font-bold text-slate-200">Alerts & Notifications</span>
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-[10px] text-indigo-400 hover:underline">
+                  <button onClick={markAllRead} className="text-xs text-indigo-400 hover:underline">
                     Mark all read
                   </button>
                 )}
@@ -176,7 +176,7 @@ export default function Navbar({ onMenuToggle }) {
                   notifications.map((n) => (
                     <div
                       key={n._id}
-                      className={`p-2.5 rounded-xl border text-[11px] leading-normal transition-colors ${
+                      className={`p-2.5 rounded-xl border text-xs leading-normal transition-colors ${
                         n.read ? 'bg-slate-900/30 border-slate-800 text-slate-400' : 'bg-indigo-600/10 border-indigo-500/20 text-slate-200'
                       }`}
                     >
@@ -223,7 +223,7 @@ export default function Navbar({ onMenuToggle }) {
                   >
                     <span className="text-sm leading-none">{t.icon}</span>
                     <span className="flex-1">{t.name}</span>
-                    {theme === t.id && <span className="text-[10px] text-primary-400">✓</span>}
+                    {theme === t.id && <span className="text-xs text-primary-400">✓</span>}
                   </button>
                 ))}
               </div>

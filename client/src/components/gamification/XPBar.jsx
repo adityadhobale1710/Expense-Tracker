@@ -12,7 +12,7 @@ export default function XPBar({ compact = false }) {
   if (compact) {
     return (
       <div className="space-y-1">
-        <div className="flex justify-between text-[10px] font-bold text-slate-400">
+        <div className="flex justify-between text-xs font-bold text-slate-400">
           <span>Lv.{currentLvl.level}</span>
           <span className="font-mono">{xp.toLocaleString('en-IN')} XP</span>
         </div>
@@ -32,7 +32,7 @@ export default function XPBar({ compact = false }) {
         <div className="flex items-center gap-2">
           <span className="text-xs font-black text-slate-300 uppercase tracking-wider">XP Progress</span>
           {!isMaxLevel && (
-            <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
               Level {currentLvl.level} → {nextLvl.level}
             </span>
           )}
@@ -53,7 +53,7 @@ export default function XPBar({ compact = false }) {
         </div>
       </div>
 
-      <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
+      <div className="flex justify-between text-xs text-slate-500 font-semibold">
         <span>{isMaxLevel ? 'Maximum level reached!' : `${(xpForNextLevel - xpIntoLevel).toLocaleString('en-IN')} XP to Level ${nextLvl.level}`}</span>
         <span className="font-bold text-slate-400">{progress}%</span>
       </div>

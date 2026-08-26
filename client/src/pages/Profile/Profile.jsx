@@ -299,7 +299,7 @@ export default function Profile() {
             <div className="min-w-0 flex-1">
               <h3 className="text-xs font-bold text-slate-200 truncate">{user?.name}</h3>
               {user?.role && user.role !== 'user' && (
-                <p className="text-[10px] text-slate-500 uppercase font-semibold">
+                <p className="text-xs text-slate-500 uppercase font-semibold">
                   {user.role === 'premium' ? 'Premium User' : user.role === 'admin' ? 'Admin User' : user.role}
                 </p>
               )}
@@ -386,7 +386,7 @@ export default function Profile() {
                     }`}
                   >
                     <span className="text-sm flex items-center gap-2">👤 Personal Information</span>
-                    <span className="text-[10px] text-slate-500 font-normal pl-6">Your profile details</span>
+                    <span className="text-xs text-slate-500 font-normal pl-6">Your profile details</span>
                   </button>
                   <button
                     type="button"
@@ -398,7 +398,7 @@ export default function Profile() {
                     }`}
                   >
                     <span className="text-sm flex items-center gap-2">✉ Email & Account</span>
-                    <span className="text-[10px] text-slate-500 font-normal pl-6">Account and security</span>
+                    <span className="text-xs text-slate-500 font-normal pl-6">Account and security</span>
                   </button>
                   <button
                     type="button"
@@ -410,7 +410,7 @@ export default function Profile() {
                     }`}
                   >
                     <span className="text-sm flex items-center gap-2">🎮 Gamification</span>
-                    <span className="text-[10px] text-slate-500 font-normal pl-6">XP and progress</span>
+                    <span className="text-xs text-slate-500 font-normal pl-6">XP and progress</span>
                   </button>
                   <button
                     type="button"
@@ -422,7 +422,7 @@ export default function Profile() {
                     }`}
                   >
                     <span className="text-sm flex items-center gap-2">💰 Financial Summary</span>
-                    <span className="text-[10px] text-slate-500 font-normal pl-6">Your financial overview</span>
+                    <span className="text-xs text-slate-500 font-normal pl-6">Your financial overview</span>
                   </button>
                 </div>
 
@@ -495,11 +495,11 @@ export default function Profile() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                         <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Email Address</span>
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Email Address</span>
                           <span className="text-sm font-medium text-slate-200 truncate">{user?.email || '-'}</span>
                         </div>
                         <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Verification Status</span>
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Verification Status</span>
                           <div>
                             {user?.isEmailVerified ? (
                               <span className="badge-green">Verified ✓</span>
@@ -509,7 +509,7 @@ export default function Profile() {
                           </div>
                         </div>
                         <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Account Role</span>
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Account Role</span>
                           <div>
                             {user?.role === 'premium' ? (
                               <span className="badge-purple">Premium</span>
@@ -521,19 +521,19 @@ export default function Profile() {
                           </div>
                         </div>
                         <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Member Since</span>
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Member Since</span>
                           <span className="text-sm font-medium text-slate-200">
                             {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
                           </span>
                         </div>
                         <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Last Updated</span>
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Last Updated</span>
                           <span className="text-sm font-medium text-slate-200">
                             {user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
                           </span>
                         </div>
                         <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Two-Factor Authentication</span>
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Two-Factor Authentication</span>
                           <div>
                             {user?.twoFactorEnabled ? (
                               <span className="badge-green">Enabled ✓</span>
@@ -555,8 +555,8 @@ export default function Profile() {
                         </div>
                         {gamSeason && (
                           <div className="text-right">
-                            <span className="text-[10px] text-primary-400 uppercase font-bold tracking-wider">{gamSeason.name}</span>
-                            <p className="text-[10px] text-slate-500">Season XP: {gamSeason.seasonalXP?.toLocaleString('en-IN') || 0}</p>
+                            <span className="text-xs text-primary-400 uppercase font-bold tracking-wider">{gamSeason.name}</span>
+                            <p className="text-xs text-slate-500">Season XP: {gamSeason.seasonalXP?.toLocaleString('en-IN') || 0}</p>
                           </div>
                         )}
                       </div>
@@ -586,27 +586,27 @@ export default function Profile() {
                           {/* PROGRESS */}
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Progress</h5>
+                              <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Progress</h5>
                               {/* Issue 5 fix: explain the Level vs Rank distinction */}
-                              <span className="text-[10px] text-slate-600 italic">
+                              <span className="text-xs text-slate-600 italic">
                                 Level = season XP · Rank = lifetime XP
                               </span>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Level</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Level</span>
                                 <span className="text-base font-bold text-slate-200">{gamLevel}</span>
                               </div>
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Rank</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Rank</span>
                                 <span className="text-base font-bold text-slate-200">{gamRank ?? '-'}</span>
                               </div>
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current XP</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Current XP</span>
                                 <span className="text-base font-bold text-slate-200">{gamXP.toLocaleString('en-IN')}</span>
                               </div>
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Lifetime XP</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Lifetime XP</span>
                                 <span className="text-base font-bold text-slate-200">{gamLifetimeXP.toLocaleString('en-IN')}</span>
                               </div>
                             </div>
@@ -614,14 +614,14 @@ export default function Profile() {
 
                           {/* STREAK */}
                           <div className="space-y-3">
-                            <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Streak</h5>
+                            <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Streak</h5>
                             <div className="grid grid-cols-2 gap-4">
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Current Streak</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Current Streak</span>
                                 <span className="text-base font-bold text-slate-200">{gamStreak} days</span>
                               </div>
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Longest Streak</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Longest Streak</span>
                                 <span className="text-base font-bold text-slate-200">{gamLongestStreak} days</span>
                               </div>
                             </div>
@@ -629,14 +629,14 @@ export default function Profile() {
 
                           {/* REWARDS */}
                           <div className="space-y-3">
-                            <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rewards</h5>
+                            <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Rewards</h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Available Coins</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Available Coins</span>
                                 <span className="text-base font-bold text-slate-200">{gamCoins.toLocaleString('en-IN')} 🪙</span>
                               </div>
                               <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Badges Unlocked</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Badges Unlocked</span>
                                 <span className="text-base font-bold text-slate-200">
                                   {gamAchievements.filter(a => a.unlocked).length} / {gamAchievements.length}
                                 </span>
@@ -659,10 +659,10 @@ export default function Profile() {
                       <div className="space-y-6 text-xs animate-fade-in">
                         {/* PRIMARY STATS */}
                         <div className="space-y-3">
-                          <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Primary Statistics</h5>
+                          <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Primary Statistics</h5>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                              <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Total Income</span>
+                              <span className="text-xs text-emerald-400 uppercase tracking-wider font-bold">Total Income</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[24px] w-1/2" />
                               ) : (
@@ -672,7 +672,7 @@ export default function Profile() {
                               )}
                             </div>
                             <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex flex-col gap-1.5 shadow-sm">
-                              <span className="text-[10px] text-rose-400 uppercase tracking-wider font-bold">Total Expenses</span>
+                              <span className="text-xs text-rose-400 uppercase tracking-wider font-bold">Total Expenses</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[24px] w-1/2" />
                               ) : (
@@ -686,7 +686,7 @@ export default function Profile() {
                               const isPositive = net >= 0;
                               return (
                                 <div className={`${isPositive ? 'bg-primary-500/10 border-primary-500/20' : 'bg-rose-500/10 border-rose-500/20'} border rounded-xl p-4 flex flex-col gap-1.5 shadow-sm`}>
-                                  <span className={`text-[10px] ${isPositive ? 'text-primary-400' : 'text-rose-400'} uppercase tracking-wider font-bold`}>Net Balance</span>
+                                  <span className={`text-xs ${isPositive ? 'text-primary-400' : 'text-rose-400'} uppercase tracking-wider font-bold`}>Net Balance</span>
                                   {loadingStats ? (
                                     <Skeleton className="h-[24px] w-1/2" />
                                   ) : (
@@ -702,10 +702,10 @@ export default function Profile() {
 
                         {/* SECONDARY STATS */}
                         <div className="space-y-3">
-                          <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Secondary Statistics</h5>
+                          <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Secondary Statistics</h5>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Transactions</span>
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Transactions</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[20px] w-1/2" />
                               ) : (
@@ -715,7 +715,7 @@ export default function Profile() {
                               )}
                             </div>
                             <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Wallets</span>
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Wallets</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[20px] w-1/2" />
                               ) : (
@@ -725,7 +725,7 @@ export default function Profile() {
                               )}
                             </div>
                             <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Budgets</span>
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Budgets</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[20px] w-1/2" />
                               ) : (
@@ -738,7 +738,7 @@ export default function Profile() {
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Goals</span>
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Goals</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[20px] w-1/2" />
                               ) : (
@@ -748,7 +748,7 @@ export default function Profile() {
                               )}
                             </div>
                             <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Subscriptions</span>
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Subscriptions</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[20px] w-1/2" />
                               ) : (
@@ -758,7 +758,7 @@ export default function Profile() {
                               )}
                             </div>
                             <div className="bg-dark-900/40 border border-slate-700/30 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Bills</span>
+                              <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Bills</span>
                               {loadingStats ? (
                                 <Skeleton className="h-[20px] w-1/2" />
                               ) : (
@@ -895,10 +895,10 @@ export default function Profile() {
                   <div className="flex justify-between items-center pb-2 border-b border-slate-700/30">
                     <div>
                       <h4 className="font-bold text-slate-200 text-sm">Currency Converter & Rates</h4>
-                      <p className="text-[10px] text-slate-50 mt-0.5">Convert currencies with live or fallback exchange rates.</p>
+                      <p className="text-xs text-slate-50 mt-0.5">Convert currencies with live or fallback exchange rates.</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-semibold text-slate-400">Live Sync</span>
+                      <span className="text-xs font-semibold text-slate-400">Live Sync</span>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
@@ -917,7 +917,7 @@ export default function Profile() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {/* Amount Input */}
                     <div className="form-group">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Amount</label>
+                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Amount</label>
                       <input
                         type="number"
                         min="0"
@@ -929,7 +929,7 @@ export default function Profile() {
                     </div>
                     {/* From Currency Selection */}
                     <div className="form-group">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">From</label>
+                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">From</label>
                       <select
                         className="select py-2 text-xs"
                         value={fromCurr}
@@ -944,7 +944,7 @@ export default function Profile() {
                     </div>
                     {/* To Currency Selection */}
                     <div className="form-group">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">To</label>
+                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">To</label>
                       <select
                         className="select py-2 text-xs"
                         value={toCurr}
@@ -962,18 +962,18 @@ export default function Profile() {
                   {/* Result Panel */}
                   <div className="p-3 bg-dark-900/50 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs transition-all">
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Converted Amount</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Converted Amount</p>
                       <p className="text-base font-extrabold text-slate-200 mt-1">
-                        {CURRENCIES.find(c => c.code === toCurr)?.symbol || ''} {getConvertedVal()} <span className="text-[10px] text-slate-400 font-normal">{toCurr}</span>
+                        {CURRENCIES.find(c => c.code === toCurr)?.symbol || ''} {getConvertedVal()} <span className="text-xs text-slate-400 font-normal">{toCurr}</span>
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Exchange Rate</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Exchange Rate</p>
                       <p className="text-xs font-bold text-primary-400 mt-1">
                         1 {fromCurr} = {getActiveRate()} {toCurr}
                       </p>
                       {liveCurrencySync && (
-                        <p className="text-[9px] text-slate-600 mt-0.5">
+                        <p className="text-xs text-slate-600 mt-0.5">
                           {isLoadingRates ? 'Updating...' : 'Live Rate Connected'}
                         </p>
                       )}
@@ -995,7 +995,7 @@ export default function Profile() {
                 <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-slate-300">Two-Factor Authentication (2FA)</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Add an extra layer of security using Google Authenticator codes.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Add an extra layer of security using Google Authenticator codes.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -1022,7 +1022,7 @@ export default function Profile() {
                     />
                   ) : (
                     <div className="table-container">
-                      <table className="table text-[11px]">
+                      <table className="table text-xs">
                         <thead>
                           <tr>
                             <th>Device</th>
@@ -1082,7 +1082,7 @@ export default function Profile() {
                   <label key={item.key} className="flex items-center justify-between p-3 bg-slate-900/40 border border-slate-800 rounded-xl cursor-pointer">
                     <div>
                       <h4 className="font-bold text-slate-300">{item.title}</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{item.desc}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
                     </div>
                     <input
                       type="checkbox"

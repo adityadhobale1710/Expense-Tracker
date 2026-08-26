@@ -54,7 +54,7 @@ export default function ChatInput({ input, setInput, handleSend, handleKeyDown, 
             <button
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}
-              className="w-9 h-9 ai-btn-primary !rounded-full disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-ai-primary/50 focus:ring-offset-1"
+              className="w-9 h-9 ai-btn-primary !rounded-full disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-ai-primary/50 focus:ring-offset-1"
               aria-label="Send message"
             >
               {loading ? (

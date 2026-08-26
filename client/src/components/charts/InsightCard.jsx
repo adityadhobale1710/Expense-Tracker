@@ -23,11 +23,11 @@ export default function InsightCard({ title, value, subtitle, icon: Icon, trend 
         </div>
         <div className="flex items-center gap-2 mt-2">
           {trend && (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${trend > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${trend > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
               {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
             </span>
           )}
-          <span className="text-[11px] font-medium text-slate-500 truncate">
+          <span className="text-xs font-medium text-slate-500 truncate">
             {subtitle}
           </span>
         </div>

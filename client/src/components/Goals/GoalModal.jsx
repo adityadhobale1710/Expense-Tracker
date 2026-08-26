@@ -137,7 +137,7 @@ export default function GoalModal({
           {/* Prepackaged Templates (Create only) */}
           {!isEdit && templates.length > 0 && (
             <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Quick Start Templates</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Quick Start Templates</label>
               <div className="flex gap-2 overflow-x-auto pb-1 text-xs">
                 {templates.map(t => (
                   <button
@@ -157,7 +157,7 @@ export default function GoalModal({
           {/* Title & Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Goal Title</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Goal Title</label>
               <input
                 type="text"
                 value={formData.title}
@@ -167,7 +167,7 @@ export default function GoalModal({
               />
             </div>
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
@@ -183,7 +183,7 @@ export default function GoalModal({
           {/* Target & Saved */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target Amount (INR)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Amount (INR)</label>
               <input
                 type="number"
                 value={formData.targetAmount}
@@ -193,14 +193,14 @@ export default function GoalModal({
               />
             </div>
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Already Saved (INR)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Already Saved (INR)</label>
               <input
                 type="number"
                 value={formData.savedAmount}
                 disabled={isEdit}
                 onChange={(e) => setFormData(prev => ({ ...prev, savedAmount: Number(e.target.value) }))}
                 placeholder="e.g. 5000"
-                className="px-3.5 py-2 bg-dark-900 border border-slate-700/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3.5 py-2 bg-dark-900 border border-slate-700/40 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary-500 disabled:opacity-75 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function GoalModal({
           {/* Target Date & Priority */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target Date</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Date</label>
               <input
                 type="date"
                 value={formData.targetDate}
@@ -217,7 +217,7 @@ export default function GoalModal({
               />
             </div>
             <div className="flex flex-col space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Priority</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Priority</label>
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
@@ -232,7 +232,7 @@ export default function GoalModal({
 
           {/* Description */}
           <div className="flex flex-col space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Description / Personal Notes</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Description / Personal Notes</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -244,7 +244,7 @@ export default function GoalModal({
 
           {/* Emoji Icon picker */}
           <div>
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Choose Icon</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Choose Icon</label>
             <div className="grid grid-cols-6 gap-2 text-lg">
               {SUGGESTED_ICONS.map(ic => (
                 <button
@@ -262,7 +262,7 @@ export default function GoalModal({
 
           {/* Color Themes */}
           <div>
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Choose Color Theme</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Choose Color Theme</label>
             <div className="grid grid-cols-6 gap-2">
               {PRESET_COLORS.map(col => (
                 <button

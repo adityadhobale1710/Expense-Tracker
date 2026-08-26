@@ -64,7 +64,7 @@ function WalletSummaryCards({ wallets }) {
             <Coins size={22} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Balance</p>
+            <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Total Balance</p>
             <p className="text-xl font-extrabold text-slate-100">{cs}{totalBalance.toLocaleString('en-IN')}</p>
           </div>
         </div>
@@ -75,7 +75,7 @@ function WalletSummaryCards({ wallets }) {
             <WalletCards size={22} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Wallets</p>
+            <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Total Wallets</p>
             <p className="text-xl font-extrabold text-slate-100">{wallets.length}</p>
           </div>
         </div>
@@ -86,7 +86,7 @@ function WalletSummaryCards({ wallets }) {
             <Star size={22} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Primary Wallet</p>
+            <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Primary Wallet</p>
             <p className="text-base font-bold text-slate-100 truncate">{primaryWallet?.name || '—'}</p>
           </div>
         </div>
@@ -97,7 +97,7 @@ function WalletSummaryCards({ wallets }) {
             <Layers size={22} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Wallet Types</p>
+            <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Wallet Types</p>
             <p className="text-base font-bold text-slate-100">{new Set(wallets.map(w => w.type)).size} types</p>
           </div>
         </div>
@@ -147,16 +147,16 @@ function WalletCard({ wallet, onEdit, onDelete, onSetPrimary, onTransfer }) {
             <h3 className="text-sm font-extrabold text-slate-100 flex items-center gap-2">
               {wallet.name}
               {wallet.isPrimary && (
-                <span className="badge badge-purple text-[9px]">⭐ Primary</span>
+                <span className="badge badge-purple text-[10px]">⭐ Primary</span>
               )}
             </h3>
-            <span className="badge badge-blue text-[9px] mt-1">{typeLabel}</span>
+            <span className="badge badge-blue text-[10px] mt-1">{typeLabel}</span>
           </div>
         </div>
       </div>
 
       <div className="mt-4 pt-3 border-t border-slate-700/50">
-        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Balance</p>
+        <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Balance</p>
         <p className="text-2xl font-extrabold text-slate-100 mt-0.5">
           {cs}{wallet.balance.toLocaleString('en-IN')}
           <span className="text-xs font-normal text-slate-500 ml-1">{wallet.currency}</span>
@@ -164,14 +164,14 @@ function WalletCard({ wallet, onEdit, onDelete, onSetPrimary, onTransfer }) {
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/50">
-        <p className="text-[9px] text-slate-500">
+        <p className="text-xs text-slate-500">
           Updated {new Date(wallet.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
         </p>
         <div className="flex gap-1.5">
           {!wallet.isPrimary && (
             <button
               onClick={() => onSetPrimary(wallet._id)}
-              className="text-[10px] px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white transition-all font-bold"
+              className="text-xs px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white transition-all font-bold"
               title="Set as Primary"
             >
               ⭐
@@ -179,7 +179,7 @@ function WalletCard({ wallet, onEdit, onDelete, onSetPrimary, onTransfer }) {
           )}
           <button
             onClick={() => onTransfer(wallet)}
-            className="text-[10px] px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all font-bold"
+            className="text-xs px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all font-bold"
             title="Transfer"
           >
             ↗️
@@ -233,7 +233,7 @@ function WalletHistory({ walletId, onClose }) {
             <div key={tx._id} className="p-3 bg-dark-900/50 border border-slate-700/30 rounded-xl flex items-center justify-between text-xs">
               <div>
                 <p className="font-bold text-slate-200">{tx.title}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   {new Date(tx.date).toLocaleDateString('en-IN')} · {tx.txType}
                 </p>
               </div>

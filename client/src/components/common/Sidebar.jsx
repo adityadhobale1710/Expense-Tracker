@@ -83,7 +83,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     )}
                   </span>
                   <span className="inline md:hidden lg:inline flex-1 truncate">{label}</span>
-                  <span className="inline md:hidden lg:inline-block ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wider flex-shrink-0">
+                  <span className="inline md:hidden lg:inline-block ml-auto text-xs font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wider flex-shrink-0">
                     {badge}
                   </span>
                 </div>
@@ -138,7 +138,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <div className="block md:hidden lg:block flex-1 min-w-0">
               <h4 className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Guest User'}</h4>
               {user?.role && user.role !== 'user' && (
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mt-0.5">
+                <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-0.5">
                   {user.role === 'premium' ? '👑 Premium User' : user.role === 'admin' ? '🛡️ Admin User' : user.role}
                 </p>
               )}

@@ -18,7 +18,7 @@ export default function TopCategoriesChart({ categoryData }) {
     <div className="flex flex-col p-6 bg-dark-800/80 border border-slate-700/60 rounded-3xl shadow-xl space-y-4">
       <div>
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Top 10 Outlay Categories</h3>
-        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Horizontal rank breakdown of highest cost centers</p>
+        <p className="text-xs text-slate-500 font-semibold mt-0.5">Horizontal rank breakdown of highest cost centers</p>
       </div>
 
       <div className="h-72 w-full">

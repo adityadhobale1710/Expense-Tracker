@@ -173,7 +173,7 @@ const CircularProgress = memo(({ pct, color }) => {
           cy={radius}
         />
       </svg>
-      <span className="absolute text-[10px] font-black text-slate-200">{pct}%</span>
+      <span className="absolute text-xs font-black text-slate-200">{pct}%</span>
     </div>
   );
 });
@@ -194,7 +194,7 @@ const PremiumSummaryCard = memo(({ icon: Icon, label, value, sub, trend, trendUp
     
     <div className="flex items-start justify-between gap-2">
       <div className="space-y-1">
-        <p className="text-[10px] font-bold text-slate-400/90 uppercase tracking-wider">{label}</p>
+        <p className="text-xs font-bold text-slate-400/90 uppercase tracking-wider">{label}</p>
         <h3 className="text-2xl font-black text-slate-100 tracking-tight">
           {typeof value === 'number' ? <AnimatedCounter value={value} prefix={label.includes('Score') || label.includes('%') ? '' : '₹'} suffix={label.includes('%') ? '%' : ''} /> : value}
         </h3>
@@ -208,12 +208,12 @@ const PremiumSummaryCard = memo(({ icon: Icon, label, value, sub, trend, trendUp
     <div className="flex items-end justify-between mt-4 pt-3 border-t border-slate-800/50">
       <div className="space-y-0.5">
         {trend && (
-          <span className={`text-[10px] font-bold flex items-center gap-0.5 ${trendUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <span className={`text-xs font-bold flex items-center gap-0.5 ${trendUp ? 'text-emerald-400' : 'text-rose-400'}`}>
             {trendUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
             {trend}
           </span>
         )}
-        <span className="text-[9px] text-slate-400 block font-medium truncate max-w-[110px]">{sub}</span>
+        <span className="text-xs text-slate-400 block font-medium truncate max-w-[110px]">{sub}</span>
       </div>
       <div className="pt-1 flex items-center">
         <Sparkline data={sparkData} color={color} />
@@ -1058,10 +1058,10 @@ export default function Budget() {
                                 {b.isLocked && <Lock size={10} className="text-slate-500" />}
                               </h3>
                               <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                                <span className="text-xs font-black uppercase tracking-wider text-slate-500">
                                   {b.period}
                                 </span>
-                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                                   b.priority === 'high' ? 'bg-red-500/10 text-red-400' :
                                   b.priority === 'medium' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-700/30 text-slate-400'
                                 }`}>
@@ -1112,7 +1112,7 @@ export default function Budget() {
                               style={{ backgroundColor: b.color }}
                             />
                           </div>
-                          <div className="flex justify-between items-center text-[9px] text-slate-500 font-semibold pt-0.5">
+                          <div className="flex justify-between items-center text-xs text-slate-500 font-semibold pt-0.5">
                             <span>alert trigger: {b.alertThreshold}%</span>
                             <span className="text-slate-400">{pct}% utilized</span>
                           </div>
@@ -1121,15 +1121,15 @@ export default function Budget() {
                         {/* Visual statistics grid */}
                         <div className="grid grid-cols-3 gap-1 py-1.5 px-2 bg-slate-900/40 rounded-xl border border-slate-800/40 text-center text-xs">
                           <div>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Spent</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Spent</span>
                             <span className="text-slate-200 font-black">{fmt(b.spent)}</span>
                           </div>
                           <div>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Limit</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Limit</span>
                             <span className="text-slate-200 font-black">{fmt(b.limit)}</span>
                           </div>
                           <div>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Remaining</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Remaining</span>
                             <span className={`font-black ${remaining < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                               {fmt(remaining)}
                             </span>
@@ -1140,26 +1140,26 @@ export default function Budget() {
                       {/* Status / Warning Messages */}
                       <div className="mt-3.5 space-y-1.5">
                         {isExceeded && (
-                          <div className="text-[10px] text-rose-400 font-bold flex items-center justify-center gap-1.5 bg-rose-500/5 py-1 px-2 rounded-lg border border-rose-500/10">
+                          <div className="text-xs text-rose-400 font-bold flex items-center justify-center gap-1.5 bg-rose-500/5 py-1 px-2 rounded-lg border border-rose-500/10">
                             <AlertCircle size={11} />
                             <span>Limit breached by {fmt(b.spent - b.limit)}</span>
                           </div>
                         )}
                         {isWarning && (
-                          <div className="text-[10px] text-amber-400 font-bold flex items-center justify-center gap-1.5 bg-amber-500/5 py-1 px-2 rounded-lg border border-amber-500/10">
+                          <div className="text-xs text-amber-400 font-bold flex items-center justify-center gap-1.5 bg-amber-500/5 py-1 px-2 rounded-lg border border-amber-500/10">
                             <Flame size={11} />
                             <span>Warning: Crossed safety mark ({b.alertThreshold}%)</span>
                           </div>
                         )}
 
                         <div className="flex items-center justify-between pt-2">
-                          <span className="text-[9px] text-slate-500 font-semibold flex items-center gap-1">
+                          <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
                             <CreditCard size={10} />
                             {associatedWallet ? associatedWallet.name : 'No linked wallet'}
                           </span>
                           <button
                             onClick={() => setSelectedDetailsId(b._id)}
-                            className="text-[10px] font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-0.5 transition-colors"
+                            className="text-xs font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-0.5 transition-colors"
                           >
                             <span>View Details</span>
                             <ChevronRight size={10} />
@@ -1181,9 +1181,9 @@ export default function Budget() {
                   <h3 className="font-bold text-slate-100 flex items-center gap-2">
                     <BarChart3 size={16} className="text-indigo-400" /> Analytical Diagnostics
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-medium">Real-time charts of category allocations vs actual spent</p>
+                  <p className="text-xs text-slate-400 font-medium">Real-time charts of category allocations vs actual spent</p>
                 </div>
-                <div className="flex rounded-lg bg-slate-900/60 p-0.5 border border-slate-800 self-stretch sm:self-auto text-[10px] font-bold">
+                <div className="flex rounded-lg bg-slate-900/60 p-0.5 border border-slate-800 self-stretch sm:self-auto text-xs font-bold">
                   <button
                     onClick={() => setActiveChartTab('comparison')}
                     className={`px-3 py-1.5 rounded-md transition-colors ${activeChartTab === 'comparison' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
@@ -1333,7 +1333,7 @@ export default function Budget() {
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
                 <Sparkles size={14} className="text-indigo-400" /> Cognitive Audits
               </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">AI-powered pacing advice and suggestions</p>
+              <p className="text-xs text-slate-400 font-semibold mt-0.5">AI-powered pacing advice and suggestions</p>
             </div>
 
             <div className="space-y-3">
@@ -1353,7 +1353,7 @@ export default function Budget() {
                   </div>
                   <div className="space-y-0.5">
                     <h4 className="font-extrabold text-slate-200 text-xs">{item.title}</h4>
-                    <p className="text-slate-400 leading-normal text-[11px] font-medium">{item.message}</p>
+                    <p className="text-slate-400 leading-normal text-xs font-medium">{item.message}</p>
                   </div>
                 </div>
               ))}
@@ -1366,7 +1366,7 @@ export default function Budget() {
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
                 <ShieldAlert size={14} className="text-amber-400" /> Alerts Panel
               </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Critical anomalies and pacing flags</p>
+              <p className="text-xs text-slate-400 font-semibold mt-0.5">Critical anomalies and pacing flags</p>
             </div>
 
             <div className="space-y-2.5">
@@ -1384,8 +1384,8 @@ export default function Budget() {
                       <AlertTriangle size={13} />
                     </div>
                     <div className="space-y-0.5">
-                      <span className="font-bold text-slate-200 block text-[11px]">{alert.title}</span>
-                      <span className="text-slate-400 text-[10px] block leading-relaxed font-medium">
+                      <span className="font-bold text-slate-200 block text-xs">{alert.title}</span>
+                      <span className="text-slate-400 text-xs block leading-relaxed font-medium">
                         {alert.message}
                       </span>
                     </div>
@@ -1447,7 +1447,7 @@ export default function Budget() {
               {/* Core metrics overview */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Utilization</span>
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Utilization</span>
                   <span className="text-xl font-black text-slate-200 mt-2">
                     {parseFloat(((selectedBudgetDetails.spent / selectedBudgetDetails.limit) * 100).toFixed(1))}%
                   </span>
@@ -1463,17 +1463,17 @@ export default function Budget() {
                 </div>
 
                 <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Remaining Buffer</span>
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Remaining Buffer</span>
                   <span className={`text-xl font-black mt-2 ${selectedBudgetDetails.limit - selectedBudgetDetails.spent < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {fmt(selectedBudgetDetails.limit - selectedBudgetDetails.spent)}
                   </span>
-                  <span className="text-[8px] text-slate-500 mt-1 block">Safe allocation space</span>
+                  <span className="text-xs text-slate-500 mt-1 block">Safe allocation space</span>
                 </div>
               </div>
 
               {/* Forecast calculations */}
               <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Zap size={11} className="text-indigo-400" /> Forecasting Engine
                 </h4>
                 {analyticsLoading ? (
@@ -1500,7 +1500,7 @@ export default function Budget() {
 
               {/* Recharts Local Trend Chart */}
               <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Local Spending Distribution
                 </h4>
                 <div className="h-40 w-full">
@@ -1528,7 +1528,7 @@ export default function Budget() {
 
               {/* Local notes notepad storage block */}
               <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <FileText size={11} className="text-slate-400" /> Budget Notes
                 </h4>
                 <textarea
@@ -1550,9 +1550,9 @@ export default function Budget() {
 
               {/* Recent Transaction Preview List */}
               <div className="space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Recent category activity</span>
-                  <span className="text-[8px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
                     {selectedBudgetTransactions.length} Total
                   </span>
                 </h4>
@@ -1572,14 +1572,14 @@ export default function Budget() {
                           </span>
                           <div className="truncate">
                             <span className="font-bold text-slate-200 block truncate">{tx.title}</span>
-                            <span className="text-[10px] text-slate-500 font-semibold block">
+                            <span className="text-xs text-slate-500 font-semibold block">
                               {new Date(tx.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                             </span>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <span className="font-extrabold text-slate-200 block">₹{tx.amount.toLocaleString('en-IN')}</span>
-                          <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">
+                          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">
                             {tx.paymentMethod}
                           </span>
                         </div>
@@ -1621,7 +1621,7 @@ export default function Budget() {
               
               {/* Modal tabs */}
               <div className="border-b border-slate-800 pb-2 mb-3">
-                <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
+                <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                   {modal.mode === 'add' ? 'Setup parameters' : 'Edit adjustments'}
                 </span>
               </div>
@@ -1634,7 +1634,7 @@ export default function Budget() {
                     <button
                       type="button"
                       onClick={() => handleAutoSuggestBudget(form.category)}
-                      className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 transition-colors"
+                      className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 transition-colors"
                     >
                       <Sparkles size={10} /> Auto-Suggest Buffer
                     </button>
@@ -1747,8 +1747,8 @@ export default function Budget() {
 
               <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
                 <div className="space-y-0.5">
-                  <span className="text-[11px] font-bold text-slate-200 block">Carry Forward Roll</span>
-                  <span className="text-[9px] text-slate-500 block">Roll leftover balances to next period automatically</span>
+                  <span className="text-xs font-bold text-slate-200 block">Carry Forward Roll</span>
+                  <span className="text-xs text-slate-500 block">Roll leftover balances to next period automatically</span>
                 </div>
                 <input
                   type="checkbox"
@@ -1762,7 +1762,7 @@ export default function Budget() {
                 <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex items-center justify-between text-xs font-semibold">
                   <div>
                     <p className="text-slate-400 font-bold">Real-time Rule Preview</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Warning will trigger at {form.alertThreshold || 80}%</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Warning will trigger at {form.alertThreshold || 80}%</p>
                   </div>
                   <p className="text-indigo-400 font-bold text-sm">
                     {fmt(form.limit)} / {form.period}
