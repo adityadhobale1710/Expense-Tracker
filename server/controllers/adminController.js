@@ -602,10 +602,18 @@ export const getFeedbackList = asyncHandler(async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateFeedbackStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
+
+  // Correction #2: Validate status against allowed enum values
+  const allowedStatuses = ['pending', 'reviewed', 'resolved'];
+  if (!allowedStatuses.includes(status)) {
+    res.status(400);
+    throw new Error('Invalid feedback status. Must be pending, reviewed, or resolved.');
+  }
+
   const item = await Feedback.findByIdAndUpdate(
     req.params.id,
     { status },
-    { new: true }
+    { new: true, runValidators: true } // Correction #2: Add runValidators defense in depth
   ).populate('user', 'name email');
 
   if (!item) {
@@ -859,15 +867,22 @@ export const getSecurityEvents = asyncHandler(async (req, res) => {
   const filter = {};
 
   if (action) {
-    if (VALID_SECURITY_ACTIONS.includes(action)) {
-      filter.action = action; // Phase 5: exact match only
+    // Correction #1: Map short category keys to partial matches instead of strict string checks
+    const CATEGORY_MAP = {
+      'login failed': /login failed/i,
+      'login success': /login success/i,
+      'admin': /^Admin /i,
+      'revoke': /revoke/i,
+      'password': /password/i,
+    };
+
+    if (CATEGORY_MAP[action]) {
+      filter.action = CATEGORY_MAP[action];
     } else {
-      // Return empty if action is invalid
+      // Return empty if action is invalid (match normal success shape)
       return sendSuccess(res, 200, 'Security events retrieved', {
-        logs: [],
-        page,
-        pages: 0,
-        total: 0,
+        events: [],
+        pagination: { page, limit, total: 0, totalPages: 0 }
       });
     }
   }

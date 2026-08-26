@@ -732,15 +732,22 @@ export default function AdminPortal() {
   // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  // ── Load users when tab active or filters change ─────────────────────────
+  // ── Correction #3: Unified fetch effect for filters and tab switching ─────
   useEffect(() => {
-    if (activeTab === 'users') fetchUsers();
-  }, [activeTab, fetchUsers]);
+    if (activeTab === 'users') {
+      setCurrentPage(1);
+      fetchUsers({ page: 1 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, debouncedSearch, roleFilter, statusFilter, verifiedFilter, sortBy, sortOrder]);
 
-  // ── Reset to page 1 when search/filters change ───────────────────────────
+  // ── Fetch when user explicitly changes pages (but ignore the reset to 1) ──
   useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, roleFilter, statusFilter, verifiedFilter, sortBy, sortOrder]);
+    if (activeTab === 'users' && currentPage !== 1) {
+      fetchUsers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // ── Load feedback when tab active ────────────────────────────────────────
   useEffect(() => {
