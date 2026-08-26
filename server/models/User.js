@@ -34,6 +34,11 @@ const userSchema = new mongoose.Schema(
     isDisabled: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
+    // Phase 3: tokenVersion enables immediate access-token invalidation on session revocation.
+    // protect middleware rejects tokens where decoded.tokenVersion !== user.tokenVersion.
+    // Incremented atomically ($inc) on: revoke all sessions, block user, disable user.
+    // Default 0 matches the default in generateAccessToken so existing tokens remain valid.
+    tokenVersion: { type: Number, default: 0 },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpire: { type: Date, default: null },
     

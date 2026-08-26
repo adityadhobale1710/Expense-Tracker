@@ -7,7 +7,9 @@ import Category from '../models/Category.js';
 import Session from '../models/Session.js';
 import SecurityLog from '../models/SecurityLog.js';
 
-const createSessionRecord = async (userId, token, req) => {
+// Phase 3: returns created Session doc so sessionId can be embedded in the JWT.
+// This replaces the fire-and-forget pattern — we need the _id before generating the token.
+const createSessionRecord = async (userId, req) => {
   try {
     const userAgent = req.headers['user-agent'] || '';
     let os = 'Unknown OS';
@@ -31,18 +33,21 @@ const createSessionRecord = async (userId, token, req) => {
 
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
-    await Session.create({
+    // token field will be back-filled after JWT generation
+    const session = await Session.create({
       user: userId,
-      token,
+      token: 'pending', // placeholder — updated immediately after token generation
       deviceName,
       browser,
       os,
       ipAddress,
       isActive: true,
-      lastActive: new Date()
+      lastActive: new Date(),
     });
+    return session;
   } catch (err) {
-    logger.error(`Failed to create active session log: ${err.message}`);
+    logger.error(`Failed to create session record: ${err.message}`);
+    return null;
   }
 };
 
@@ -221,12 +226,26 @@ export const login = asyncHandler(async (req, res) => {
     );
   }
 
-  const accessToken = generateAccessToken(user._id);
+  // Phase 3: create session FIRST so we have the sessionId to embed in the JWT.
+  // Session is created with placeholder token, then updated once the real token is generated.
+  const sessionDoc = await createSessionRecord(user._id, req);
+
+  const accessToken = generateAccessToken(user._id, {
+    tokenVersion: user.tokenVersion || 0,
+    sessionId: sessionDoc?._id || null,
+  });
   const refreshToken = generateRefreshToken(user._id);
   user.refreshToken = refreshToken;
   await user.save();
 
-  await createSessionRecord(user._id, accessToken, req);
+  // Back-fill the real access token on the session record so logout can find it
+  if (sessionDoc) {
+    try {
+      await Session.findByIdAndUpdate(sessionDoc._id, { token: accessToken });
+    } catch (err) {
+      logger.error(`Failed to update session token: ${err.message}`);
+    }
+  }
 
   // ── Audit: successful admin login ────────────────────────────────────────────
   if (user.role === 'admin') {
@@ -277,21 +296,28 @@ export const logout = asyncHandler(async (req, res) => {
     await user.save();
   }
 
-  // Revoke current session
+  // Phase 3: prefer sessionId claim for precise session lookup.
+  // Falls back to token string match for legacy tokens without sessionId.
   try {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer')) {
       const token = authHeader.split(' ')[1];
-      await Session.findOneAndUpdate({ token, user: req.user._id }, { isActive: false });
+      const sessionId = req.user._sessionId; // set by protect middleware (Phase 3)
+      if (sessionId) {
+        await Session.findOneAndUpdate(
+          { _id: sessionId, user: req.user._id },
+          { isActive: false }
+        );
+      } else {
+        // Legacy path: fall back to token string match
+        await Session.findOneAndUpdate({ token, user: req.user._id }, { isActive: false });
+      }
     }
   } catch (err) {
     logger.error(`Failed to revoke session on logout: ${err.message}`);
   }
 
-  // M-RC1 fix: clear with the SAME attributes the cookie was set with. In prod the
-  // refresh cookie is Secure + SameSite=None (cross-site Vercel↔Render); a bare
-  // clearCookie() writes a plain non-Secure Set-Cookie that browsers ignore when
-  // overwriting a Secure cookie — leaving the stale refresh cookie on disk.
+  // M-RC1 fix: clear with the SAME attributes the cookie was set with.
   res.clearCookie('refreshToken', getRefreshCookieOptions());
   sendSuccess(res, 200, 'Logged out successfully');
 });
@@ -311,7 +337,6 @@ export const refreshToken = asyncHandler(async (req, res) => {
     decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
   } catch (err) {
     res.status(401);
-    // Re-throw the original JWT error so errorHandler classifies TokenExpiredError correctly
     throw err;
   }
 
@@ -328,10 +353,26 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new Error('Account has been disabled. Please contact support.');
   }
 
-  const newAccessToken = generateAccessToken(user._id);
+  // Phase 3: create a new session record and embed sessionId + tokenVersion in the new access token.
+  // This ensures every refreshed token is tied to a trackable session.
+  const newSessionDoc = await createSessionRecord(user._id, req);
+
+  const newAccessToken = generateAccessToken(user._id, {
+    tokenVersion: user.tokenVersion || 0,
+    sessionId: newSessionDoc?._id || null,
+  });
   const newRefreshToken = generateRefreshToken(user._id);
   user.refreshToken = newRefreshToken;
   await user.save();
+
+  // Back-fill real token on session record
+  if (newSessionDoc) {
+    try {
+      await Session.findByIdAndUpdate(newSessionDoc._id, { token: newAccessToken });
+    } catch (err) {
+      logger.error(`Failed to update refreshed session token: ${err.message}`);
+    }
+  }
 
   res.cookie('refreshToken', newRefreshToken, getRefreshCookieOptions());
 

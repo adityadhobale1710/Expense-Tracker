@@ -9,6 +9,11 @@ import {
   getFeedbackList,
   updateFeedbackStatus,
   bootstrapAdmin,
+  getUserActivity,
+  getUserSessions,
+  revokeIndividualSession,
+  getSecurityEvents,
+  getSecurityOverview,
 } from '../controllers/adminController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -52,6 +57,15 @@ router.patch('/users/:id/status', updateUserStatus);
 
 // Revoke all sessions for a user
 router.post('/users/:id/revoke-sessions', revokeUserSessions);
+
+// Phase 3: User Activity & Session Management
+router.get('/users/:id/activity', getUserActivity);
+router.get('/users/:id/sessions', getUserSessions);
+router.post('/users/:id/sessions/:sessionId/revoke', revokeIndividualSession);
+
+// Phase 3: Security Center
+router.get('/security/events', getSecurityEvents);
+router.get('/security/overview', getSecurityOverview);
 
 // Feedback management
 router.get('/feedback', getFeedbackList);

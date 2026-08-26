@@ -477,10 +477,12 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
 
   // ── Apply status change ───────────────────────────────────────────────────
   let auditAction, auditDetails;
+  let shouldRevokeSessions = false;
 
   switch (action) {
     case 'block':
       user.isBlocked = true;
+      shouldRevokeSessions = true;
       auditAction  = 'Admin Blocked User';
       auditDetails = `Admin ${req.user.email} blocked user ${user.email} (ID: ${user._id})`;
       break;
@@ -491,6 +493,7 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
       break;
     case 'disable':
       user.isDisabled = true;
+      shouldRevokeSessions = true;
       auditAction  = 'Admin Disabled User';
       auditDetails = `Admin ${req.user.email} disabled user ${user.email} (ID: ${user._id})`;
       break;
@@ -499,6 +502,14 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
       auditAction  = 'Admin Enabled User';
       auditDetails = `Admin ${req.user.email} re-enabled user ${user.email} (ID: ${user._id})`;
       break;
+  }
+
+  // Phase 3: atomic increment tokenVersion on block/disable, plus clear refresh token and mark sessions inactive
+  if (shouldRevokeSessions) {
+    await Session.updateMany({ user: user._id }, { isActive: false });
+    user.refreshToken = null;
+    await User.updateOne({ _id: user._id }, { $inc: { tokenVersion: 1 } });
+    // Reload user to get updated tokenVersion for the response, although we don't strictly need it in response
   }
 
   await user.save();
@@ -548,9 +559,11 @@ export const revokeUserSessions = asyncHandler(async (req, res) => {
   // Step 2: Null out User.refreshToken — this is the critical step.
   // The /auth/refresh-token endpoint checks: user.refreshToken !== token
   // Nullifying it means ALL existing refresh tokens become invalid immediately.
-  // Existing access tokens (JWT, 15m TTL) will expire naturally.
   user.refreshToken = null;
   await user.save();
+
+  // Phase 3: atomic tokenVersion increment
+  await User.updateOne({ _id: user._id }, { $inc: { tokenVersion: 1 } });
 
   // ── Audit log ─────────────────────────────────────────────────────────────
   await auditLog(
@@ -679,3 +692,243 @@ export const bootstrapAdmin = asyncHandler(async (req, res) => {
     role:   user.role,
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 3 — USER ACTIVITY, SESSION MANAGEMENT & SECURITY CENTER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Helper: determine security severity deterministically ────────────────────
+const getSeverity = (action, details = '') => {
+  const act = action.toLowerCase();
+  
+  if (act.includes('failed') && act.includes('admin')) return 'CRITICAL';
+  if (act.includes('access denied')) return 'CRITICAL';
+  
+  if (act.includes('admin blocked') || act.includes('admin disabled')) return 'HIGH';
+  if (act.includes('revoke')) return 'HIGH';
+  
+  if (act.includes('password reset')) return 'MEDIUM';
+  if (act.includes('admin enabled') || act.includes('admin unblocked')) return 'MEDIUM';
+  if (act.includes('admin viewed user')) return 'MEDIUM';
+  
+  if (act.includes('success') || act.includes('logout') || act.includes('otp')) return 'LOW';
+  
+  return 'INFO';
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Get user activity timeline
+// @route   GET /api/admin/users/:id/activity
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const getUserActivity = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+  const skip = (page - 1) * limit;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400);
+    throw new Error('Invalid user ID format');
+  }
+
+  const [logs, total] = await Promise.all([
+    SecurityLog.find({ user: id })
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    SecurityLog.countDocuments({ user: id }),
+  ]);
+
+  const enrichedLogs = logs.map(log => ({
+    _id: log._id,
+    action: log.action,
+    details: log.details,
+    ipAddress: log.ipAddress,
+    timestamp: log.timestamp,
+    severity: getSeverity(log.action, log.details),
+  }));
+
+  await auditLog(req.user._id, 'Admin Viewed User Activity', `Admin viewed activity for user ${id}`, req);
+
+  sendSuccess(res, 200, 'User activity retrieved', {
+    events: enrichedLogs,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Get user sessions
+// @route   GET /api/admin/users/:id/sessions
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const getUserSessions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400);
+    throw new Error('Invalid user ID format');
+  }
+
+  // Safe projection: never return the token
+  const sessions = await Session.find({ user: id })
+    .select('_id deviceName browser os ipAddress isActive lastActive createdAt')
+    .sort({ lastActive: -1 })
+    .lean();
+
+  await auditLog(req.user._id, 'Admin Viewed User Sessions', `Admin viewed sessions for user ${id}`, req);
+
+  sendSuccess(res, 200, 'User sessions retrieved', sessions);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Revoke individual session
+// @route   POST /api/admin/users/:id/sessions/:sessionId/revoke
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const revokeIndividualSession = asyncHandler(async (req, res) => {
+  const { id, sessionId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(sessionId)) {
+    res.status(400);
+    throw new Error('Invalid ID format');
+  }
+
+  if (id === req.user._id.toString()) {
+    res.status(400);
+    throw new Error('You cannot revoke your own admin sessions via this endpoint.');
+  }
+
+  const session = await Session.findOneAndUpdate(
+    { _id: sessionId, user: id, isActive: true },
+    { isActive: false },
+    { new: true }
+  );
+
+  if (!session) {
+    res.status(404);
+    throw new Error('Active session not found');
+  }
+
+  // Phase 3: atomic tokenVersion increment ensures corresponding JWT is invalidated
+  await User.updateOne({ _id: id }, { $inc: { tokenVersion: 1 } });
+
+  await auditLog(
+    req.user._id,
+    'Admin Revoked Individual Session',
+    `Admin revoked session ${sessionId} for user ${id}`,
+    req
+  );
+
+  sendSuccess(res, 200, 'Session revoked successfully');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Get paginated security events across all users
+// @route   GET /api/admin/security/events
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const getSecurityEvents = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+  const skip = (page - 1) * limit;
+  const { action, user, startDate, endDate } = req.query;
+
+  const filter = {};
+
+  if (action) {
+    filter.action = { $regex: action, $options: 'i' };
+  }
+  if (startDate || endDate) {
+    filter.timestamp = {};
+    if (startDate) filter.timestamp.$gte = new Date(startDate);
+    if (endDate) filter.timestamp.$lte = new Date(endDate);
+  }
+
+  // Handle user search (email/name) by first finding matching users
+  if (user) {
+    const matchingUsers = await User.find({
+      $or: [
+        { email: { $regex: user, $options: 'i' } },
+        { name: { $regex: user, $options: 'i' } }
+      ]
+    }).select('_id').lean();
+    filter.user = { $in: matchingUsers.map(u => u._id) };
+  }
+
+  const [logs, total] = await Promise.all([
+    SecurityLog.find(filter)
+      .populate('user', 'name email')
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    SecurityLog.countDocuments(filter),
+  ]);
+
+  const enrichedLogs = logs.map(log => ({
+    _id: log._id,
+    action: log.action,
+    details: log.details,
+    ipAddress: log.ipAddress,
+    timestamp: log.timestamp,
+    user: log.user, // populated { _id, name, email }
+    severity: getSeverity(log.action, log.details),
+  }));
+
+  // Only audit once per unique query, or skip if it's just standard browsing,
+  // to avoid flooding the audit log with "viewed events" entries.
+  if (action || user) {
+    await auditLog(req.user._id, 'Admin Viewed Security Events', `Admin filtered security events`, req);
+  }
+
+  sendSuccess(res, 200, 'Security events retrieved', {
+    events: enrichedLogs,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Get high-level security overview KPIs
+// @route   GET /api/admin/security/overview
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const getSecurityOverview = asyncHandler(async (req, res) => {
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [
+    failedLogins24h,
+    activeSessions,
+    blockedAccounts,
+    disabledAccounts,
+    recentEvents
+  ] = await Promise.all([
+    SecurityLog.countDocuments({ action: /login failed/i, timestamp: { $gte: twentyFourHoursAgo } }),
+    Session.countDocuments({ isActive: true }),
+    User.countDocuments({ isBlocked: true }),
+    User.countDocuments({ isDisabled: true }),
+    SecurityLog.find().populate('user', 'name email').sort({ timestamp: -1 }).limit(10).lean(),
+  ]);
+
+  const enrichedEvents = recentEvents.map(log => ({
+    _id: log._id,
+    action: log.action,
+    details: log.details,
+    ipAddress: log.ipAddress,
+    timestamp: log.timestamp,
+    user: log.user,
+    severity: getSeverity(log.action, log.details),
+  }));
+
+  sendSuccess(res, 200, 'Security overview retrieved', {
+    kpis: {
+      failedLogins24h,
+      activeSessions,
+      blockedAccounts,
+      disabledAccounts,
+    },
+    recentEvents: enrichedEvents,
+  });
+});
+

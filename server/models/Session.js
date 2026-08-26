@@ -14,5 +14,10 @@ const sessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Phase 3 indexes — support fast per-user session queries and admin security views
+// user index already exists (inline on field definition above)
+sessionSchema.index({ isActive: 1 });                  // filter active sessions
+sessionSchema.index({ user: 1, lastActive: -1 });      // Last Seen lookup per user
+
 const Session = mongoose.model('Session', sessionSchema);
 export default Session;

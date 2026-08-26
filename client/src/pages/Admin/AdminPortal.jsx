@@ -139,6 +139,102 @@ function Pagination({ page, totalPages, total, limit, onPageChange }) {
   );
 }
 
+// ─── User Sessions Panel ───────────────────────────────────────────────────────
+function UserSessionsPanel({ userId, onRevokeSession }) {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await api.get(`/admin/users/${userId}/sessions`);
+      setSessions(res.data.data);
+    } catch {
+      toast.error('Failed to load user sessions');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+  if (loading) return <div className="h-20 bg-slate-800/40 rounded-xl animate-pulse" />;
+  if (sessions.length === 0) return <p className="text-xs text-slate-500">No session history found.</p>;
+
+  return (
+    <div className="space-y-2">
+      {sessions.map(s => (
+        <div key={s._id} className={`p-3 rounded-xl border flex flex-col md:flex-row justify-between gap-3 ${s.isActive ? 'bg-slate-900/60 border-slate-700/50' : 'bg-slate-950/40 border-slate-800/50 opacity-60'}`}>
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${s.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`} />
+              <span className="text-xs font-bold text-slate-200 truncate">{s.deviceName}</span>
+            </div>
+            <p className="text-[10px] text-slate-500 font-mono">{s.ipAddress} • {s.browser}</p>
+            <p className="text-[10px] text-slate-400">Last seen: {fmtDateTime(s.lastActive)}</p>
+          </div>
+          {s.isActive && (
+            <button
+              onClick={() => onRevokeSession(s._id, fetchSessions)}
+              className="btn btn-ghost text-red-400 text-[10px] py-1 px-2 h-fit"
+            >
+              Revoke
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── User Activity Panel ───────────────────────────────────────────────────────
+function UserActivityPanel({ userId }) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+
+  useEffect(() => {
+    setLoading(true);
+    api.get(`/admin/users/${userId}/activity?page=${page}&limit=5`)
+      .then(res => {
+        setEvents(res.data.data.events);
+        setTotalPages(res.data.data.pagination.totalPages);
+      })
+      .catch(() => toast.error('Failed to load user activity'))
+      .finally(() => setLoading(false));
+  }, [userId, page]);
+
+  if (loading && events.length === 0) return <div className="h-40 bg-slate-800/40 rounded-xl animate-pulse" />;
+  if (events.length === 0) return <p className="text-xs text-slate-500">No recent activity.</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="relative border-l border-slate-700/50 ml-3 space-y-6 pb-2">
+        {events.map((evt, i) => (
+          <div key={evt._id} className="relative pl-6">
+            <span className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-dark-800 ${
+              evt.severity === 'CRITICAL' ? 'bg-red-500' :
+              evt.severity === 'HIGH' ? 'bg-amber-500' :
+              evt.severity === 'MEDIUM' ? 'bg-yellow-500' :
+              evt.severity === 'LOW' ? 'bg-emerald-500' : 'bg-blue-500'
+            }`} />
+            <p className="text-xs text-slate-400 mb-0.5">{fmtDateTime(evt.timestamp)}</p>
+            <p className="text-sm font-semibold text-slate-200">{evt.action}</p>
+            {evt.details && <p className="text-xs text-slate-500 mt-1">{evt.details}</p>}
+          </div>
+        ))}
+      </div>
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 pt-2">
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="btn btn-secondary py-1 px-3 text-[10px]">Newer</button>
+          <span className="text-[10px] text-slate-500 py-1">{page} / {totalPages}</span>
+          <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary py-1 px-3 text-[10px]">Older</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── User Detail Drawer ────────────────────────────────────────────────────────
 function UserDetailDrawer({ userId, onClose, onActionComplete }) {
   const { showConfirm } = useContext(DialogContext);
@@ -204,6 +300,27 @@ function UserDetailDrawer({ userId, onClose, onActionComplete }) {
       toast.error(e?.response?.data?.message || 'Failed to revoke sessions');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleRevokeIndividual = async (sessionId, refreshSessions) => {
+    const confirmed = await showConfirm({
+      title: 'Revoke Session?',
+      message: 'This specific session will be terminated immediately.',
+      confirmText: 'Revoke',
+      cancelText: 'Cancel',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+    try {
+      await api.post(`/admin/users/${userId}/sessions/${sessionId}/revoke`);
+      toast.success('Session revoked');
+      refreshSessions(); // re-fetch the sessions list
+      // Also refresh main detail for lastSeen/activeSessions counts
+      const detailRes = await api.get(`/admin/users/${userId}`);
+      setDetail(detailRes.data.data);
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Failed to revoke session');
     }
   };
 
@@ -351,6 +468,26 @@ function UserDetailDrawer({ userId, onClose, onActionComplete }) {
               </div>
             </section>
 
+            {/* ── Security Center (Phase 3) ─────────────────────────── */}
+            <section className="card space-y-6 border border-slate-700">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-700/50">
+                <span className="text-lg">🛡️</span>
+                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                  Security &amp; Devices
+                </h4>
+              </div>
+              
+              <div className="space-y-3">
+                <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active &amp; Recent Sessions</h5>
+                <UserSessionsPanel userId={userId} onRevokeSession={handleRevokeIndividual} />
+              </div>
+
+              <div className="space-y-3">
+                <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Activity Timeline</h5>
+                <UserActivityPanel userId={userId} />
+              </div>
+            </section>
+
             {/* ── Account Actions ───────────────────────────────────── */}
             {!isSelf && (
               <section className="card space-y-3">
@@ -494,6 +631,18 @@ export default function AdminPortal() {
   // ── User detail drawer ──────────────────────────────────────────────────────
   const [drawerUserId, setDrawerUserId] = useState(null);
 
+  // ── Phase 3: Security state ────────────────────────────────────────────────
+  const [securityOverview, setSecurityOverview] = useState(null);
+  const [securityOverviewLoading, setSecurityOverviewLoading] = useState(false);
+
+  const [securityEvents, setSecurityEvents] = useState([]);
+  const [securityPagination, setSecurityPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [securityFilterAction, setSecurityFilterAction] = useState('');
+  const [securityFilterUser, setSecurityFilterUser] = useState('');
+  const [securityPage, setSecurityPage] = useState(1);
+  const debouncedSecurityUser = useDebounce(securityFilterUser, 400);
+
   // ── Fetch overview stats ────────────────────────────────────────────────────
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -546,6 +695,39 @@ export default function AdminPortal() {
     }
   }, []);
 
+  // ── Phase 3: Fetch Security Overview ───────────────────────────────────────
+  const fetchSecurityOverview = useCallback(async () => {
+    setSecurityOverviewLoading(true);
+    try {
+      const res = await api.get('/admin/security/overview');
+      setSecurityOverview(res.data.data);
+    } catch {
+      toast.error('Failed to load security overview');
+    } finally {
+      setSecurityOverviewLoading(false);
+    }
+  }, []);
+
+  // ── Phase 3: Fetch Security Events ─────────────────────────────────────────
+  const fetchSecurityEvents = useCallback(async (opts = {}) => {
+    setSecurityLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page:   opts.page   ?? securityPage,
+        limit:  20,
+        action: opts.action ?? securityFilterAction,
+        user:   opts.user   ?? debouncedSecurityUser,
+      });
+      const res = await api.get(`/admin/security/events?${params}`);
+      setSecurityEvents(res.data.data.events || []);
+      setSecurityPagination(res.data.data.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 });
+    } catch {
+      toast.error('Failed to load security events');
+    } finally {
+      setSecurityLoading(false);
+    }
+  }, [securityPage, securityFilterAction, debouncedSecurityUser]);
+
   // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
@@ -563,6 +745,19 @@ export default function AdminPortal() {
   useEffect(() => {
     if (activeTab === 'feedback') fetchFeedback();
   }, [activeTab, fetchFeedback]);
+
+  // ── Phase 3: Load Security when tab active or filters change ───────────────
+  useEffect(() => {
+    if (activeTab === 'security') {
+      fetchSecurityOverview();
+      fetchSecurityEvents();
+    }
+  }, [activeTab, fetchSecurityOverview, fetchSecurityEvents]);
+
+  // Reset security page on filter change
+  useEffect(() => {
+    setSecurityPage(1);
+  }, [securityFilterAction, debouncedSecurityUser]);
 
   const handleUpdateFeedback = async (id, status) => {
     try {
@@ -591,6 +786,7 @@ export default function AdminPortal() {
   const TABS = [
     { id: 'overview',  label: 'Overview',     icon: '📊' },
     { id: 'users',     label: 'Users',        icon: '👥' },
+    { id: 'security',  label: 'Security',     icon: '🛡️' },
     { id: 'health',    label: 'System Health', icon: '🖥️' },
     { id: 'feedback',  label: 'Feedback',     icon: '💬' },
   ];
@@ -921,6 +1117,136 @@ export default function AdminPortal() {
                 />
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* SECURITY TAB (Phase 3)                                             */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'security' && (
+        <div className="space-y-6" role="tabpanel" aria-label="Security center">
+          {/* Security Overview KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KpiCard icon="🛡️" label="Failed Logins (24h)" value={fmt(securityOverview?.kpis?.failedLogins24h)} color="border-red-500" loading={securityOverviewLoading} />
+            <KpiCard icon="🟢" label="Active Sessions"     value={fmt(securityOverview?.kpis?.activeSessions)}  color="border-emerald-500" loading={securityOverviewLoading} />
+            <KpiCard icon="🚫" label="Blocked Accounts"    value={fmt(securityOverview?.kpis?.blockedAccounts)} color="border-amber-500" loading={securityOverviewLoading} />
+            <KpiCard icon="⛔" label="Disabled Accounts"   value={fmt(securityOverview?.kpis?.disabledAccounts)} color="border-amber-500" loading={securityOverviewLoading} />
+          </div>
+
+          <div className="card space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h3 className="text-sm font-bold text-slate-200">Security Events &amp; Audit Log</h3>
+              
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search user email/name..."
+                  value={securityFilterUser}
+                  onChange={(e) => setSecurityFilterUser(e.target.value)}
+                  className="input-field text-xs py-1.5 min-w-[200px]"
+                />
+                <select
+                  value={securityFilterAction}
+                  onChange={(e) => setSecurityFilterAction(e.target.value)}
+                  className="input-field text-xs py-1.5"
+                >
+                  <option value="">All Actions</option>
+                  <option value="login failed">Failed Logins</option>
+                  <option value="login success">Successful Logins</option>
+                  <option value="admin">Admin Actions</option>
+                  <option value="revoke">Session Revocations</option>
+                  <option value="password">Password Events</option>
+                </select>
+                {(securityFilterAction || securityFilterUser) && (
+                  <button
+                    onClick={() => { setSecurityFilterAction(''); setSecurityFilterUser(''); }}
+                    className="btn btn-ghost text-xs py-1.5 px-3 text-red-400"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-700/50">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-slate-800/80 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-700/50">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Timestamp</th>
+                    <th className="px-4 py-3 font-semibold">Severity</th>
+                    <th className="px-4 py-3 font-semibold">Action</th>
+                    <th className="px-4 py-3 font-semibold">User</th>
+                    <th className="px-4 py-3 font-semibold">IP Address</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {securityLoading ? (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={i}>
+                        {[...Array(5)].map((__, j) => (
+                          <td key={j} className="px-4 py-3">
+                            <div className="h-4 bg-slate-700/40 rounded animate-pulse" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : securityEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-xs text-slate-500">
+                        No security events found.
+                      </td>
+                    </tr>
+                  ) : (
+                    securityEvents.map((evt) => (
+                      <tr key={evt._id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-4 py-3 text-xs text-slate-400">{fmtDateTime(evt.timestamp)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`badge text-[10px] ${
+                            evt.severity === 'CRITICAL' ? 'badge-red animate-pulse' :
+                            evt.severity === 'HIGH' ? 'badge-amber' :
+                            evt.severity === 'MEDIUM' ? 'badge-yellow' :
+                            evt.severity === 'LOW' ? 'badge-green' : 'badge-blue'
+                          }`}>
+                            {evt.severity}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold text-slate-200">
+                          {evt.action}
+                          {evt.details && (
+                            <p className="font-normal text-[10px] text-slate-500 max-w-xs truncate" title={evt.details}>
+                              {evt.details}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {evt.user ? (
+                            <div
+                              className="text-primary-400 hover:underline cursor-pointer"
+                              onClick={() => setDrawerUserId(evt.user._id)}
+                            >
+                              {evt.user.email}
+                            </div>
+                          ) : <span className="text-slate-600">System / Unknown</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500 font-mono">{evt.ipAddress || '—'}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              page={securityPagination.page}
+              totalPages={securityPagination.totalPages}
+              total={securityPagination.total}
+              limit={securityPagination.limit}
+              onPageChange={(p) => {
+                setSecurityPage(p);
+                fetchSecurityEvents({ page: p });
+              }}
+            />
           </div>
         </div>
       )}
