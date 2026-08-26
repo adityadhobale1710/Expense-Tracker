@@ -69,9 +69,23 @@ router.post('/users/:id/sessions/:sessionId/revoke', revokeIndividualSession);
 router.get('/security/events', getSecurityEvents);
 router.get('/security/overview', getSecurityOverview);
 
+// Phase 5: Intensive query rate limiter
+const analyticsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30, // 30 requests per 15 mins for exports/analytics
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many analytics requests. Please wait before requesting again.',
+    });
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Phase 4: Admin Analytics & Exports
-router.get('/analytics', getAdminAnalytics);
-router.get('/analytics/export/:type', exportAdminAnalytics);
+router.get('/analytics', analyticsLimiter, getAdminAnalytics);
+router.get('/analytics/export/:type', analyticsLimiter, exportAdminAnalytics);
 
 // Feedback management
 router.get('/feedback', getFeedbackList);

@@ -37,7 +37,6 @@ const createSessionRecord = async (userId, req) => {
     // token field will be back-filled after JWT generation
     const session = await Session.create({
       user: userId,
-      token: 'pending', // placeholder — updated immediately after token generation
       deviceName,
       browser,
       os,
@@ -194,23 +193,28 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  const isMatch = await user.matchPassword(password);
   if (!isMatch) {
-    // ── Audit: admin account — bad password ──────────────────────────────────
-    // Only log as "Admin Login Failed" when we know the account IS an admin.
-    // For regular users we stay silent to avoid revealing admin-ness.
-    if (user.role === 'admin') {
-      await writeSecurityLog(
-        user._id,
-        'Admin Login Failed',
-        req,
-        'Invalid password supplied for admin account.'
-      );
-    }
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+    // Phase 5: Burst detection (5+ fails in 1 hour)
+    const recentFails = await SecurityLog.countDocuments({
+      action: { $in: ['Admin Login Failed', 'Login Failed'] },
+      ipAddress,
+      timestamp: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+    });
+    const isBurst = recentFails >= 4;
+    const burstTag = isBurst ? ' [BURST]' : '';
+
+    const actionName = user.role === 'admin' ? 'Admin Login Failed' : 'Login Failed';
+    await writeSecurityLog(
+      user._id,
+      actionName,
+      req,
+      `Invalid password supplied.${burstTag}`
+    );
+
     res.status(401);
     return res.json({
       success: false,
-      // AUDIT-AUTH-004: Same generic message — don't reveal whether email or password is wrong
       message: 'Invalid email or password'
     });
   }
@@ -232,21 +236,13 @@ export const login = asyncHandler(async (req, res) => {
   const sessionDoc = await createSessionRecord(user._id, req);
 
   const accessToken = generateAccessToken(user._id, {
+    role: user.role,
     tokenVersion: user.tokenVersion || 0,
     sessionId: sessionDoc?._id || null,
   });
   const refreshToken = generateRefreshToken(user._id);
   user.refreshToken = refreshToken;
   await user.save();
-
-  // Back-fill the real access token on the session record so logout can find it
-  if (sessionDoc) {
-    try {
-      await Session.findByIdAndUpdate(sessionDoc._id, { token: accessToken });
-    } catch (err) {
-      logger.error(`Failed to update session token: ${err.message}`);
-    }
-  }
 
   // ── Audit: successful admin login ────────────────────────────────────────────
   if (user.role === 'admin') {
@@ -302,16 +298,13 @@ export const logout = asyncHandler(async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer')) {
-      const token = authHeader.split(' ')[1];
+      // Phase 5: token is no longer stored in Session. Rely entirely on sessionId from middleware.
       const sessionId = req.user._sessionId; // set by protect middleware (Phase 3)
       if (sessionId) {
         await Session.findOneAndUpdate(
           { _id: sessionId, user: req.user._id },
           { isActive: false }
         );
-      } else {
-        // Legacy path: fall back to token string match
-        await Session.findOneAndUpdate({ token, user: req.user._id }, { isActive: false });
       }
     }
   } catch (err) {
@@ -359,21 +352,13 @@ export const refreshToken = asyncHandler(async (req, res) => {
   const newSessionDoc = await createSessionRecord(user._id, req);
 
   const newAccessToken = generateAccessToken(user._id, {
+    role: user.role,
     tokenVersion: user.tokenVersion || 0,
     sessionId: newSessionDoc?._id || null,
   });
   const newRefreshToken = generateRefreshToken(user._id);
   user.refreshToken = newRefreshToken;
   await user.save();
-
-  // Back-fill real token on session record
-  if (newSessionDoc) {
-    try {
-      await Session.findByIdAndUpdate(newSessionDoc._id, { token: newAccessToken });
-    } catch (err) {
-      logger.error(`Failed to update refreshed session token: ${err.message}`);
-    }
-  }
 
   res.cookie('refreshToken', newRefreshToken, getRefreshCookieOptions());
 

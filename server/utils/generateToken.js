@@ -11,8 +11,8 @@ import jwt from 'jsonwebtoken';
  *     tokenVersion=0 and sessionId=undefined; they remain valid until they expire
  *     naturally (15 min TTL), after which only new Phase 3 tokens are issued.
  */
-export const generateAccessToken = (userId, { tokenVersion = 0, sessionId = null } = {}) => {
-  const payload = { id: userId, tokenVersion };
+export const generateAccessToken = (userId, { role = 'user', tokenVersion = 0, sessionId = null } = {}) => {
+  const payload = { id: userId, role, tokenVersion };
   if (sessionId) payload.sessionId = sessionId.toString();
   return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '15m',

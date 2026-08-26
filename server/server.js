@@ -192,9 +192,35 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on http://localhost:${PORT}`);
 });
+
+// Phase 5: Graceful Shutdown
+import mongoose from 'mongoose';
+const gracefulShutdown = async () => {
+  logger.info('SIGTERM/SIGINT received. Shutting down gracefully...');
+  server.close(async () => {
+    logger.info('HTTP server closed.');
+    try {
+      await mongoose.connection.close(false);
+      logger.info('MongoDB connection closed.');
+      process.exit(0);
+    } catch (err) {
+      logger.error('Error during graceful shutdown:', err);
+      process.exit(1);
+    }
+  });
+  
+  // Force exit if taking too long (e.g. 10s)
+  setTimeout(() => {
+    logger.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 // ─── Process-Level Error Guards ────────────────────────────────────────────────
 // J2 fix: without these, unhandled rejections outside Express handlers kill the

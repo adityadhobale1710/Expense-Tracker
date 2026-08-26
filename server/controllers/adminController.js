@@ -705,6 +705,7 @@ const getSeverity = (action, details = '') => {
   
   if (act.includes('failed') && act.includes('admin')) return 'CRITICAL';
   if (act.includes('access denied')) return 'CRITICAL';
+  if (details.includes('[BURST]')) return 'CRITICAL'; // Phase 5 burst detection
   
   if (act.includes('admin blocked') || act.includes('admin disabled')) return 'HIGH';
   if (act.includes('revoke')) return 'HIGH';
@@ -717,6 +718,23 @@ const getSeverity = (action, details = '') => {
   
   return 'INFO';
 };
+
+// ─── Phase 5: Security Log Sanitizer ──────────────────────────────────────────
+const sanitizeLogDetails = (details) => {
+  if (!details) return '';
+  return details.replace(/(password|token|secret|jwt|key|otp|code)[=:\s]+[\w.-]+/gi, '$1=***');
+};
+
+const VALID_SECURITY_ACTIONS = [
+  'Admin Login Success', 'Admin Login Failed', 'Admin Access Denied — Non-Admin Account',
+  'Admin Bootstrap', 'Admin Viewed User', 'Admin Viewed User Activity',
+  'Admin Viewed User Sessions', 'Admin Blocked User', 'Admin Unblocked User',
+  'Admin Disabled User', 'Admin Enabled User', 'Admin Revoked User Sessions',
+  'Admin Revoked Individual Session', 'Admin Viewed Security Events',
+  'Admin Viewed Analytics', 'Admin Exported Users', 'Admin Exported Security Events',
+  'Admin Generated Analytics Report', 'Login Success', 'Login Failed', 'Logout',
+  'Password Reset', 'Session Revoke'
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // @desc    Get user activity timeline
@@ -813,8 +831,8 @@ export const revokeIndividualSession = asyncHandler(async (req, res) => {
     throw new Error('Active session not found');
   }
 
-  // Phase 3: atomic tokenVersion increment ensures corresponding JWT is invalidated
-  await User.updateOne({ _id: id }, { $inc: { tokenVersion: 1 } });
+  // Phase 5 fix: Do NOT increment global tokenVersion. Individual revocation 
+  // only disables the specific session in MongoDB. authMiddleware will enforce this.
 
   await auditLog(
     req.user._id,
@@ -840,7 +858,17 @@ export const getSecurityEvents = asyncHandler(async (req, res) => {
   const filter = {};
 
   if (action) {
-    filter.action = { $regex: action, $options: 'i' };
+    if (VALID_SECURITY_ACTIONS.includes(action)) {
+      filter.action = action; // Phase 5: exact match only
+    } else {
+      // Return empty if action is invalid
+      return sendSuccess(res, 200, 'Security events retrieved', {
+        logs: [],
+        page,
+        pages: 0,
+        total: 0,
+      });
+    }
   }
   if (startDate || endDate) {
     filter.timestamp = {};
@@ -948,6 +976,12 @@ export const getAdminAnalytics = asyncHandler(async (req, res) => {
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
     res.status(400);
     throw new Error('Invalid date range');
+  }
+
+  // Phase 5: Enforce max 365 days date range for analytics
+  if (end.getTime() - start.getTime() > 365 * 24 * 60 * 60 * 1000) {
+    res.status(400);
+    throw new Error('Date range cannot exceed 365 days.');
   }
   
   // Previous period (for comparison)
@@ -1090,13 +1124,18 @@ export const exportAdminAnalytics = asyncHandler(async (req, res) => {
   if (type === 'users') {
     data = await User.find({ createdAt: { $gte: start, $lte: end } })
       .select('name email role status isEmailVerified currency createdAt lastSeen isBlocked isDisabled')
+      .limit(5000) // Phase 5 Export Limit
       .lean();
     await auditLog(req.user._id, 'Admin Exported Users', `Exported users from ${start.toISOString()} to ${end.toISOString()} as ${format}`, req);
   } else if (type === 'security') {
     data = await SecurityLog.find({ timestamp: { $gte: start, $lte: end } })
       .populate('user', 'email')
       .sort({ timestamp: -1 })
+      .limit(5000) // Phase 5 Export Limit
       .lean();
+      
+    // Phase 5: Sanitize logs
+    data = data.map(log => ({ ...log, details: sanitizeLogDetails(log.details) }));
     await auditLog(req.user._id, 'Admin Exported Security Events', `Exported security events from ${start.toISOString()} to ${end.toISOString()} as ${format}`, req);
   } else {
     data = [ { Report: 'Admin Analytics Summary', Start: start.toISOString(), End: end.toISOString(), GeneratedAt: new Date().toISOString() } ];
