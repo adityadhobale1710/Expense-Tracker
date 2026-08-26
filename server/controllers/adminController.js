@@ -1,92 +1,576 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
 import Expense from '../models/Expense.js';
+import Income from '../models/Income.js';
+import Budget from '../models/Budget.js';
+import Goal from '../models/Goal.js';
+import Subscription from '../models/Subscription.js';
+import Loan from '../models/Loan.js';
+import Wallet from '../models/Wallet.js';
 import Feedback from '../models/Feedback.js';
 import SecurityLog from '../models/SecurityLog.js';
+import Session from '../models/Session.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
-// ─── Helper: constant-time string comparison ───────────────────────────────────
-// crypto.timingSafeEqual requires two Buffers of the same byte length.
+// ─── Helper: constant-time string comparison ────────────────────────────────
 const timingSafeEqual = (a, b) => {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
   if (bufA.length !== bufB.length) {
-    // Still run the comparison on same-length dummy to avoid length-leaking
     crypto.timingSafeEqual(bufA, Buffer.alloc(bufA.length));
     return false;
   }
   return crypto.timingSafeEqual(bufA, bufB);
 };
 
-// ─── Helper: convert process.memoryUsage() bytes to MB ────────────────────────
+// ─── Helper: convert process.memoryUsage() bytes to MB ──────────────────────
 const toMB = (bytes) => +(bytes / 1024 / 1024).toFixed(2);
 
+// ─── Helper: get IP from request ────────────────────────────────────────────
+const getIp = (req) =>
+  req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || '127.0.0.1';
+
+// ─── Helper: write SecurityLog — best-effort, never throws ──────────────────
+const auditLog = async (adminId, action, details, req) => {
+  try {
+    await SecurityLog.create({
+      user: adminId,
+      action,
+      ipAddress: getIp(req),
+      details,
+    });
+  } catch (err) {
+    console.error(`[AdminAudit] Failed to write '${action}': ${err.message}`);
+  }
+};
+
+// ─── Helper: safe user projection — NEVER returns secrets ───────────────────
+// Explicitly listed to ensure new fields never accidentally leak.
+const SAFE_USER_SELECT =
+  '-password -refreshToken -twoFactorSecret -backupCodes -resetPasswordToken -resetPasswordExpire';
+
+// ─── Helper: allowed sort fields allowlist ──────────────────────────────────
+const ALLOWED_SORT_FIELDS = new Set(['createdAt', 'name', 'email']);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // @desc    Get Admin Panel statistics
 // @route   GET /api/admin/stats
-// @access  Admin only (enforced by router middleware)
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
 export const getAdminStats = asyncHandler(async (req, res) => {
-  const [totalUsers, premiumUsers, totalTransactions, totalFeedback] = await Promise.all([
+  // ── UTC time boundaries ────────────────────────────────────────────────────
+  // All "New Today / This Week / This Month" metrics use UTC boundaries.
+  // The server runs on Node.js (Render, UTC). Timezone basis: UTC.
+  const now = new Date();
+
+  // Today: UTC midnight
+  const startOfToday = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
+  ));
+
+  // This week: last Sunday 00:00 UTC (ISO week starts Sunday for UX clarity)
+  const dayOfWeek = now.getUTCDay(); // 0 = Sunday
+  const startOfWeek = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOfWeek
+  ));
+
+  // This month: 1st of current month 00:00 UTC
+  const startOfMonth = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), 1
+  ));
+
+  // ── User status counts — mutually exclusive categories ─────────────────────
+  // Correction #1: Four non-overlapping groups.
+  //   active   = isBlocked NOT true AND isDisabled NOT true  (neither flag)
+  //   blocked  = isBlocked true AND isDisabled NOT true      (blocked only)
+  //   disabled = isDisabled true AND isBlocked NOT true      (disabled only)
+  //   both     = isBlocked true AND isDisabled true          (both flags)
+  // These four are mutually exclusive: active + blocked + disabled + both = total.
+  const [
+    totalUsers,
+    activeUsers,
+    blockedOnly,
+    disabledOnly,
+    bothFlags,
+    adminUsers,
+    newToday,
+    newThisWeek,
+    newThisMonth,
+  ] = await Promise.all([
     User.countDocuments({}),
-    User.countDocuments({ role: 'premium' }),
-    Expense.countDocuments({}),
+    User.countDocuments({ isBlocked: { $ne: true }, isDisabled: { $ne: true } }),
+    User.countDocuments({ isBlocked: true,          isDisabled: { $ne: true } }),
+    User.countDocuments({ isDisabled: true,         isBlocked: { $ne: true } }),
+    User.countDocuments({ isBlocked: true,          isDisabled: true }),
+    User.countDocuments({ role: 'admin' }),
+    User.countDocuments({ createdAt: { $gte: startOfToday } }),
+    User.countDocuments({ createdAt: { $gte: startOfWeek } }),
+    User.countDocuments({ createdAt: { $gte: startOfMonth } }),
+  ]);
+
+  // ── Financial aggregates — all parallel, no full-collection loads ──────────
+  const [
+    expenseStats,
+    incomeStats,
+    totalBudgets,
+    totalGoals,
+    totalSubscriptions,
+    totalLoans,
+    totalWallets,
+    totalFeedback,
+  ] = await Promise.all([
+    Expense.aggregate([
+      { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } },
+    ]),
+    Income.aggregate([
+      { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } },
+    ]),
+    Budget.countDocuments({}),
+    Goal.countDocuments({}),
+    Subscription.countDocuments({}),
+    Loan.countDocuments({}),
+    Wallet.countDocuments({}),
     Feedback.countDocuments({}),
   ]);
 
-  // Real expense volume aggregation
-  const sumRevenue = await Expense.aggregate([
-    { $group: { _id: null, total: { $sum: '$amount' } } },
-  ]);
+  const totalExpenses    = expenseStats[0]?.count ?? 0;
+  const expenseVolume    = expenseStats[0]?.total ?? 0;
+  const totalIncomes     = incomeStats[0]?.count  ?? 0;
+  const incomeVolume     = incomeStats[0]?.total  ?? 0;
 
-  const rawVol = sumRevenue[0]?.total || 0;
+  // ── Recent admin audit activity (last 5 — safe fields only) ─────────────────
+  const recentAdminActivity = await SecurityLog.find({
+    action: { $regex: /^Admin /i },
+  })
+    .sort({ timestamp: -1 })
+    .limit(5)
+    .select('action details timestamp ipAddress')
+    .populate('user', 'name email');
 
-  // ─── Real Node process metrics ─────────────────────────────────────────────
-  // These are Node.js process-level metrics, NOT full host CPU/RAM.
-  // Labeled clearly so they are never misread as server-wide hardware stats.
+  // ── Real Node process metrics ───────────────────────────────────────────────
   const mem = process.memoryUsage();
   const diagnostics = {
-    // Node process memory (labeled accurately — not total server RAM)
     nodeMemory: {
-      rss:       toMB(mem.rss),       // Resident Set Size — total allocated OS memory for this process
-      heapUsed:  toMB(mem.heapUsed),  // V8 heap actually used by JS objects
-      heapTotal: toMB(mem.heapTotal), // Total V8 heap allocated
-      external:  toMB(mem.external),  // C++ objects bound to JS objects
+      rss:       toMB(mem.rss),
+      heapUsed:  toMB(mem.heapUsed),
+      heapTotal: toMB(mem.heapTotal),
+      external:  toMB(mem.external),
       unit: 'MB',
     },
-    // Server (process) uptime in seconds — NOT "active connections"
     uptimeSeconds: Math.floor(process.uptime()),
-    // Node.js version for informational purposes
     nodeVersion: process.version,
   };
 
   sendSuccess(res, 200, 'Admin metrics aggregated', {
+    userMetrics: {
+      total:       totalUsers,
+      active:      activeUsers,      // neither isBlocked nor isDisabled
+      blockedOnly,                   // isBlocked=true, isDisabled=false
+      disabledOnly,                  // isDisabled=true, isBlocked=false
+      bothFlags,                     // both flags set simultaneously
+      adminUsers,
+      newToday,
+      newThisWeek,
+      newThisMonth,
+    },
+    financialMetrics: {
+      expenses:      totalExpenses,
+      expenseVolume,
+      incomes:       totalIncomes,
+      incomeVolume,
+      budgets:       totalBudgets,
+      goals:         totalGoals,
+      subscriptions: totalSubscriptions,
+      loans:         totalLoans,
+      wallets:       totalWallets,
+    },
+    feedback: { total: totalFeedback },
+    recentAdminActivity,
+    diagnostics,
+    // Kept for backward-compatibility with any Phase 1 UI still reading these
     overview: {
       totalUsers,
-      premiumUsers,
-      totalTransactions,
+      premiumUsers: await User.countDocuments({ role: 'premium' }),
+      totalTransactions: totalExpenses,
       totalFeedback,
-      systemVolume: rawVol,
+      systemVolume: expenseVolume,
     },
-    diagnostics,
   });
 });
 
-// @desc    Get user accounts details list
-// @route   GET /api/admin/users
-// @access  Admin only (enforced by router middleware)
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Get paginated, searchable, filterable user list
+// @route   GET /api/admin/users?page=1&limit=20&search=&role=&status=&verified=&sortBy=createdAt&sortOrder=desc
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
 export const getUsersList = asyncHandler(async (req, res) => {
-  const users = await User.find({})
-    .select(
-      '-password -refreshToken -resetPasswordToken -resetPasswordExpire -twoFactorSecret -backupCodes'
-    )
-    .sort({ createdAt: -1 });
+  // ── Query params ─────────────────────────────────────────────────────────
+  const page     = Math.max(1, parseInt(req.query.page,  10) || 1);
+  const rawLimit = parseInt(req.query.limit, 10) || 20;
+  const limit    = Math.min(Math.max(1, rawLimit), 100); // enforce 1–100
+  const skip     = (page - 1) * limit;
 
-  sendSuccess(res, 200, 'User list retrieved', users);
+  const search    = (req.query.search    || '').trim();
+  const roleFilter= (req.query.role      || '').trim();
+  const status    = (req.query.status    || '').trim();
+  const verified  = (req.query.verified  || '').trim();
+
+  // Allowlist sort fields — never allow arbitrary client-controlled field names
+  const rawSort    = req.query.sortBy    || 'createdAt';
+  const sortBy     = ALLOWED_SORT_FIELDS.has(rawSort) ? rawSort : 'createdAt';
+  const sortOrder  = req.query.sortOrder === 'asc' ? 1 : -1;
+
+  // ── Build filter ─────────────────────────────────────────────────────────
+  const filter = {};
+
+  if (search) {
+    // Case-insensitive search on name and email only (no credential fields)
+    filter.$or = [
+      { name:  { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  if (roleFilter && ['user', 'premium', 'admin'].includes(roleFilter)) {
+    filter.role = roleFilter;
+  }
+
+  if (status === 'active') {
+    filter.isBlocked  = { $ne: true };
+    filter.isDisabled = { $ne: true };
+  } else if (status === 'blocked') {
+    filter.isBlocked  = true;
+    filter.isDisabled = { $ne: true };
+  } else if (status === 'disabled') {
+    filter.isDisabled = true;
+    filter.isBlocked  = { $ne: true };
+  } else if (status === 'both') {
+    filter.isBlocked  = true;
+    filter.isDisabled = true;
+  }
+
+  if (verified === 'verified') {
+    // Add isEmailVerified filter directly; $or for search is already in filter
+    filter.isEmailVerified = true;
+  } else if (verified === 'unverified') {
+    filter.isEmailVerified = false;
+  }
+
+  // ── Fetch page + total count in parallel ──────────────────────────────────
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .select(SAFE_USER_SELECT)
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    User.countDocuments(filter),
+  ]);
+
+  if (users.length === 0) {
+    return sendSuccess(res, 200, 'User list retrieved', {
+      users: [],
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  }
+
+  // ── Batch aggregations — NO N+1 queries ─────────────────────────────────
+  const userIds = users.map((u) => u._id);
+
+  // Expense counts per user (current page only)
+  const [expenseCounts, incomeCounts, sessionActivity] = await Promise.all([
+    Expense.aggregate([
+      { $match: { user: { $in: userIds } } },
+      { $group: { _id: '$user', count: { $sum: 1 } } },
+    ]),
+    Income.aggregate([
+      { $match: { user: { $in: userIds } } },
+      { $group: { _id: '$user', count: { $sum: 1 } } },
+    ]),
+    // Correction #2: Last Seen from Session.lastActive (most recent active session)
+    Session.aggregate([
+      { $match: { user: { $in: userIds } } },
+      { $group: { _id: '$user', lastSeen: { $max: '$lastActive' } } },
+    ]),
+  ]);
+
+  // Build lookup maps for O(1) joins
+  const expenseMap = Object.fromEntries(expenseCounts.map((e) => [e._id.toString(), e.count]));
+  const incomeMap  = Object.fromEntries(incomeCounts.map((e)  => [e._id.toString(), e.count]));
+  const sessionMap = Object.fromEntries(sessionActivity.map((s) => [s._id.toString(), s.lastSeen]));
+
+  // ── Compose safe DTOs — never expose secrets ─────────────────────────────
+  const safeUsers = users.map((u) => ({
+    _id:            u._id,
+    name:           u.name,
+    email:          u.email,
+    role:           u.role,
+    isBlocked:      u.isBlocked  || false,
+    isDisabled:     u.isDisabled || false,
+    isEmailVerified:u.isEmailVerified,
+    currency:       u.currency,
+    phone:          u.phone || '',
+    createdAt:      u.createdAt,
+    updatedAt:      u.updatedAt,
+    // Correction #2: lastSeen from Session.lastActive; null if no sessions recorded
+    lastSeen:       sessionMap[u._id.toString()] || null,
+    expenseCount:   expenseMap[u._id.toString()] || 0,
+    incomeCount:    incomeMap[u._id.toString()]  || 0,
+  }));
+
+  sendSuccess(res, 200, 'User list retrieved', {
+    users: safeUsers,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Get single user details with financial summary
+// @route   GET /api/admin/users/:id
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const getUserById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400);
+    throw new Error('Invalid user ID format');
+  }
+
+  const user = await User.findById(id).select(SAFE_USER_SELECT).lean();
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // ── Parallel aggregations — never load full collections ───────────────────
+  const uid = user._id;
+  const [
+    expenseAgg,
+    incomeAgg,
+    budgetCount,
+    goalCount,
+    subscriptionCount,
+    loanCount,
+    walletCount,
+    feedbackCount,
+    sessionCount,
+    lastSessionAgg,
+  ] = await Promise.all([
+    Expense.aggregate([
+      { $match: { user: uid } },
+      { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } },
+    ]),
+    Income.aggregate([
+      { $match: { user: uid } },
+      { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } },
+    ]),
+    Budget.countDocuments({ user: uid }),
+    Goal.countDocuments({ user: uid }),
+    Subscription.countDocuments({ user: uid }),
+    Loan.countDocuments({ user: uid }),
+    Wallet.countDocuments({ user: uid }),
+    Feedback.countDocuments({ user: uid }),
+    Session.countDocuments({ user: uid, isActive: true }),
+    // Most recent session activity
+    Session.findOne({ user: uid }).sort({ lastActive: -1 }).select('lastActive').lean(),
+  ]);
+
+  // ── Audit: admin viewed user ──────────────────────────────────────────────
+  await auditLog(
+    req.user._id,
+    'Admin Viewed User',
+    `Admin ${req.user.email} viewed profile of user ${user.email} (ID: ${user._id})`,
+    req
+  );
+
+  // ── Safe DTO — no secrets ─────────────────────────────────────────────────
+  const safeProfile = {
+    _id:             user._id,
+    name:            user.name,
+    email:           user.email,
+    phone:           user.phone || '',
+    company:         user.company || '',
+    role:            user.role,
+    isBlocked:       user.isBlocked  || false,
+    isDisabled:      user.isDisabled || false,
+    isEmailVerified: user.isEmailVerified,
+    isVerified:      user.isVerified,
+    currency:        user.currency,
+    avatar:          user.avatar || '',
+    createdAt:       user.createdAt,
+    updatedAt:       user.updatedAt,
+    // Correction #2: lastSeen from Session.lastActive (not updatedAt)
+    lastSeen:        lastSessionAgg?.lastActive || null,
+    twoFactorEnabled: user.twoFactorEnabled || false,
+  };
+
+  sendSuccess(res, 200, 'User details retrieved', {
+    user: safeProfile,
+    financialSummary: {
+      expenseCount:    expenseAgg[0]?.count ?? 0,
+      totalExpenses:   expenseAgg[0]?.total ?? 0,
+      incomeCount:     incomeAgg[0]?.count  ?? 0,
+      totalIncome:     incomeAgg[0]?.total  ?? 0,
+      budgets:         budgetCount,
+      goals:           goalCount,
+      subscriptions:   subscriptionCount,
+      loans:           loanCount,
+      wallets:         walletCount,
+    },
+    engagement: {
+      xp:           user.xp           || 0,
+      coins:        user.coins         || 0,
+      level:        user.level         || 1,
+      streak:       user.streak        || 0,
+      longestStreak:user.longestStreak || 0,
+      rank:         user.rank          || 'Bronze',
+      feedbackCount,
+    },
+    sessions: {
+      activeSessions: sessionCount,
+    },
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Update user account status (block/unblock/disable/enable)
+// @route   PATCH /api/admin/users/:id/status
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const updateUserStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { action } = req.body;
+
+  // ── Validate ID ───────────────────────────────────────────────────────────
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400);
+    throw new Error('Invalid user ID format');
+  }
+
+  // ── Validate action ────────────────────────────────────────────────────────
+  // Correction #4: no role editing — only status actions
+  const allowedActions = ['block', 'unblock', 'disable', 'enable'];
+  if (!allowedActions.includes(action)) {
+    res.status(400);
+    throw new Error(`Invalid action. Allowed: ${allowedActions.join(', ')}`);
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // ── Self-lockout prevention ───────────────────────────────────────────────
+  if (user._id.toString() === req.user._id.toString()) {
+    res.status(400);
+    throw new Error('You cannot disable or block your own admin account.');
+  }
+
+  // ── Apply status change ───────────────────────────────────────────────────
+  let auditAction, auditDetails;
+
+  switch (action) {
+    case 'block':
+      user.isBlocked = true;
+      auditAction  = 'Admin Blocked User';
+      auditDetails = `Admin ${req.user.email} blocked user ${user.email} (ID: ${user._id})`;
+      break;
+    case 'unblock':
+      user.isBlocked = false;
+      auditAction  = 'Admin Unblocked User';
+      auditDetails = `Admin ${req.user.email} unblocked user ${user.email} (ID: ${user._id})`;
+      break;
+    case 'disable':
+      user.isDisabled = true;
+      auditAction  = 'Admin Disabled User';
+      auditDetails = `Admin ${req.user.email} disabled user ${user.email} (ID: ${user._id})`;
+      break;
+    case 'enable':
+      user.isDisabled = false;
+      auditAction  = 'Admin Enabled User';
+      auditDetails = `Admin ${req.user.email} re-enabled user ${user.email} (ID: ${user._id})`;
+      break;
+  }
+
+  await user.save();
+
+  // ── Audit log ─────────────────────────────────────────────────────────────
+  await auditLog(req.user._id, auditAction, auditDetails, req);
+
+  sendSuccess(res, 200, `User ${action}ed successfully`, {
+    _id:        user._id,
+    isBlocked:  user.isBlocked,
+    isDisabled: user.isDisabled,
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    Revoke all sessions for a user
+// @route   POST /api/admin/users/:id/revoke-sessions
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
+export const revokeUserSessions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400);
+    throw new Error('Invalid user ID format');
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // ── Self-lockout prevention ───────────────────────────────────────────────
+  if (user._id.toString() === req.user._id.toString()) {
+    res.status(400);
+    throw new Error('You cannot revoke your own admin sessions via this endpoint.');
+  }
+
+  // ── Full revocation (Correction #5) ───────────────────────────────────────
+  // Step 1: Mark all Session records inactive (blocks session listing)
+  const sessionResult = await Session.updateMany(
+    { user: user._id },
+    { isActive: false }
+  );
+
+  // Step 2: Null out User.refreshToken — this is the critical step.
+  // The /auth/refresh-token endpoint checks: user.refreshToken !== token
+  // Nullifying it means ALL existing refresh tokens become invalid immediately.
+  // Existing access tokens (JWT, 15m TTL) will expire naturally.
+  user.refreshToken = null;
+  await user.save();
+
+  // ── Audit log ─────────────────────────────────────────────────────────────
+  await auditLog(
+    req.user._id,
+    'Admin Revoked User Sessions',
+    `Admin ${req.user.email} revoked all sessions for user ${user.email} (ID: ${user._id}). ` +
+    `Sessions deactivated: ${sessionResult.modifiedCount}. RefreshToken invalidated.`,
+    req
+  );
+
+  sendSuccess(res, 200, 'All sessions revoked successfully', {
+    sessionsDeactivated: sessionResult.modifiedCount,
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // @desc    Get user-submitted feedbacks
 // @route   GET /api/admin/feedback
-// @access  Admin only (enforced by router middleware)
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
 export const getFeedbackList = asyncHandler(async (req, res) => {
   const feedback = await Feedback.find({})
     .populate('user', 'name email')
@@ -95,9 +579,11 @@ export const getFeedbackList = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Feedback lists retrieved', feedback);
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
 // @desc    Update feedback status
 // @route   PUT /api/admin/feedback/:id
-// @access  Admin only (enforced by router middleware)
+// @access  Admin only
+// ─────────────────────────────────────────────────────────────────────────────
 export const updateFeedbackStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
   const item = await Feedback.findByIdAndUpdate(
@@ -114,15 +600,15 @@ export const updateFeedbackStatus = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Feedback status updated', item);
 });
 
-// @desc    One-time admin bootstrap — promotes a pre-existing user to admin role.
-//          Becomes permanently unavailable once any admin already exists.
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc    One-time admin bootstrap
 // @route   POST /api/admin/bootstrap
-// @access  Public (intentionally — no admin exists yet at first call)
+// @access  Public (intentionally — only usable when zero admins exist)
+// ─────────────────────────────────────────────────────────────────────────────
 export const bootstrapAdmin = asyncHandler(async (req, res) => {
   const bootstrapEmail  = process.env.ADMIN_BOOTSTRAP_EMAIL;
   const bootstrapSecret = process.env.ADMIN_BOOTSTRAP_SECRET;
 
-  // ── Guard: env vars must be configured ──────────────────────────────────────
   if (!bootstrapEmail || !bootstrapSecret) {
     res.status(503);
     throw new Error(
@@ -131,16 +617,12 @@ export const bootstrapAdmin = asyncHandler(async (req, res) => {
     );
   }
 
-  // ── Guard: already have an admin — self-disable ──────────────────────────────
   const adminCount = await User.countDocuments({ role: 'admin' });
   if (adminCount >= 1) {
     res.status(403);
     throw new Error('Admin bootstrap is no longer available.');
   }
 
-  // ── Validate the bootstrap secret from the request header ───────────────────
-  // Secret is passed in X-Admin-Bootstrap-Secret header — NOT in the URL or
-  // query string, which would leak into server logs.
   const providedSecret = req.headers['x-admin-bootstrap-secret'] || '';
   const secretValid = timingSafeEqual(providedSecret, bootstrapSecret);
   if (!secretValid) {
@@ -148,7 +630,6 @@ export const bootstrapAdmin = asyncHandler(async (req, res) => {
     throw new Error('Invalid bootstrap secret.');
   }
 
-  // ── Validate that the requested email matches the env-configured target ──────
   const { email } = req.body;
   if (!email) {
     res.status(400);
@@ -164,44 +645,31 @@ export const bootstrapAdmin = asyncHandler(async (req, res) => {
     throw new Error('Provided email does not match the configured bootstrap target.');
   }
 
-  // ── Find the existing registered user ───────────────────────────────────────
-  // We require the user to already be registered — we never create a passwordless
-  // admin account from here.
   const user = await User.findOne({ email: email.toLowerCase().trim() });
   if (!user) {
     res.status(404);
     throw new Error('No registered account found for the bootstrap email.');
   }
 
-  // ── Already an admin (race-condition safety net) ─────────────────────────────
   if (user.role === 'admin') {
     res.status(409);
     throw new Error('This account is already an admin.');
   }
 
-  // ── Promote to admin ─────────────────────────────────────────────────────────
   user.role = 'admin';
   await user.save();
 
-  // ── Write SecurityLog (best-effort — never fail the response on log error) ───
   try {
-    const ipAddress =
-      req.headers['x-forwarded-for']?.split(',')[0].trim() ||
-      req.ip ||
-      '127.0.0.1';
-
     await SecurityLog.create({
       user:      user._id,
       action:    'Admin Bootstrap',
-      ipAddress,
+      ipAddress: getIp(req),
       details:   `User ${user.email} was promoted to admin via one-time bootstrap.`,
     });
   } catch (logErr) {
-    // Log to console — never let a logging failure break the bootstrap
     console.error('[bootstrapAdmin] SecurityLog write failed:', logErr.message);
   }
 
-  // ── Return safe success — no tokens, no secrets, no sensitive fields ─────────
   sendSuccess(res, 200, 'Admin account created successfully.', {
     message:
       'Bootstrap complete. Remove ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_SECRET ' +

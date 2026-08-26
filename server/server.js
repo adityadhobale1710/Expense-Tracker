@@ -104,7 +104,7 @@ app.use(cors({
   },
   credentials: true, // Required to allow cookies in production
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie', 'X-Timezone-Offset'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie', 'X-Timezone-Offset', 'X-Login-Mode'],
   optionsSuccessStatus: 200
 }));
 

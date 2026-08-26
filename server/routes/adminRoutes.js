@@ -3,6 +3,9 @@ import rateLimit from 'express-rate-limit';
 import {
   getAdminStats,
   getUsersList,
+  getUserById,
+  updateUserStatus,
+  revokeUserSessions,
   getFeedbackList,
   updateFeedbackStatus,
   bootstrapAdmin,
@@ -34,8 +37,23 @@ router.post('/bootstrap', bootstrapLimiter, bootstrapAdmin);
 // ─── All routes below require: authenticated + admin role ─────────────────────
 router.use(protect, authorize('admin'));
 
+// Overview statistics
 router.get('/stats', getAdminStats);
+
+// User management — paginated, searchable, filterable
 router.get('/users', getUsersList);
+
+// User detail
+router.get('/users/:id', getUserById);
+
+// Account status actions: block / unblock / disable / enable
+// Body: { action: 'block' | 'unblock' | 'disable' | 'enable' }
+router.patch('/users/:id/status', updateUserStatus);
+
+// Revoke all sessions for a user
+router.post('/users/:id/revoke-sessions', revokeUserSessions);
+
+// Feedback management
 router.get('/feedback', getFeedbackList);
 router.put('/feedback/:id', updateFeedbackStatus);
 
