@@ -21,7 +21,10 @@ api.interceptors.request.use(
     const isPublicRoute = config.url?.includes('/auth/login') ||
                           config.url?.includes('/auth/register') ||
                           config.url?.includes('/auth/forgot-password') ||
-                          config.url?.includes('/auth/reset-password');
+                          config.url?.includes('/auth/reset-password') ||
+                          // SEC: refresh-token uses the HttpOnly cookie, not a bearer token.
+                          // Must not be aborted when localStorage is empty (e.g. after OAuth redirect).
+                          config.url?.includes('/auth/refresh-token');
                           
     if (!isPublicRoute && !token) {
       // Abort/Cancel request locally to prevent repeated failing 401 calls

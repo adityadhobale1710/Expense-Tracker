@@ -8,16 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('accessToken');
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
-  }, []);
-
   // L2 fix: only remove known app-owned keys, not every key in localStorage.
   // localStorage.clear() would delete third-party/iframe data sharing the same origin.
   const clearAppStorage = () => {
@@ -28,12 +18,59 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  // Bootstrap authentication on mount.
+  // Priority 1: localStorage (fast path — already authenticated in this tab/session).
+  // Priority 2: HttpOnly refresh cookie (handles Google OAuth redirect and cases
+  //             where localStorage was cleared but the session is still valid).
+  //             Calls /auth/refresh-token (cookie is sent automatically by the browser)
+  //             to get a fresh access token, then /users/me to hydrate the user profile.
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('accessToken');
+
+    if (storedUser && storedToken) {
+      // Fast path: already have a session in this tab
+      setUser(JSON.parse(storedUser));
+      setLoading(false);
+      return;
+    }
+
+    // Slow path: try to recover session from HttpOnly refresh cookie.
+    // This runs after a Google OAuth redirect (or if localStorage was cleared).
+    const tryRefreshBootstrap = async () => {
+      try {
+        // Use api directly — /auth/refresh-token sends the HttpOnly cookie automatically.
+        // The request interceptor allows it through because /auth/refresh-token is in
+        // the public routes list and does not require an Authorization header.
+        const refreshRes = await api.post('/auth/refresh-token');
+        const newAccessToken = refreshRes.data?.data?.accessToken;
+        if (!newAccessToken) throw new Error('No access token in refresh response');
+
+        localStorage.setItem('accessToken', newAccessToken);
+        resetAuthState();
+
+        // Fetch the user profile now that we have a valid access token.
+        const meRes = await api.get('/users/me');
+        const userData = meRes.data?.data;
+        if (!userData) throw new Error('No user data in /users/me response');
+
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+      } catch {
+        // No valid refresh cookie — user is not authenticated. Stay logged-out silently.
+        clearAppStorage();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    tryRefreshBootstrap();
+  }, []);
+
   const register = async (name, email, password, phone) => {
     const { data } = await api.post('/auth/register', { name, email, password, phone });
     return data; // { message, data: { email } }
   };
-
-
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });

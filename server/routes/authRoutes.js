@@ -1,6 +1,15 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login, logout, refreshToken, forgotPassword, resetPassword } from '../controllers/authController.js';
+import { 
+  register, 
+  login, 
+  logout, 
+  refreshToken, 
+  forgotPassword, 
+  resetPassword,
+  googleAuth,
+  googleCallback
+} from '../controllers/authController.js';
 
 import { protect } from '../middleware/authMiddleware.js';
 import { validate } from '../middleware/validate.js';
@@ -48,5 +57,9 @@ router.post('/logout', protect, logout);
 router.post('/refresh-token', refreshToken);
 router.post('/forgot-password', otpLimiter, validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', otpLimiter, validate(resetPasswordSchema), resetPassword);
+
+// Google OAuth endpoints
+router.get('/google', googleAuth);
+router.get('/google/callback', googleCallback);
 
 export default router;

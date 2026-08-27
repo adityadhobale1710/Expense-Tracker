@@ -58,6 +58,11 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const handleGoogleLogin = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    window.location.href = `${apiUrl}/auth/google`;
+  };
+
   // Forgot password flow states
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -321,7 +326,7 @@ export default function Login() {
               {/* Google Login Button */}
               <button
                 type="button"
-                onClick={() => toast.error('Google Sign-In is coming soon!')}
+                onClick={handleGoogleLogin}
                 className="w-full h-[46px] px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-slate-200/80 text-[#334155] text-xs font-semibold rounded-[14px] flex items-center justify-center gap-2.5 transition-all cursor-pointer hover:border-slate-300 font-jakarta shadow-xs"
               >
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">

@@ -1,10 +1,25 @@
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
 import Session from '../models/Session.js';
+import SecurityLog from '../models/SecurityLog.js';
+
+const getOAuth2Client = () => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Google OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) are not configured.');
+  }
+
+  return new OAuth2Client(clientId, clientSecret, callbackUrl);
+};
 
 const createSessionRecord = async (userId, token, req) => {
   try {
@@ -49,6 +64,64 @@ import { generateAccessToken, generateRefreshToken } from '../utils/generateToke
 import { sendSuccess } from '../utils/apiResponse.js';
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
 import logger from '../utils/logger.js';
+
+export const createAuthenticatedSession = async (user, req, res, authMethod = 'Password') => {
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  await createSessionRecord(user._id, accessToken, req);
+
+  // Security Log
+  try {
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+    await SecurityLog.create({
+      user: user._id,
+      action: `${authMethod} Login Success`,
+      ipAddress,
+      details: req.headers['user-agent'] || ''
+    });
+  } catch (err) {
+    logger.error(`Failed to record login security log: ${err.message}`);
+  }
+
+  // Set the HttpOnly refresh cookie — this is the session carrier for all auth paths.
+  // The access token is returned in the JSON payload for email/password login and
+  // retrieved via /auth/refresh-token for the OAuth redirect path. It is NEVER
+  // placed in a URL query parameter or redirect URL.
+  res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
+
+  // SEC-001: accessToken is NOT included in userData to prevent it from being
+  // accidentally serialized into URLs, logs, or localStorage in contexts where
+  // only the user profile is needed (e.g. OAuth callback redirect).
+  // The email/password login path receives accessToken separately from userData.
+  const userData = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    currency: user.currency,
+    avatar: user.avatar,
+    role: user.role,
+    phone: user.phone,
+    company: user.company,
+    twoFactorEnabled: user.twoFactorEnabled,
+    xp: user.xp,
+    coins: user.coins,
+    level: user.level,
+    streak: user.streak,
+    longestStreak: user.longestStreak,
+    lifetimeXP: user.lifetimeXP,
+    rank: user.rank,
+    unlockedTitles: user.unlockedTitles,
+    unlockedAvatars: user.unlockedAvatars,
+    unlockedThemes: user.unlockedThemes,
+    simulatedActions: user.simulatedActions,
+    achievements: user.achievements,
+  };
+
+  return { accessToken, refreshToken, userData };
+};
 
 const DEFAULT_CATEGORIES = [
   { name: 'Food & Dining', icon: '🍔', color: '#f97316', type: 'expense' },
@@ -170,8 +243,6 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-
-
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
     res.status(401);
@@ -182,41 +253,213 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
-  user.refreshToken = refreshToken;
-  await user.save();
+  const sessionData = await createAuthenticatedSession(user, req, res, 'Password');
 
-  await createSessionRecord(user._id, accessToken, req);
-
-  res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
-
+  // SEC-001: Return the access token separately from userData so AuthContext can
+  // store it in localStorage while keeping userData clean of bearer tokens.
   sendSuccess(res, 200, 'Login successful', {
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    currency: user.currency,
-    avatar: user.avatar,
-    role: user.role,
-    phone: user.phone,
-    company: user.company,
-    twoFactorEnabled: user.twoFactorEnabled,
-    xp: user.xp,
-    coins: user.coins,
-    level: user.level,
-    streak: user.streak,
-    longestStreak: user.longestStreak,
-    // Issue 2 fix: include lifetimeXP and rank so AuthContext.user is fully
-    // populated immediately after login — no fetchProfile() required to get these.
-    lifetimeXP: user.lifetimeXP,
-    rank: user.rank,
-    unlockedTitles: user.unlockedTitles,
-    unlockedAvatars: user.unlockedAvatars,
-    unlockedThemes: user.unlockedThemes,
-    simulatedActions: user.simulatedActions,
-    achievements: user.achievements,
-    accessToken,
+    ...sessionData.userData,
+    accessToken: sessionData.accessToken,
   });
+});
+
+// @desc  Initiate Google OAuth flow
+// @route GET /api/auth/google
+export const googleAuth = asyncHandler(async (req, res) => {
+  try {
+    const oauth2Client = getOAuth2Client();
+
+    // Generate random CSRF state token
+    const state = crypto.randomBytes(16).toString('hex');
+    const isProd = process.env.NODE_ENV === 'production';
+
+    res.cookie('oauth_state', state, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      maxAge: 10 * 60 * 1000, // 10 minutes
+    });
+
+    const authorizeUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+      ],
+      state,
+      prompt: 'select_account',
+    });
+
+    res.redirect(authorizeUrl);
+  } catch (error) {
+    logger.error(`Google auth initialization error: ${error.message}`);
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, '');
+    res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent(error.message || 'Google OAuth is not configured on the server.')}`);
+  }
+});
+
+// @desc  Google OAuth Callback Handler
+// @route GET /api/auth/google/callback
+export const googleCallback = asyncHandler(async (req, res) => {
+  const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, '');
+  const isProd = process.env.NODE_ENV === 'production';
+  const stateCookieOptions = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+  };
+
+  const { code, error, state } = req.query;
+
+  // Clear CSRF cookie
+  const savedState = req.cookies?.oauth_state;
+  res.clearCookie('oauth_state', stateCookieOptions);
+
+  if (error) {
+    logger.warn(`Google OAuth response contained error: ${error}`);
+    const msg = error === 'access_denied' ? 'Google Sign-In was cancelled.' : 'Google authentication failed.';
+    return res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent(msg)}`);
+  }
+
+  if (!code) {
+    return res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent('No authorization code received from Google.')}`);
+  }
+
+  // Verify OAuth state token.
+  // SEC-003: Reject the callback if savedState is absent (cookie not sent — could
+  // indicate SameSite blockage or a CSRF attempt without prior /google initiation)
+  // or if it doesn't match the state returned by Google.
+  if (!savedState || !state || savedState !== state) {
+    logger.warn(`OAuth state validation failed — savedState: ${savedState ? 'present' : 'absent'}, state: ${state ? 'present' : 'absent'}, match: ${savedState === state}`);
+    return res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent('Security validation failed. Please try signing in again.')}`);
+  }
+
+  let googleUser;
+  try {
+    const oauth2Client = getOAuth2Client();
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    googleUser = ticket.getPayload();
+  } catch (err) {
+    logger.error(`Google token verification failed: ${err.message}`);
+    return res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent('Failed to verify Google identity. Please try again.')}`);
+  }
+
+  // SEC-004: Require a verified email from Google.
+  // google-auth-library's verifyIdToken() already validates audience, issuer, and
+  // expiration via Google's public keys. email_verified additionally confirms that
+  // Google has verified the user owns this email address — only stable sub + verified
+  // email are safe to use for account matching/linking.
+  if (!googleUser || !googleUser.email || !googleUser.email_verified) {
+    return res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent('Google account email is not verified. Please verify your Google account email first.')}`);
+  }
+
+  // Only stable, Google-verified identity fields are used for account matching:
+  //   - sub: permanent unique identifier assigned by Google (never changes)
+  //   - email: verified by Google (email_verified = true enforced above)
+  // name and picture are NOT used for matching — only for display/avatar.
+  const { sub: googleId, email, name, picture } = googleUser;
+  const normalizedEmail = email.toLowerCase().trim();
+
+
+  // Find user by googleId or email
+  let user = await User.findOne({
+    $or: [{ googleId }, { email: normalizedEmail }]
+  });
+
+  if (user) {
+    // Existing user: Link Google identity if not already linked.
+    // Only googleId and authProvider are updated — existing password, transactions,
+    // wallets, categories, security settings, and all data are preserved untouched.
+    let needsSave = false;
+    if (!user.googleId) {
+      user.googleId = googleId;
+      // ARCH-006: 'both' accurately represents a local account that has been linked
+      // to Google. 'local' would be incorrect because the account now supports Google
+      // sign-in in addition to its existing password.
+      user.authProvider = user.authProvider === 'local' ? 'both' : user.authProvider;
+      needsSave = true;
+    }
+    if (!user.avatar && picture) {
+      user.avatar = picture;
+      needsSave = true;
+    }
+    if (!user.isEmailVerified || !user.isVerified) {
+      user.isEmailVerified = true;
+      user.isVerified = true;
+      needsSave = true;
+    }
+    if (needsSave) {
+      await user.save();
+    }
+  } else {
+    // New User: Create account and seed defaults
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const displayName = name || normalizedEmail.split('@')[0];
+      [user] = await User.create([{
+        name: displayName,
+        email: normalizedEmail,
+        googleId,
+        authProvider: 'google',
+        avatar: picture || '',
+        isEmailVerified: true,
+        isVerified: true
+      }], { session });
+
+      // Seed default categories
+      const cats = DEFAULT_CATEGORIES.map((c) => ({ ...c, user: user._id }));
+      await Category.insertMany(cats, { session });
+
+      // Seed default primary wallet
+      await Wallet.create([{
+        user: user._id,
+        name: `${displayName.split(' ')[0]}'s Bank Account`,
+        type: 'bank',
+        balance: 0,
+        currency: 'INR',
+        color: '#6366f1',
+        icon: '🏦',
+        isPrimary: true,
+      }], { session });
+
+      await session.commitTransaction();
+    } catch (createErr) {
+      try {
+        if (session.inTransaction()) await session.abortTransaction();
+      } catch (abortErr) {
+        logger.error(`[googleCallback] Transaction abort failed: ${abortErr.message}`);
+      }
+      session.endSession();
+      logger.error(`Failed to create Google user: ${createErr.message}`);
+      return res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent('Failed to create account with Google.')}`);
+    }
+    session.endSession();
+  }
+
+  // Account status check
+  if (user.isDisabled || user.isBlocked || user.status === 'disabled' || user.status === 'blocked') {
+    return res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent('Your account has been temporarily disabled. Please contact support.')}`);
+  }
+
+  // Reuse existing session/token/cookie creation.
+  // The HttpOnly refresh cookie is set inside createAuthenticatedSession.
+  // SEC-001: The access token and user data are NOT placed in the redirect URL.
+  // The frontend receives the authenticated session by calling /auth/refresh-token
+  // using the HttpOnly refresh cookie that was just set on this response.
+  await createAuthenticatedSession(user, req, res, 'Google');
+
+  // Redirect directly to the dashboard — no token or user data in the URL.
+  // The frontend's existing auth initialization will call /auth/refresh-token on
+  // load, receive a fresh access token, and hydrate AuthContext normally.
+  return res.redirect(`${clientUrl}/dashboard`);
 });
 
 // @desc  Logout user
