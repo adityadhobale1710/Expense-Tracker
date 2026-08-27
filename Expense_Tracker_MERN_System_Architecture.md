@@ -32,7 +32,7 @@ graph TD
         MongoDB[(MongoDB Atlas - 21 Collections)]
         GeminiAPI[Google Gemini AI API]
         OAuthProvider[Google OAuth 2.0 Provider]
-        EmailService[Resend API / SMTP Dispatcher]
+        EmailService[Gmail API]
     end
 
     UI --> Context

@@ -1,54 +1,51 @@
 import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
 import logger from '../utils/logger.js';
+import asyncHandler from 'express-async-handler';
 
 /**
- * @desc    Test Resend email integration
+ * @desc    Test Gmail email integration
  * @route   POST /api/email/test
- * @access  Public (Temporary for manual testing)
+ * @access  Private
  */
-export const testEmail = async (req, res) => {
+export const testEmail = asyncHandler(async (req, res) => {
+  const { to } = req.body;
+
+  if (!to) {
+    res.status(400);
+    throw new Error('Please provide a recipient email address');
+  }
+
   try {
-    const { to } = req.body;
-
-    if (!to) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Recipient email (to) is required' 
-      });
-    }
-
-    const html = getHtmlTemplate({
-      title: 'Resend Integration Test',
-      greeting: 'Hello from Resend!',
-      body: 'This is a manual test email sent via your existing sendEmail.js utility to verify Resend integration.',
-      footerText: 'This is a temporary test endpoint.'
+    const emailHtml = getHtmlTemplate({
+      title: 'Gmail API Integration Test',
+      greeting: 'Hello from Expense Tracker!',
+      body: 'This is a manual test email sent via your existing sendEmail.js utility to verify the Gmail API integration.',
+      footerText: 'If you did not request this, you can ignore it.',
     });
 
     const result = await sendEmail({
       to,
-      subject: 'Resend Integration Test',
-      text: 'This is a manual test email sent via Resend integration.',
-      html,
+      subject: 'Gmail API Integration Test',
+      text: 'This is a manual test email sent via Gmail API integration.',
+      html: emailHtml,
     });
 
     if (result.success) {
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
-        message: 'Test email processed successfully',
-        data: result
+        message: 'Test email sent successfully',
+        mocked: result.mocked,
       });
     } else {
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: 'Failed to send test email',
-        error: result.error
+        error: result.error,
       });
     }
   } catch (error) {
-    logger.error(`Test email endpoint failed: ${error.message}`);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Failed to process test email request' 
-    });
+    logger.error(`Email test failed: ${error.message}`);
+    res.status(500);
+    throw new Error(`Email test failed: ${error.message}`);
   }
-};
+});

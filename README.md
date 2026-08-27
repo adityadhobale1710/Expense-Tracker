@@ -35,7 +35,7 @@ Expense Tracker operates as a modular, 3-tier MERN web application:
 1. **Frontend (Client)**: React 18 Single Page Application powered by Vite, Tailwind CSS, Recharts for visual analytics, Framer Motion for micro-interactions, and Axios with automated interceptors for silent token refresh via HttpOnly cookies.
 2. **Backend (Server)**: Modular Express REST API with Winston logging, centralized async error handling, Joi schema validation, multi-layer security sanitization, and dual authentication mechanisms (Local Email/Password + Google OAuth 2.0).
 3. **Database (MongoDB Atlas)**: Relational-mapped document collections using Mongoose ODM covering financial entities, active device sessions, security audit logs, and gamification state.
-4. **AI & Integrations**: Google Gemini AI (`@google/genai`) for multi-turn conversational financial analysis and Resend/SMTP email dispatcher for alerts and verification codes.
+4. **AI & Integrations**: Google Gemini AI (`@google/genai`) for multi-turn conversational financial analysis and Gmail API email dispatcher for alerts and verification codes.
 
 ---
 
@@ -80,7 +80,7 @@ Expense Tracker operates as a modular, 3-tier MERN web application:
 | **Backend** | Node.js, Express.js (ESM), Mongoose ODM, Joi, Winston Logger, Compression, Helmet, HPP, Express Rate Limit, Cookie Parser, Google Auth Library |
 | **Database** | MongoDB Atlas / MongoDB Server |
 | **AI Integration** | Google Gemini AI (`@google/genai`) |
-| **Email Delivery** | Resend API / Nodemailer SMTP |
+| **Email Delivery** | Gmail API |
 | **Document Export** | ExcelJS, PDFKit |
 
 ---
@@ -203,9 +203,11 @@ GEMINI_MODEL=gemini-3.5-flash-lite
 AI_DAILY_MESSAGE_LIMIT=50
 AI_CACHE_TTL=120000
 
-# Email Service (Optional - falls back to console logger if omitted)
-# RESEND_API_KEY=re_your_resend_key
-# EMAIL_FROM=noreply@yourdomain.com
+# Email Service (Optional - falls back to console logger)
+GMAIL_CLIENT_ID=
+GMAIL_CLIENT_SECRET=
+GMAIL_REFRESH_TOKEN=
+GMAIL_SENDER_EMAIL=
 # SMTP_HOST=smtp.mailtrap.io
 # SMTP_PORT=2525
 # SMTP_USER=your_smtp_user

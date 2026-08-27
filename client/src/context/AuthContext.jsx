@@ -72,6 +72,16 @@ export const AuthProvider = ({ children }) => {
     return data; // { message, data: { email } }
   };
 
+  const verifyEmail = async (email, otp) => {
+    const { data } = await api.post('/auth/verify-email', { email, otp });
+    return data;
+  };
+
+  const resendVerification = async (email) => {
+    const { data } = await api.post('/auth/resend-verification', { email });
+    return data;
+  };
+
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     // L1 fix: guard against error-shape responses (e.g. unverified email returns
@@ -107,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, register, verifyEmail, resendVerification, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

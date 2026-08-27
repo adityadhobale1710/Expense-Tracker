@@ -8,7 +8,9 @@ import {
   forgotPassword, 
   resetPassword,
   googleAuth,
-  googleCallback
+  googleCallback,
+  verifyEmail,
+  resendVerification
 } from '../controllers/authController.js';
 
 import { protect } from '../middleware/authMiddleware.js';
@@ -17,7 +19,9 @@ import {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  verifyEmailSchema,
+  resendVerificationSchema
 } from '../middleware/schemas.js';
 
 const router = express.Router();
@@ -69,6 +73,10 @@ router.post('/logout', protect, logout);
 router.post('/refresh-token', refreshToken);
 router.post('/forgot-password', otpLimiter, validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', otpLimiter, validate(resetPasswordSchema), resetPassword);
+
+// Email Verification endpoints
+router.post('/verify-email', otpLimiter, validate(verifyEmailSchema), verifyEmail);
+router.post('/resend-verification', otpLimiter, validate(resendVerificationSchema), resendVerification);
 
 // Google OAuth endpoints
 router.get('/google', googleLimiter, googleAuth);

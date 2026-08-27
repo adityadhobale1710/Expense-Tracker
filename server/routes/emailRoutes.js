@@ -4,7 +4,7 @@ import { testEmail } from '../controllers/emailController.js';
 const router = express.Router();
 
 // @route   POST /api/email/test
-// @desc    Test Resend email integration
+// @desc    Test Gmail email integration
 // @access  Public (Temporary for manual testing)
 router.post('/test', testEmail);
 

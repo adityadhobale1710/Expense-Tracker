@@ -24,6 +24,7 @@ const queryClient = new QueryClient({
 import Layout from './components/common/Layout';
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
+const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
 const Income = lazy(() => import('./pages/Income/Income'));
 const Expenses = lazy(() => import('./pages/Expenses/Expenses'));
@@ -71,6 +72,7 @@ const AppRoutes = () => (
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="income" element={<Income />} />

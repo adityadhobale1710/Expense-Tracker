@@ -129,8 +129,8 @@ export default function Register() {
 
     try {
       await register(form.name, form.email, form.password, form.phone);
-      toast.success('Account created successfully! Please sign in.');
-      navigate('/login');
+      toast.success('Account created! Please verify your email.');
+      navigate('/verify-email', { state: { email: form.email } });
     } catch (err) {
       toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Registration failed'));
     } finally {

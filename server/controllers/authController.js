@@ -8,6 +8,7 @@ import Wallet from '../models/Wallet.js';
 import Category from '../models/Category.js';
 import Session from '../models/Session.js';
 import SecurityLog from '../models/SecurityLog.js';
+import bcrypt from 'bcryptjs';
 
 const getOAuth2Client = () => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -182,8 +183,9 @@ export const register = asyncHandler(async (req, res) => {
       email, 
       password, 
       phone: phone || '', 
-      isEmailVerified: true, 
-      isVerified: true
+      isEmailVerified: false, 
+      isVerified: false,
+      otpVerified: false
     }], { session });
 
     // Seed default categories
@@ -204,9 +206,6 @@ export const register = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
   } catch (error) {
-    // C1 fix: never call abortTransaction() on a session whose transaction has
-    // already been committed/ended — that throws MongoTransactionError and
-    // masks the real failure with a leaked 502 stack trace.
     try {
       if (session.inTransaction()) await session.abortTransaction();
     } catch (abortErr) {
@@ -217,7 +216,44 @@ export const register = asyncHandler(async (req, res) => {
   }
   session.endSession();
 
-  return sendSuccess(res, 201, 'Account created successfully. You can now log in.', { email: user.email });
+  // Generate OTP
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const salt = await bcrypt.genSalt(10);
+  const otpHash = await bcrypt.hash(otp, salt);
+
+  user.emailVerificationOtpHash = otpHash;
+  user.emailVerificationOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+  user.emailVerificationOtpAttempts = 0;
+  user.emailVerificationLastSentAt = Date.now();
+  await user.save();
+
+  // Send Email
+  const emailHtml = getHtmlTemplate({
+    title: 'Verify your Expense Tracker email',
+    greeting: `Hello ${user.name}`,
+    body: 'Welcome to Expense Tracker! Please use the 6-digit verification code below to verify your email address. This code is valid for 10 minutes.',
+    code: otp,
+    footerText: 'If you did not create this account, you can safely ignore this email.',
+  });
+
+  const emailResult = await sendEmail({
+    to: user.email,
+    subject: 'Verify your Expense Tracker email',
+    html: emailHtml,
+    text: `Hello ${user.name},\n\nWelcome to Expense Tracker! Your 6-digit verification code is:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not create this account, please ignore this email.`,
+  });
+
+  if (!emailResult.success && !emailResult.mocked) {
+    user.emailVerificationOtpHash = null;
+    user.emailVerificationOtpExpire = null;
+    user.emailVerificationOtpAttempts = 0;
+    user.emailVerificationLastSentAt = null;
+    await user.save();
+    res.status(502);
+    throw new Error('Failed to send verification email. Please try again later.');
+  }
+
+  return sendSuccess(res, 201, 'Account created successfully. Please verify your email.', { email: user.email });
 });
 
 // @desc  Login user
@@ -250,6 +286,17 @@ export const login = asyncHandler(async (req, res) => {
       success: false,
       // AUDIT-AUTH-004: Same generic message — don't reveal whether email or password is wrong
       message: 'Invalid email or password'
+    });
+  }
+
+  // Verification guard for local accounts
+  if (user.authProvider === 'local' && user.isEmailVerified === false && user.isVerified === false) {
+    res.status(403);
+    return res.json({
+      success: false,
+      message: 'Your email address is not verified.',
+      requiresVerification: true,
+      email: user.email
     });
   }
 
@@ -632,5 +679,127 @@ export const resetPassword = asyncHandler(async (req, res) => {
   });
 
   sendSuccess(res, 200, 'Password has been reset successfully');
+});
+
+// @desc  Verify Email OTP
+// @route POST /api/auth/verify-email
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    res.status(400);
+    throw new Error('Email and OTP are required');
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    res.status(400);
+    throw new Error('Invalid verification request');
+  }
+
+  // If already verified
+  if (user.isEmailVerified || user.isVerified) {
+    return sendSuccess(res, 200, 'Your email is already verified. You can log in.');
+  }
+
+  if (!user.emailVerificationOtpHash) {
+    res.status(400);
+    throw new Error('No verification code requested. Please request a new code.');
+  }
+
+  if (user.emailVerificationOtpExpire < Date.now()) {
+    res.status(400);
+    throw new Error('This verification code has expired. Please request a new code.');
+  }
+
+  if (user.emailVerificationOtpAttempts >= 5) {
+    user.emailVerificationOtpHash = null;
+    user.emailVerificationOtpExpire = null;
+    await user.save();
+    res.status(429);
+    throw new Error('Too many verification attempts. Please request a new code.');
+  }
+
+  const isMatch = await bcrypt.compare(otp, user.emailVerificationOtpHash);
+  if (!isMatch) {
+    user.emailVerificationOtpAttempts += 1;
+    await user.save();
+    res.status(400);
+    throw new Error('Invalid verification code. Please check the code and try again.');
+  }
+
+  // Success
+  user.isEmailVerified = true;
+  user.isVerified = true;
+  user.otpVerified = true;
+  user.emailVerificationOtpHash = null;
+  user.emailVerificationOtpExpire = null;
+  user.emailVerificationOtpAttempts = 0;
+  user.emailVerificationLastSentAt = null;
+  await user.save();
+
+  sendSuccess(res, 200, 'Email verified successfully. You can now log in.');
+});
+
+// @desc  Resend Verification OTP
+// @route POST /api/auth/resend-verification
+export const resendVerification = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    res.status(400);
+    throw new Error('Email is required');
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return sendSuccess(res, 200, 'If this email is registered, a new verification code has been sent.');
+  }
+
+  if (user.isEmailVerified || user.isVerified) {
+    return sendSuccess(res, 200, 'Your email is already verified. You can log in.');
+  }
+
+  if (user.emailVerificationLastSentAt && (Date.now() - user.emailVerificationLastSentAt.getTime() < OTP_RESEND_COOLDOWN_MS)) {
+    res.status(429);
+    throw new Error('Please wait before requesting another verification code.');
+  }
+
+  // Generate new OTP
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const salt = await bcrypt.genSalt(10);
+  const otpHash = await bcrypt.hash(otp, salt);
+
+  user.emailVerificationOtpHash = otpHash;
+  user.emailVerificationOtpExpire = Date.now() + 10 * 60 * 1000;
+  user.emailVerificationOtpAttempts = 0;
+  user.emailVerificationLastSentAt = Date.now();
+  await user.save();
+
+  // Send Email
+  const emailHtml = getHtmlTemplate({
+    title: 'Your new verification code',
+    greeting: `Hello ${user.name}`,
+    body: 'We received a request to resend your verification code. Please use the 6-digit code below to verify your email address. This code is valid for 10 minutes.',
+    code: otp,
+    footerText: 'If you did not request a new code, you can safely ignore this email.',
+  });
+
+  const emailResult = await sendEmail({
+    to: user.email,
+    subject: 'Your new verification code',
+    html: emailHtml,
+    text: `Hello ${user.name},\n\nWe received a request to resend your verification code. Your new 6-digit code is:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+  });
+
+  if (!emailResult.success && !emailResult.mocked) {
+    user.emailVerificationOtpHash = null;
+    user.emailVerificationOtpExpire = null;
+    user.emailVerificationOtpAttempts = 0;
+    user.emailVerificationLastSentAt = null;
+    await user.save();
+    res.status(502);
+    throw new Error('Failed to send verification email. Please try again later.');
+  }
+
+  sendSuccess(res, 200, 'Verification code sent to email');
 });
 

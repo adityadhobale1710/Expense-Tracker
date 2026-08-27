@@ -161,6 +161,12 @@ export default function Login() {
       }
       navigate('/dashboard');
     } catch (err) {
+      if (err.response?.data?.requiresVerification) {
+        toast.error(err.response?.data?.message || 'Verification required');
+        navigate('/verify-email', { state: { email: err.response?.data?.email || form.email } });
+        return;
+      }
+      
       let errMsg = err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Login failed');
       
       // Highlight invalid fields where appropriate

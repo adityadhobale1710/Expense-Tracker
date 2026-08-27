@@ -22,6 +22,8 @@ api.interceptors.request.use(
                           config.url?.includes('/auth/register') ||
                           config.url?.includes('/auth/forgot-password') ||
                           config.url?.includes('/auth/reset-password') ||
+                          config.url?.includes('/auth/verify-email') ||
+                          config.url?.includes('/auth/resend-verification') ||
                           // SEC: refresh-token uses the HttpOnly cookie, not a bearer token.
                           // Must not be aborted when localStorage is empty (e.g. after OAuth redirect).
                           config.url?.includes('/auth/refresh-token');
