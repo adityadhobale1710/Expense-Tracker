@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import logger from './logger.js';
+import { sendViaGmail, isGmailConfigured } from './gmailService.js';
 
 // Configuration variables with fallback defaults
 const LOGO_URL = process.env.LOGO_URL || 'https://raw.githubusercontent.com/adityadhobale1710/Expense-Tracker/main/client/public/logo.jpg';
@@ -94,62 +95,77 @@ export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, 
 };
 
 /**
- * Sends an email using Resend HTTPS API or logs it to the terminal as a fallback.
+ * Sends an email using the configured transport.
+ *
+ * Transport priority:
+ *   1. Gmail API (OAuth2 refresh-token flow) — when GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET,
+ *      GMAIL_REFRESH_TOKEN, and GMAIL_SENDER_EMAIL are all set.
+ *   2. Resend — fallback when Gmail is not configured or Gmail delivery fails.
+ *   3. Terminal log — last-resort fallback when both transports are unavailable/failed.
+ *
+ * All existing callers (authController, splitController, familyController, emailController)
+ * continue to work through this same interface without modification.
  */
 export const sendEmail = async ({ to, subject, html, text }) => {
-  const resendApiKey = process.env.RESEND_API_KEY;
-
   logger.info(`\n📧 Dispatching email to: ${to} (Subject: "${subject}")`);
 
-  if (!resendApiKey) {
-    logger.info('⚠️  [Resend Log Fallback] RESEND_API_KEY is not configured. Dumping email context below:');
-    logger.info('──────────────────────────────────────────────────────────────────────');
-    logger.info(`TO:      ${to}`);
-    logger.info(`SUBJECT: ${subject}`);
-    logger.info(`TEXT:    ${text}`);
-    logger.info('──────────────────────────────────────────────────────────────────────\n');
-    return { success: true, mocked: true };
-  }
-
-  try {
-    const resend = new Resend(resendApiKey);
-
-    // Overall deadline guard — guarantees sendEmail resolves well under the
-    // client's 15s axios timeout even if resend stalls.
-    const MAIL_DEADLINE_MS = 10000;
-    
-    const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-    const fromName = COMPANY_NAME || 'Expense Tracker';
-    
-    const sendPromise = resend.emails.send({
-      from: `"${fromName}" <${fromEmail}>`,
-      to,
-      subject,
-      text,
-      html,
-    });
-
-    const info = await Promise.race([
-      sendPromise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Resend API send timed out')), MAIL_DEADLINE_MS)
-      ),
-    ]);
-
-    if (info.error) {
-      throw new Error(info.error.message);
+  // ── Transport 1: Gmail API ──────────────────────────────────────────────────
+  if (isGmailConfigured()) {
+    try {
+      const result = await sendViaGmail({ to, subject, html });
+      return result;
+    } catch (gmailError) {
+      logger.error(`❌ [Gmail API] Delivery failed: ${gmailError.message}`);
+      logger.info('⚠️  Falling back to Resend transport...');
     }
-
-    logger.info(`🚀 [Resend Success] Email dispatched successfully: ${info.data?.id}`);
-    return { success: true, messageId: info.data?.id };
-  } catch (error) {
-    logger.error('❌ [Resend Error] Failed to deliver email via Resend: ' + error.message);
-    logger.info('──────────────────────────────────────────────────────────────────────');
-    logger.info('⚠️ Falling back to terminal dumping because Resend transport failed:');
-    logger.info(`TO:      ${to}`);
-    logger.info(`SUBJECT: ${subject}`);
-    logger.info(`TEXT:    ${text}`);
-    logger.info('──────────────────────────────────────────────────────────────────────\n');
-    return { success: false, error: error.message };
   }
+
+  // ── Transport 2: Resend ─────────────────────────────────────────────────────
+  const resendApiKey = process.env.RESEND_API_KEY;
+
+  if (resendApiKey) {
+    try {
+      const resend = new Resend(resendApiKey);
+
+      // Overall deadline guard — guarantees sendEmail resolves well under the
+      // client's 15s axios timeout even if resend stalls.
+      const MAIL_DEADLINE_MS = 10000;
+
+      const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+      const fromName = COMPANY_NAME || 'Expense Tracker';
+
+      const sendPromise = resend.emails.send({
+        from: `"${fromName}" <${fromEmail}>`,
+        to,
+        subject,
+        text,
+        html,
+      });
+
+      const info = await Promise.race([
+        sendPromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Resend API send timed out')), MAIL_DEADLINE_MS)
+        ),
+      ]);
+
+      if (info.error) {
+        throw new Error(info.error.message);
+      }
+
+      logger.info(`🚀 [Resend Success] Email dispatched successfully: ${info.data?.id}`);
+      return { success: true, messageId: info.data?.id };
+    } catch (resendError) {
+      logger.error('❌ [Resend Error] Failed to deliver email via Resend: ' + resendError.message);
+    }
+  }
+
+  // ── Transport 3: Terminal log fallback ─────────────────────────────────────
+  logger.info('⚠️  [Log Fallback] No transport succeeded. Dumping email context below:');
+  logger.info('──────────────────────────────────────────────────────────────────────');
+  logger.info(`TO:      ${to}`);
+  logger.info(`SUBJECT: ${subject}`);
+  logger.info(`TEXT:    ${text}`);
+  logger.info('──────────────────────────────────────────────────────────────────────\n');
+  return { success: false, mocked: true };
 };
