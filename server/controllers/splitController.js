@@ -1,7 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import SplitExpense from '../models/SplitExpense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
+import { sendEmail, getHtmlTemplate, escapeHtml } from '../utils/sendEmail.js';
 
 // @desc    Get all split expenses for user
 // @route   GET /api/splits
@@ -38,9 +38,9 @@ export const createSplit = asyncHandler(async (req, res) => {
       const emailHtml = getHtmlTemplate({
         title: 'New Shared Bill',
         greeting: `Hello!`,
-        body: `**${creatorName}** has shared a bill with you for **"${title}"**${groupName ? ` in group **"${groupName}"**` : ''}.<br/><br/>` +
-              `Total Bill Amount: <strong>${currency} ${amount}</strong><br/>` +
-              `Your Share: <strong>${currency} ${m.share}</strong>`,
+        body: `**${escapeHtml(creatorName)}** has shared a bill with you for **"${escapeHtml(title)}"**${groupName ? ` in group **"${escapeHtml(groupName)}"**` : ''}.<br/><br/>` +
+              `Total Bill Amount: <strong>${escapeHtml(currency)} ${escapeHtml(amount.toString())}</strong><br/>` +
+              `Your Share: <strong>${escapeHtml(currency)} ${escapeHtml(m.share.toString())}</strong>`,
         ctaText: 'View Split Bills',
         ctaUrl: `${clientUrl}/dashboard`,
         footerText: 'Log in to your workspace dashboard to manage and settle your active shared bills.',

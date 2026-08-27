@@ -85,10 +85,16 @@ export async function sendViaGmail({ to, subject, html }) {
 
   const gmail = createGmailClient();
 
-  const response = await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: { raw: rawMessage },
-  });
+  // Add a 10-second timeout guard so the server doesn't hang if Gmail API stalls
+  const response = await Promise.race([
+    gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: rawMessage },
+    }),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Gmail API connection timed out after 10s')), 10000)
+    )
+  ]);
 
   const messageId = response?.data?.id;
   logger.info(`📧 [Gmail API] Email delivered successfully. Message ID: ${messageId}`);

@@ -63,7 +63,7 @@ const createSessionRecord = async (userId, token, req) => {
 
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
+import { sendEmail, getHtmlTemplate, escapeHtml } from '../utils/sendEmail.js';
 import logger from '../utils/logger.js';
 
 export const createAuthenticatedSession = async (user, req, res, authMethod = 'Password') => {
@@ -230,7 +230,7 @@ export const register = asyncHandler(async (req, res) => {
   // Send Email
   const emailHtml = getHtmlTemplate({
     title: 'Verify your Expense Tracker email',
-    greeting: `Hello ${user.name}`,
+    greeting: `Hello ${escapeHtml(user.name)}`,
     body: 'Welcome to Expense Tracker! Please use the 6-digit verification code below to verify your email address. This code is valid for 10 minutes.',
     code: otp,
     footerText: 'If you did not create this account, you can safely ignore this email.',
@@ -607,7 +607,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   // Send Email
   const emailHtml = getHtmlTemplate({
     title: 'Reset Password Code',
-    greeting: `Hello ${user.name}`,
+    greeting: `Hello ${escapeHtml(user.name)}`,
     body: 'We received a request to reset the password associated with your account. Please enter the verification code below to authorize the password change. This code is valid for 15 minutes.',
     code: otp,
     footerText: 'If you did not request a password reset, you can safely ignore this email or contact support if you have security concerns.',
@@ -663,7 +663,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const confirmHtml = getHtmlTemplate({
     title: 'Password Updated',
-    greeting: `Hello ${user.name}`,
+    greeting: `Hello ${escapeHtml(user.name)}`,
     body: 'The password associated with your account has been successfully updated. You can now log in securely using your new credentials.',
     ctaText: 'Go to Login',
     ctaUrl: `${clientUrl}/login`,
@@ -777,7 +777,7 @@ export const resendVerification = asyncHandler(async (req, res) => {
   // Send Email
   const emailHtml = getHtmlTemplate({
     title: 'Your new verification code',
-    greeting: `Hello ${user.name}`,
+    greeting: `Hello ${escapeHtml(user.name)}`,
     body: 'We received a request to resend your verification code. Please use the 6-digit code below to verify your email address. This code is valid for 10 minutes.',
     code: otp,
     footerText: 'If you did not request a new code, you can safely ignore this email.',

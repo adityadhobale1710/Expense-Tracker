@@ -6,10 +6,28 @@ const LOGO_URL = process.env.LOGO_URL || 'https://raw.githubusercontent.com/adit
 const COMPANY_NAME = process.env.COMPANY_NAME || 'Expense Tracker';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@expensetracker.com';
 
+export const escapeHtml = (unsafe) => {
+  if (typeof unsafe !== 'string') return unsafe;
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+const processMarkdown = (text) => {
+  if (!text) return text;
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+};
+
 /**
  * Generates a premium dark-themed, glassmorphic-styled HTML email template.
  */
 export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, footerText }) => {
+  const safeGreeting = processMarkdown(greeting);
+  const safeBody = processMarkdown(body);
+  const safeFooterText = processMarkdown(footerText);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,8 +68,8 @@ export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, 
           <!-- Content Body -->
           <tr>
             <td style="padding: 36px 28px;">
-              ${greeting ? `<h2 style="margin: 0 0 14px 0; font-size: 18px; font-weight: 700; color: #ffffff; line-height: 1.35;">${greeting}</h2>` : ''}
-              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #94a3b8;">${body}</p>
+              ${safeGreeting ? `<h2 style="margin: 0 0 14px 0; font-size: 18px; font-weight: 700; color: #ffffff; line-height: 1.35;">${safeGreeting}</h2>` : ''}
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #94a3b8;">${safeBody}</p>
 
               ${code ? `
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 28px 0;">
@@ -78,7 +96,7 @@ export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, 
           <!-- Footer -->
           <tr>
             <td style="background-color: #070912; padding: 24px 28px; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center;">
-              <p style="margin: 0; font-size: 11px; color: #64748b; line-height: 1.5;">${footerText || `You received this email because you are registered with ${COMPANY_NAME}.`}</p>
+              <p style="margin: 0; font-size: 11px; color: #64748b; line-height: 1.5;">${safeFooterText || `You received this email because you are registered with ${COMPANY_NAME}.`}</p>
               <p style="margin: 10px 0 0 0; font-size: 11px; color: #64748b; line-height: 1.5;">
                 &copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.<br/>
                 For support, contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #6366f1; text-decoration: none;">${SUPPORT_EMAIL}</a>.
@@ -119,12 +137,17 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     logger.error('❌ [Gmail API] Not configured.');
   }
 
+  let safeText = text;
+  if (process.env.NODE_ENV === 'production' && safeText) {
+    safeText = safeText.replace(/\b\d{6}\b/g, '******');
+  }
+
   // ── Transport 2: Terminal log fallback ─────────────────────────────────────
   logger.info('⚠️  [Log Fallback] No transport succeeded. Dumping email context below:');
   logger.info('──────────────────────────────────────────────────────────────────────');
   logger.info(`TO:      ${to}`);
   logger.info(`SUBJECT: ${subject}`);
-  logger.info(`TEXT:    ${text}`);
+  logger.info(`TEXT:    ${safeText}`);
   logger.info('──────────────────────────────────────────────────────────────────────\n');
   return { success: false, mocked: true };
 };

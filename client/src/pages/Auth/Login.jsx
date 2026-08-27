@@ -70,6 +70,7 @@ export default function Login() {
   const [forgotCode, setForgotCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleSendResetCode = async (e) => {
     e.preventDefault();
@@ -79,12 +80,34 @@ export default function Login() {
       await api.post('/auth/forgot-password', { email: forgotEmail });
       toast.success('Verification code sent to your email!');
       setForgotStep(2);
+      setResendCooldown(30);
     } catch (err) {
       toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Failed to send reset code'));
     } finally {
       setForgotLoading(false);
     }
   };
+
+  const handleResendForgotCode = async () => {
+    if (resendCooldown > 0) return;
+    setForgotLoading(true);
+    try {
+      await api.post('/auth/forgot-password', { email: forgotEmail });
+      toast.success('A new verification code has been sent!');
+      setResendCooldown(30);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend reset code');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
@@ -714,6 +737,16 @@ export default function Login() {
                       required
                     />
                   </div>
+                </div>
+                <div className="flex justify-end mt-1 mb-2">
+                  <button
+                    type="button"
+                    onClick={handleResendForgotCode}
+                    disabled={resendCooldown > 0 || forgotLoading}
+                    className="text-xs font-semibold text-[#5B4CF0] hover:text-[#4F46E5] disabled:text-[#94A3B8] transition-colors"
+                  >
+                    {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend Verification Code'}
+                  </button>
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button

@@ -2,7 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Family from '../models/Family.js';
 import Expense from '../models/Expense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { sendEmail, getHtmlTemplate } from '../utils/sendEmail.js';
+import { sendEmail, getHtmlTemplate, escapeHtml } from '../utils/sendEmail.js';
 
 // @desc    Get family hub for current user
 // @route   GET /api/family
@@ -62,7 +62,7 @@ export const inviteMember = asyncHandler(async (req, res) => {
   const inviteHtml = getHtmlTemplate({
     title: 'Family Hub Invitation',
     greeting: 'Hello!',
-    body: `You have been invited by **${req.user.name}** (${req.user.email}) to join their Family Sharing Hub to manage expenses together as a **${role || 'member'}**.`,
+    body: `You have been invited by **${escapeHtml(req.user.name)}** (${escapeHtml(req.user.email)}) to join their Family Sharing Hub to manage expenses together as a **${escapeHtml(role || 'member')}**.`,
     ctaText: 'Accept Invitation',
     ctaUrl: `${clientUrl}/dashboard`,
     footerText: 'If you do not have an account yet, please sign up using this email address to view and accept your pending invitations.',
