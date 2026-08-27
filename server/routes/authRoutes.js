@@ -36,6 +36,18 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Specific rate limiter for Google Auth to handle redirects properly
+const googleLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.GOOGLE_RATE_LIMIT || '20', 10),
+  handler: (req, res) => {
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, '');
+    res.redirect(`${clientUrl}/login?googleAuth=error&message=${encodeURIComponent('Too many Google authentication attempts. Please try again later.')}`);
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // MASTER-035: Strict rate limiter for all OTP/password-reset sensitive endpoints.
 // Max 5 attempts per 10 minutes per IP to block brute-force on 6-digit OTP tokens.
 const otpLimiter = rateLimit({
@@ -59,7 +71,7 @@ router.post('/forgot-password', otpLimiter, validate(forgotPasswordSchema), forg
 router.post('/reset-password', otpLimiter, validate(resetPasswordSchema), resetPassword);
 
 // Google OAuth endpoints
-router.get('/google', googleAuth);
-router.get('/google/callback', googleCallback);
+router.get('/google', googleLimiter, googleAuth);
+router.get('/google/callback', googleLimiter, googleCallback);
 
 export default router;

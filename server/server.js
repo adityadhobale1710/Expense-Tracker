@@ -137,6 +137,11 @@ const globalLimiter = rateLimit({
     success: false,
     message: 'Too many requests from this IP, please try again after 15 minutes.'
   },
+  skip: (req) => {
+    // Skip Google Auth routes as they have their own specific limiter 
+    // that redirects to the frontend with an error instead of returning raw JSON.
+    return req.originalUrl.startsWith('/api/auth/google');
+  },
   standardHeaders: true,
   legacyHeaders: false
 });
