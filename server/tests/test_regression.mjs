@@ -55,7 +55,7 @@ const runTests = async () => {
     throw new Error('MONGO_URI is required to run the regression test.');
   }
   await import('mongoose').then(m => m.connect(process.env.MONGO_URI));
-  const User = (await import('./models/User.js')).default;
+  const User = (await import('../models/User.js')).default;
   const jwt = await import('jsonwebtoken');
   
   await User.deleteMany({ email: 'test_regression@test.com' });
@@ -64,7 +64,7 @@ const runTests = async () => {
   console.log('✅ Generated direct token for regression test user.');
 
   // 2. Create Goal
-  console.log('\\n[TEST GOALS]');
+  console.log('\n[TEST GOALS]');
   await request('POST', '/goals', { title: 'Test Goal', targetAmount: 5000, targetDate: '2028-01-01', category: 'Savings' }, token);
   
   // 3. Fetch Dashboard
@@ -87,7 +87,7 @@ const runTests = async () => {
   console.log('✅ Goals Match.');
 
   // 5. Create Wallet
-  console.log('\\n[TEST WALLETS]');
+  console.log('\n[TEST WALLETS]');
   await request('POST', '/wallets', { name: 'Test Wallet', balance: 75000, type: 'bank' }, token);
   
   const dashRes2 = await request('GET', '/dashboard', null, token);
@@ -104,7 +104,7 @@ const runTests = async () => {
   console.log('✅ Wallets Match.');
 
   // 6. Create Expense & Income
-  console.log('\\n[TEST TRANSACTIONS]');
+  console.log('\n[TEST TRANSACTIONS]');
   const walletId = dashRes2.data.data.wallets[0]._id;
   await request('POST', '/income', { title: 'Test Income', amount: 20000, date: new Date().toISOString(), wallet: walletId }, token);
   await request('POST', '/expenses', { title: 'Test Expense', amount: 5000, date: new Date().toISOString(), wallet: walletId, paymentMethod: 'cash' }, token);
@@ -124,7 +124,7 @@ const runTests = async () => {
   }
   
   // 7. Test Failing Query
-  console.log('\\n[TEST EXPENSE ANALYSIS]');
+  console.log('\n[TEST EXPENSE ANALYSIS]');
   const aiRes4 = await request('POST', '/ai/chat', { message: 'Where am I spending the most?' }, token);
   const aiReply4 = aiRes4.data.data.aiMessage.content;
   console.log(`- AI Response: "${aiReply4}"`);
@@ -136,7 +136,7 @@ const runTests = async () => {
     console.log('✅ AI provided analytical response.');
   }
 
-  console.log('\\n--- ALL TESTS COMPLETED SUCCESSFULLY ---');
+  console.log('\n--- ALL TESTS COMPLETED SUCCESSFULLY ---');
 };
 
 runTests().catch(console.error);

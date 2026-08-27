@@ -1,75 +1,74 @@
-# 💰 ExpenseTrack — MERN Stack Finance Manager
+# 💰 Expense Tracker — MERN Stack Financial Management System
 
-A full-stack, enterprise-grade personal finance manager and budget planner built with the MERN stack (MongoDB, Express, React, Node.js). 
+A production-ready, full-stack personal finance management and budget optimization platform built on the MERN stack (MongoDB, Express.js, React 18, Node.js).
 
-ExpenseTrack helps you manage your transactions, configure multi-currency wallets, orchestrate family budgets, split bills, track financial goals, schedule bills, monitor subscriptions, and receive AI-driven savings insights powered by Google Gemini AI. It also features a gamification system with XP, levels, daily challenges, and badges to incentivize saving habits.
+Expense Tracker delivers end-to-end financial workflows including multi-currency wallet management, category budgeting with active threshold alerts, debt and loan tracking, recurring subscription monitoring, group bill splitting, joint family budgeting workspaces, interactive bill calendars, and AI-driven conversational advisory powered by Google Gemini. An embedded gamification engine (XP progression, levels, daily challenges, reward chests, and achievement badges) incentivizes healthy financial habits.
 
 ---
 
-## 🧱 Project Architecture & Flow
+## 🏗️ System Architecture
 
-ExpenseTrack is structured as a 3-tier MERN web application:
+Expense Tracker operates as a modular, 3-tier MERN web application:
 
-```text
-               +--------------------------------------------+
-               |           React Frontend (Client)          |
-               | (Vite, Tailwind, Recharts, Framer Motion)  |
-               +----------------------+---------------------+
-                                      |
-                             HTTPS / REST API Calls
-                                      |
-               +----------------------v---------------------+
-               |          Express.js / Node.js API          |
-               |  (Authentication, AI Assistant, Security)  |
-               +----------------------+---------------------+
-                                      |
-                           Mongoose ODM Queries
-                                      |
-               +----------------------v---------------------+
-               |              MongoDB Database              |
-               | (Users, Expenses, Goals, Wallets, etc.)   |
-               +--------------------------------------------+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   React 18 Single-Page App                  │
+│       Vite • Tailwind CSS • Framer Motion • Recharts        │
+│       Context State • Axios Interceptors • React Query      │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ HTTPS / REST (JSON & HttpOnly Cookie)
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Node.js / Express.js REST API               │
+│  Controllers • Joi Validators • Security Middlewares (XSS,  │
+│  HPP, Helmet, Rate Limiters) • Double JWT • Google OAuth    │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Mongoose ODM
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     MongoDB Atlas Database                  │
+│  21 Collections: Users, Wallets, Expenses, Budgets, Goals,  │
+│  Sessions, Gamification, Security Logs, Split Bills, etc.   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-1. **Frontend (Client)**: A React SPA utilizing Vite as the build tool, Tailwind CSS for modern glassmorphic UI styling, Recharts for financial analytics, TanStack React Query for cached API requests, and Framer Motion for smooth micro-animations.
-2. **Backend (Server)**: An Express REST API with Winston logging, structured controllers, Joi validators, rate limiters, Helmet security headers, and JWT-based authentication.
-3. **Database (MongoDB)**: Utilizes Mongoose ODM to model relational-like data structures including User, Expense, Income, Wallet, Budget, Goal, split, subscription, family, session, and gamification logs.
-4. **Third-Party Integrations**: Google Gemini API via `@google/genai` for AI budgeting tips and Resend/SMTP email dispatcher.
+1. **Frontend (Client)**: React 18 Single Page Application powered by Vite, Tailwind CSS, Recharts for visual analytics, Framer Motion for micro-interactions, and Axios with automated interceptors for silent token refresh via HttpOnly cookies.
+2. **Backend (Server)**: Modular Express REST API with Winston logging, centralized async error handling, Joi schema validation, multi-layer security sanitization, and dual authentication mechanisms (Local Email/Password + Google OAuth 2.0).
+3. **Database (MongoDB Atlas)**: Relational-mapped document collections using Mongoose ODM covering financial entities, active device sessions, security audit logs, and gamification state.
+4. **AI & Integrations**: Google Gemini AI (`@google/genai`) for multi-turn conversational financial analysis and Resend/SMTP email dispatcher for alerts and verification codes.
 
 ---
 
-## 🚀 Key Features
+## ✨ Application Modules & Features
 
-### 1. Core Financial Management
-* **Interactive Dashboard**: Consolidated financial summary with real-time income, expenses, and savings cards, budget progress gauges, and recent transaction history.
-* **Transactions CRUD**: Seamless tracking of income and expenses. Filter by category, wallet, date range, or transaction type, with built-in search and pagination.
-* **Multi-Wallet & Multi-Currency Support**: Register multiple payment accounts (Cash, Bank Accounts, Credit Cards, Savings) with real-time balance tracking.
-* **Dynamic Budgeting**: Define monthly budgets by category. View spending thresholds and receive warning alerts when expenses exceed predefined limits.
-* **Interactive Reports & Analytics**: Generate monthly trend graphs, category breakdown charts, and average spending statistics using Recharts.
+### 1. Core Financial Engine
+* **Consolidated Dashboard**: Real-time summary cards for income, expenses, net savings rate, category budget progress gauges, and recent transactions.
+* **Income & Expense Tracking**: Full CRUD management of transactions with categorization, wallet association, date filtering, pagination, and instant balance recalculations.
+* **Multi-Wallet Support**: Create and manage multiple accounts (Cash, Bank Accounts, Credit Cards, Savings) with real-time balance synchronization.
+* **Category Budgeting**: Monthly limits by category with dynamic spending gauges, threshold tracking, and automated budget overflow alerts.
+* **Financial Goals**: Define savings goals with visual milestones, target dates, and automated contribution logging.
+* **Interactive Bill Calendar**: Visual calendar interface displaying upcoming, overdue, and completed bill payments to prevent late fees.
+* **Subscriptions Tracker**: Track recurring payments (streaming, utilities, gym memberships) with billing cycle reminders.
+* **Investments & Loans**: Monitor asset portfolios (stocks, mutual funds, real estate) and track borrowed/lent debt records with settlement logs.
+* **Split Bills & Group Expenses**: Group expense splitter calculating equal or customized splits with individual settlement status.
+* **Family Shared Budgets**: Collaborative household workspace allowing family members to share budgets and monitor pooled expenses.
+* **Analytics Pro & Reports**: Deep-dive spending breakdowns, cash flow ratios, payment method statistics, and downloadable statements in styled **Excel (`exceljs`)** and **PDF (`pdfkit`)** formats.
 
-### 2. Advanced Features
-* **AI Financial Assistant**: Ask our Google Gemini AI-powered assistant (via `@google/genai`) for personalized budgeting recommendations, transaction summaries, or saving strategies. Chat requests are optimized with rate limiting and a 2-minute caching TTL.
-* **Gamification & Saving Challenges**: Stay motivated with levels, XP progression, daily challenges, reward chest openings, and customizable achievement badges.
-* **Financial Goals Dashboard**: Set target savings goals (e.g., buying a car, emergency fund) with visual milestones, target dates, and automated contribution logging.
-* **Interactive Bill Calendar**: Visual calendar layout displaying upcoming, overdue, and paid bills to prevent late fee penalties.
-* **Subscriptions Tracker**: Track recurring payments (Netflix, Spotify, Gym, etc.) with customizable billing cycles and notifications.
-* **Split Bills / Group Expenses**: Share bills with friends or family members. Calculate equal or custom splits, track contributions, and log settlements.
-* **Family Shared Budgets**: Invite family members to join a shared workspace to track collaborative household budgets and expenses.
-* **Analytics Pro**: Deeper financial analysis with forecasting charts and spending trend lines.
+### 2. Google Gemini AI Assistant
+* **Natural Language Queries**: Ask financial questions like *"Where did I spend the most this month?"* or *"Suggest a budget based on my income"*.
+* **Modular AI Architecture**: Uses `IntentDetector`, `ContextBuilder`, `FactRouter`, `InsightEngine`, `RiskAnalyzer`, and `ResponseValidator` to ensure grounded, hallucination-free advice.
+* **Performance & Safety**: Daily query quotas per user and a 2-minute memory cache to optimize response times.
 
-### 3. Security & Account Protection
-* **Active Session Management**: View active browser sessions (IP, OS, Browser, Device Type, Login Timestamp) and log out from individual devices or all other devices remotely.
-* **Security Logs**: Audit tracking of critical account activities (such as login attempts, password changes, MFA alerts, and login failures).
-* **Robust Express Middleware**: Secure API endpoints with:
-  * **Helmet**: Strong HTTP header configurations.
-  * **Express Rate Limit**: Custom rate limiters for general API endpoints, logins, and OTP requests.
-  * **Mongo Sanitize**: Protection against MongoDB Query Injection.
-  * **HPP & XSS Sanitizer**: Defense against HTTP Parameter Pollution and Cross-Site Scripting.
-* **Token Refresh Protocol**: Double JWT strategy (15-minute HTTP header access tokens & 7-day HttpOnly/Secure refresh cookies) to prevent token theft.
+### 3. Gamification Engine
+* **Level & XP Progression**: Earn XP and coins for logging transactions, meeting budget targets, and achieving savings milestones.
+* **Daily Challenges & Streaks**: Randomized daily financial tasks and consecutive login streak multipliers.
+* **Reward Chests & Badges**: Unlock cosmetic titles, theme customizations, and 30+ achievement badges with an Achievement Showcase.
 
-### 4. Statements & Communications
-* **Excel & PDF Exports**: Download your transaction reports as highly styled Excel spreadsheets (`exceljs`) or PDF files (`pdfkit`).
-* **Real-time Notifications**: Custom browser toasts (`react-hot-toast`) and automated email alerts via **Resend** or standard **SMTP** servers for alerts like budget overflows.
+### 4. Enterprise Security & Session Management
+* **Dual Authentication**: Local Email/Password with bcrypt password hashing + Google OAuth 2.0 authorization code flow.
+* **Active Session Management**: Track active device logins (IP address, OS, Browser, Device Name, Last Active timestamp) with remote session revocation.
+* **Security Logs**: Immutable audit log of sensitive actions (login events, password resets, profile modifications).
+* **Multi-Tier Defense**: Helmet HTTP headers, CORS origin allowlisting, Express rate limiting, Mongo query sanitization, HTTP Parameter Pollution (HPP) protection, and recursive XSS sanitization.
 
 ---
 
@@ -77,120 +76,236 @@ ExpenseTrack is structured as a 3-tier MERN web application:
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | React 18, Vite, React Router v6, Tailwind CSS v3, Framer Motion, TanStack React Query, Lucide Icons, Recharts |
-| **Backend** | Node.js, Express.js, JWT, Mongoose, Joi, Winston Logger, Compression, Helmet, CORS |
-| **Database** | MongoDB Atlas |
-| **External APIs** | Google Gemini AI (`@google/genai`), Resend / SMTP Email Delivery |
+| **Frontend** | React 18, Vite, React Router v6, Tailwind CSS v3, Framer Motion, TanStack React Query, Lucide Icons, React Icons, Recharts, React Hot Toast |
+| **Backend** | Node.js, Express.js (ESM), Mongoose ODM, Joi, Winston Logger, Compression, Helmet, HPP, Express Rate Limit, Cookie Parser, Google Auth Library |
+| **Database** | MongoDB Atlas / MongoDB Server |
+| **AI Integration** | Google Gemini AI (`@google/genai`) |
+| **Email Delivery** | Resend API / Nodemailer SMTP |
+| **Document Export** | ExcelJS, PDFKit |
 
 ---
 
-## ⚙️ Project Installation & Setup
+## 📁 Cleaned Directory Structure
 
-### Prerequisites
-* Node.js >= 18
-* MongoDB Atlas cluster or local MongoDB instance
-* Google Gemini API Key (optional, required for AI features)
-* Resend API Key / SMTP Server details (optional, fallback to console logger is included)
-
-### 1. Clone the Repository & Install Dependencies
-First, clone this repository and install the dependencies for both the frontend client and the backend server.
-
-```bash
-# Install Server Dependencies
-cd server
-npm install
-
-# Install Client Dependencies
-cd ../client
-npm install
+```text
+Expense-Tracker/
+├── .gitignore                                # Environment & artifact ignore rules
+├── Expense_Tracker_MERN_System_Architecture.md # Comprehensive system architecture documentation
+├── README.md                                 # Project documentation
+├── package.json                              # Root monorepo workspace scripts
+│
+├── client/                                   # Frontend Application (React 18 + Vite)
+│   ├── public/                               # Static assets (favicons, PWA manifest, logo.jpg)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Goals/                        # Goal modals, progress bars, charts
+│   │   │   ├── ai/                           # AI Chat input, message bubbles, markdown renderer
+│   │   │   ├── cards/                        # Summary and balance cards
+│   │   │   ├── charts/                       # Recharts analytics and breakdown visualizations
+│   │   │   ├── common/                       # Navbar, Sidebar, Layout, Modal, ConfirmDialog
+│   │   │   ├── gamification/                 # XP bar, badges, streak, reward chests, leaderboard
+│   │   │   └── ui/                           # Base UI primitives (Button, Input, Card, Skeleton)
+│   │   ├── constants/                        # Challenge pools and reward definitions
+│   │   ├── context/                          # AuthContext, ExpenseContext, GamificationContext, ThemeContext, DialogContext
+│   │   ├── hooks/                            # useGoals, useGoalAnalytics, useDialog
+│   │   ├── pages/                            # Application view pages (Dashboard, Expenses, AIAssistant, etc.)
+│   │   ├── services/                         # Axios client (api.js), goalService, rewardService
+│   │   ├── utils/                            # Chart themes, goal calculations, helper functions
+│   │   ├── App.jsx                           # Application routing & provider hierarchy
+│   │   ├── index.css                         # Global CSS & Tailwind layers
+│   │   └── main.jsx                          # React DOM entry point
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── vercel.json                           # Vercel deployment configuration
+│   └── vite.config.js
+│
+└── server/                                   # Backend Application (Express.js REST API)
+    ├── config/                               # MongoDB connection (`db.js`) & Environment validation (`env.js`)
+    ├── controllers/                          # Business logic controllers (auth, expenses, ai, wallets, etc.)
+    ├── middleware/                           # authMiddleware, errorHandler, schemas (Joi), validate, xssSanitizer
+    ├── models/                               # 21 Mongoose models (User, Expense, Wallet, Session, SecurityLog, etc.)
+    ├── routes/                               # 22 Express route modules mounted at /api/*
+    ├── scripts/                              # Maintenance utilities (seed_categories.js, dedupeAIChats.mjs)
+    ├── services/
+    │   ├── ai/                               # Gemini AI pipeline (IntentDetector, ContextBuilder, ResponseValidator, etc.)
+    │   ├── financial/                        # Financial data aggregation services
+    │   └── gamificationService.js            # XP awards, level checks, and badge evaluators
+    ├── tests/                                # Backend regression and integration test utilities
+    ├── utils/                                # Winston logger, JWT generator, email sender, timezone utilities
+    ├── .env.example                          # Environment variable template
+    ├── package.json
+    └── server.js                             # Express application entry point
 ```
 
-### 2. Configure Environment Variables
+---
 
-Create a `.env` file inside both the `server/` and `client/` directories based on the templates below.
+## 🔐 Authentication & Session Security
 
-#### Server Environment Configurations (`server/.env`):
+### Dual Authentication Architecture
+1. **Local Email/Password**: Secure registration and login with bcrypt password hashing (10 salt rounds), brute-force login rate limiting (max 5 requests / 15 minutes), and OTP-based password reset.
+2. **Google OAuth 2.0**: Server-side authorization code flow via `google-auth-library` with cryptographic CSRF `state` cookie validation and Google ID token verification.
+
+### Token & Session Lifecycle
+* **Access Tokens**: Short-lived JWTs (15 minutes) signed with `JWT_SECRET`. Carried in HTTP `Authorization: Bearer <token>` headers.
+* **Refresh Tokens**: Long-lived tokens (7 days) signed with `JWT_REFRESH_SECRET`. Stored as a hashed record in the database and set as an **HttpOnly, Secure, SameSite cookie** on the browser.
+* **Silent Token Rotation**: The frontend Axios client automatically intercepts `401 Unauthorized` responses and requests a fresh access token via `/api/auth/refresh-token` using the HttpOnly cookie.
+* **Active Session Tracking**: Every login creates a `Session` record capturing the device type, OS, browser, IP address, and timestamp. Users can inspect and revoke active sessions at any time.
+
+---
+
+## 🌐 Google OAuth 2.0 Setup
+
+To enable Google Sign-In, create credentials in the **Google Cloud Console**:
+
+1. Navigate to **APIs & Services → Credentials**.
+2. Create an **OAuth 2.0 Client ID** (Web application).
+3. Configure the Authorized Origins and Redirect URIs:
+
+| Environment | Authorized JavaScript Origins | Authorized Redirect URIs |
+|---|---|---|
+| **Local Development** | `http://localhost:5173` | `http://localhost:5000/api/auth/google/callback` |
+| **Production** | `https://expense-tracker-five-virid-19.vercel.app` | `https://expense-tracker-30el.onrender.com/api/auth/google/callback` |
+
+4. Set the resulting environment variables in your server configuration (never commit secrets):
+   * `GOOGLE_CLIENT_ID`
+   * `GOOGLE_CLIENT_SECRET`
+   * `GOOGLE_CALLBACK_URL`
+
+---
+
+## ⚙️ Environment Configuration
+
+### Server (`server/.env`):
 ```ini
-# Core Server Configuration
+# Core Configuration
 NODE_ENV=development
 PORT=5000
 MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/expensetracker
 
-# Security & Authentication Tokens (Must be >= 16 chars)
-JWT_SECRET=your_super_secure_access_secret_key_here
-JWT_EXPIRE=15m
-JWT_REFRESH_SECRET=your_super_secure_refresh_secret_key_here
-JWT_REFRESH_EXPIRE=7d
-COOKIE_SECRET=your_super_secure_cookie_cookie_secret_here
+# Client Origin (comma-separated if multiple)
 CLIENT_URL=http://localhost:5173
 
-# Expose error stack traces during development (ignored in production)
-EXPOSE_ERROR_STACK=true
+# Authentication & Encryption Secrets (Min 16 characters each)
+JWT_SECRET=your_strong_jwt_access_secret_key
+JWT_EXPIRE=15m
+JWT_REFRESH_SECRET=your_strong_jwt_refresh_secret_key
+JWT_REFRESH_EXPIRE=7d
+COOKIE_SECRET=your_strong_cookie_session_secret_key
 
-# Optional: Email Delivery (resends or SMTP; falls back to console logging if omitted)
-# SMTP_HOST=smtp.mailtrap.io
-# SMTP_PORT=2525
-# SMTP_USER=your_smtp_username
-# SMTP_PASS=your_smtp_password
-# SMTP_FROM=noreply@expensetrack.com
-# SMTP_FROM_NAME=ExpenseTrack
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 
-# Gemini AI Integration Config
-GEMINI_API_KEY=your_gemini_api_key_here
+# Google Gemini AI Integration
+GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-3.5-flash-lite
-
-# AI Assistant Limits & Caching
 AI_DAILY_MESSAGE_LIMIT=50
 AI_CACHE_TTL=120000
+
+# Email Service (Optional - falls back to console logger if omitted)
+# RESEND_API_KEY=re_your_resend_key
+# EMAIL_FROM=noreply@yourdomain.com
+# SMTP_HOST=smtp.mailtrap.io
+# SMTP_PORT=2525
+# SMTP_USER=your_smtp_user
+# SMTP_PASS=your_smtp_password
 ```
 
-#### Client Environment Configurations (`client/.env`):
+### Client (`client/.env` - Optional for Local Dev):
 ```ini
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5000/api
 ```
 
-### 3. Database Seeding (Optional)
-If you wish to seed newly created/existing users with some default categories, run the category seeding script:
+---
+
+## 🚀 Local Development Setup
+
+### 1. Prerequisites
+* Node.js >= 18.x
+* MongoDB Atlas cluster or local MongoDB instance
+* Google Gemini API Key (optional, for AI chat)
+* Google OAuth Credentials (optional, for Google Sign-In)
+
+### 2. Installation
 ```bash
+# Clone the repository
+git clone https://github.com/adityadhobale1710/Expense-Tracker.git
+cd Expense-Tracker
+
+# Install server dependencies
 cd server
-node seed_categories.js
+npm install
+
+# Install client dependencies
+cd ../client
+npm install
 ```
 
-### 4. Run Development Servers
-Open two terminal windows to start both the backend server and the frontend client simultaneously:
+### 3. Run Development Servers
+Start both servers concurrently using separate terminal windows:
 
 ```bash
-# Terminal 1: Backend
+# Terminal 1: Backend Server (runs on http://localhost:5000)
 cd server
 npm run dev
 
-# Terminal 2: Frontend
+# Terminal 2: Frontend Client (runs on http://localhost:5173)
 cd client
 npm run dev
 ```
 
-Visit: **https://expense-tracker-five-virid-19.vercel.app/login** to access the application.
+### 4. Database Seeding & Maintenance Scripts
+```bash
+# Seed default expense and income categories
+cd server
+npm run seed:categories
+
+# Deduplicate AIChat records if required by startup checks
+npm run dedupe:ai
+```
 
 ---
 
-## 🧪 Testing and Validation
+## ☁️ Production Deployment
 
-ExpenseTrack comes with a complete suite of regression, performance, and unit tests inside the `server/tests` folder.
+* **Frontend**: Deployed on **Vercel** (`https://expense-tracker-five-virid-19.vercel.app`)
+  * Build Command: `npm run build`
+  * Output Directory: `dist`
+  * Environment Variable: `VITE_API_URL=https://expense-tracker-30el.onrender.com/api`
+* **Backend**: Deployed on **Render** (`https://expense-tracker-30el.onrender.com`)
+  * Build Command: `npm install`
+  * Start Command: `node server.js`
+  * Environment Variables configured in Render Dashboard (`NODE_ENV=production`, `CLIENT_URL`, `MONGO_URI`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `COOKIE_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, `GEMINI_API_KEY`).
+* **Database**: Hosted on **MongoDB Atlas**.
 
-To run the primary gamification and XP system test suite:
-```bash
-cd server
-npm test
-```
+---
 
-To run individual tests or verification checks:
-```bash
-# Verify Gemini API configuration and sanity check model connection
-node tests/setup_check.js
+## 🛡️ Security Architecture Overview
 
-# Verify session management and security logs
-node tests/device_sessions.test.js
+* **Zero Token In URL**: Google OAuth redirects users cleanly to `/dashboard` while passing the session via an HttpOnly cookie; tokens and serialized user objects never touch the URL query string or browser history.
+* **Strict CORS Policy**: Whitelists only approved client origins with credentials (`withCredentials: true`), blocking unauthorized cross-origin requests.
+* **Cookie Security**: Refresh cookies use `HttpOnly: true`, `Secure: true` in production, and `SameSite: None` (cross-site Vercel ↔ Render) / `SameSite: Strict` (local development).
+* **Automated XSS & Injection Defense**: `express-mongo-sanitize` strips `$` and `.` operators from incoming request bodies, while `xssSanitizer` recursively purges malicious script tags.
+* **Rate Limiting**: Tiered rate limits on standard API routes, strict login limits (5 requests / 15 mins), and OTP verification endpoints (5 attempts / 10 mins).
 
-# Verify Gemini AI caching and performance regression
-node tests/aicache_regression.mjs
-```
+---
+
+## 📋 Manual Verification Checklist
+
+1. **Authentication**:
+   * Register a new user with Email/Password and verify automatic wallet and category seeding.
+   * Sign in using the **Google** button, approve permissions, and verify redirection to `/dashboard`.
+   * Log out and confirm the refresh cookie and local storage are cleared.
+2. **Transactions & Ballets**:
+   * Create an income entry and an expense entry; verify wallet balance updates in real-time.
+   * Delete an entry and verify balance rollback.
+3. **Budgets & Goals**:
+   * Set a monthly category budget and verify spending gauge updates.
+   * Create a savings goal and log a contribution.
+4. **AI Assistant**:
+   * Open the AI Assistant page and ask *"What is my total balance?"*; verify accurate retrieval.
+5. **Session Management**:
+   * Open **Profile → Security** and verify active device session cards.
+6. **Data Exports**:
+   * Generate an Excel and PDF statement from the **Reports** page.
