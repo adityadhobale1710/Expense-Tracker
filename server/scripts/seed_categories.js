@@ -2,12 +2,12 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import User from './models/User.js';
-import Category from './models/Category.js';
+import User from '../models/User.js';
+import Category from '../models/Category.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const NEW_CATEGORIES = [
   { name: 'Award', icon: '🏆', color: '#eab308', type: 'income' },
@@ -16,6 +16,9 @@ const NEW_CATEGORIES = [
 
 async function seedNewCategories() {
   try {
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI is missing in environment variables.');
+    }
     await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
 

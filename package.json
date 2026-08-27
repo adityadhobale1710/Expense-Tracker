@@ -1,5 +1,13 @@
 {
-  "dependencies": {
-    "@google/genai": "^2.15.0"
+  "name": "expense-tracker-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade MERN Stack Expense Tracker and AI-powered Financial Management System",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build:client": "npm --prefix client run build",
+    "seed": "npm --prefix server run seed:categories",
+    "start": "npm --prefix server start"
   }
 }
