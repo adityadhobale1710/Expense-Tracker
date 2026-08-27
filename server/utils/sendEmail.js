@@ -90,7 +90,7 @@ export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, 
     </tr>
   </table>
 </body>
-</html>\`;
+</html>`;
 };
 
 /**
@@ -105,7 +105,7 @@ export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, 
  * continue to work through this same interface without modification.
  */
 export const sendEmail = async ({ to, subject, html, text }) => {
-  logger.info(\`\\n📧 Dispatching email to: \${to} (Subject: "\${subject}")\`);
+  logger.info(`\n📧 Dispatching email to: ${to} (Subject: "${subject}")`);
 
   // ── Transport 1: Gmail API ──────────────────────────────────────────────────
   if (isGmailConfigured()) {
@@ -113,7 +113,7 @@ export const sendEmail = async ({ to, subject, html, text }) => {
       const result = await sendViaGmail({ to, subject, html });
       return result;
     } catch (gmailError) {
-      logger.error(\`❌ [Gmail API] Delivery failed: \${gmailError.message}\`);
+      logger.error(`❌ [Gmail API] Delivery failed: ${gmailError.message}`);
     }
   } else {
     logger.error('❌ [Gmail API] Not configured.');
