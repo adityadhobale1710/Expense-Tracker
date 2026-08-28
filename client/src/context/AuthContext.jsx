@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api, { resetAuthState } from '../services/api';
+import axios from 'axios';
+import api, { API_URL, resetAuthState } from '../services/api';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -39,10 +40,15 @@ export const AuthProvider = ({ children }) => {
     // This runs after a Google OAuth redirect (or if localStorage was cleared).
     const tryRefreshBootstrap = async () => {
       try {
-        // Use api directly — /auth/refresh-token sends the HttpOnly cookie automatically.
-        // The request interceptor allows it through because /auth/refresh-token is in
-        // the public routes list and does not require an Authorization header.
-        const refreshRes = await api.post('/auth/refresh-token');
+        // LOOP-FIX: Use raw axios (not the intercepted `api` instance) so that a
+        // 401 from a missing/expired refresh cookie is caught here locally and
+        // does not re-enter the 401 response interceptor, which would fire another
+        // /auth/refresh-token request and eventually hard-reload the page in a loop.
+        const refreshRes = await axios.post(
+          `${API_URL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
         const newAccessToken = refreshRes.data?.data?.accessToken;
         if (!newAccessToken) throw new Error('No access token in refresh response');
 

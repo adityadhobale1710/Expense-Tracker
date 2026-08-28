@@ -68,11 +68,25 @@ api.interceptors.response.use(
     const isAuthRoute = originalRequest?.url?.includes('/auth/');
 
     // 1. Handle Token Refresh on 401 Unauthorized
+    //
+    // LOOP-FIX: Exclude every public auth endpoint from the auto-refresh mechanism.
+    // Previously only /auth/login and /auth/register were excluded. A 401 from
+    // /auth/refresh-token itself would re-enter this block, fire another refresh
+    // request, fail again, redirect to /login, hard-reload the page, and repeat
+    // indefinitely — exhausting the global rate limiter within seconds.
+    const isPublicAuthEndpoint =
+      originalRequest?.url?.includes('/auth/refresh-token') ||
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/register') ||
+      originalRequest?.url?.includes('/auth/forgot-password') ||
+      originalRequest?.url?.includes('/auth/reset-password') ||
+      originalRequest?.url?.includes('/auth/verify-email') ||
+      originalRequest?.url?.includes('/auth/resend-verification');
+
     if (
       error.response?.status === 401 && 
       !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/login') &&
-      !originalRequest.url?.includes('/auth/register')
+      !isPublicAuthEndpoint
     ) {
       originalRequest._retry = true; // Retry only once
       try {
@@ -103,8 +117,16 @@ api.interceptors.response.use(
             localStorage.removeItem(key);
           }
         });
-        
-        if (!isRedirecting) {
+
+        // LOOP-FIX: Do not redirect if already on a public auth page.
+        // window.location.replace('/login') triggers a hard reload which resets JS
+        // module state (isRedirecting → false) and restarts the bootstrap loop.
+        const publicAuthPaths = ['/login', '/register', '/verify-email'];
+        const alreadyOnPublicPage = publicAuthPaths.some(
+          (p) => window.location.pathname.startsWith(p)
+        );
+
+        if (!isRedirecting && !alreadyOnPublicPage) {
           isRedirecting = true;
           window.location.replace('/login');
         }
