@@ -241,6 +241,11 @@ export const transferFunds = asyncHandler(async (req, res) => {
       throw new Error('One or both wallets not found');
     }
 
+    if (fromWallet.currency !== toWallet.currency) {
+      res.status(400);
+      throw new Error(`Cannot transfer between wallets with different currencies (${fromWallet.currency} vs ${toWallet.currency}).`);
+    }
+
     if (fromWallet.balance < amount) {
       res.status(400);
       throw new Error('Insufficient wallet balance');

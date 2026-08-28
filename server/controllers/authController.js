@@ -596,11 +596,13 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     return sendSuccess(res, 200, 'If that email is registered, a verification code has been sent');
   }
 
-  // Generate 6-digit random token/OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate 6-digit random token/OTP securely and hash it
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const salt = await bcrypt.genSalt(10);
+  const otpHash = await bcrypt.hash(otp, salt);
 
   // Token expires in 15 minutes
-  user.resetPasswordToken = otp;
+  user.resetPasswordToken = otpHash;
   user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
   await user.save();
 
@@ -645,11 +647,16 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({
     email,
-    resetPasswordToken: token,
     resetPasswordExpire: { $gt: Date.now() },
   });
 
-  if (!user) {
+  if (!user || !user.resetPasswordToken) {
+    res.status(400);
+    throw new Error('Invalid code/OTP or code has expired');
+  }
+
+  const isMatch = await bcrypt.compare(token, user.resetPasswordToken);
+  if (!isMatch) {
     res.status(400);
     throw new Error('Invalid code/OTP or code has expired');
   }
@@ -658,7 +665,10 @@ export const resetPassword = asyncHandler(async (req, res) => {
   user.password = newPassword;
   user.resetPasswordToken = null;
   user.resetPasswordExpire = null;
+  user.refreshToken = null;
   await user.save();
+
+  await Session.updateMany({ user: user._id }, { isActive: false });
 
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const confirmHtml = getHtmlTemplate({

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 import Goal from '../models/Goal.js';
 import Contribution from '../models/Contribution.js';
@@ -338,57 +339,82 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
     throw new Error('Selected wallet not found');
   }
 
-  if (wallet.balance < amount) {
-    res.status(400);
-    throw new Error(`Insufficient balance in wallet ${wallet.name}. Balance: ₹${wallet.balance}`);
-  }
-
   // Prevent Over-Saving (Option A: Auto-cap contribution)
   const remaining = goal.targetAmount - goal.savedAmount;
   const actualContribution = Math.min(amount, remaining);
 
-  // Wallet Deduction & Savings transfer creation
-  wallet.balance -= actualContribution;
-  // C1 fix: removed dead `await wallet.balance` — awaiting a primitive is a no-op
-  await wallet.save();
-
-  const oldSaved = goal.savedAmount;
-  goal.savedAmount += actualContribution;
-
-  const contribution = await Contribution.create({
-    goalId: goal._id,
-    user: req.user._id,
-    wallet: wallet._id,
-    amount: actualContribution,
-    note: note || `Manual savings transfer from wallet ${wallet.name}`,
-    date: date || new Date(),
-    type: type || 'Manual'
-  });
-
-  const completionPercent = Math.min(Math.round((goal.savedAmount / goal.targetAmount) * 100), 100);
-
-  // Estimate Completion Date based on recent savings velocity
-  const contributions = await Contribution.find({ goalId: goal._id }).sort({ date: 1 });
-  if (contributions.length >= 2) {
-    const timeDelta = new Date(contributions[contributions.length - 1].date) - new Date(contributions[0].date);
-    const daysElapsed = Math.max(1, Math.ceil(timeDelta / (1000 * 60 * 60 * 24)));
-    const totalAmount = contributions.reduce((s, c) => s + c.amount, 0);
-    const ratePerDay = totalAmount / daysElapsed;
-    if (ratePerDay > 0) {
-      const daysToComplete = Math.ceil(goal.remainingAmount / ratePerDay);
-      const estDate = new Date();
-      estDate.setDate(estDate.getDate() + daysToComplete);
-      goal.estimatedCompletion = estDate;
-    }
+  if (wallet.balance < actualContribution) {
+    res.status(400);
+    throw new Error(`Insufficient balance in wallet ${wallet.name}. Balance: ₹${wallet.balance}`);
   }
 
-  goal.goalHistory.push({
-    action: 'Contribution',
-    amount: actualContribution,
-    note: note || `Transferred savings from ${wallet.name}`,
-    user: req.user._id,
-    createdAt: new Date()
-  });
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  let contribution;
+  const oldSaved = goal.savedAmount;
+  const completionPercent = Math.min(Math.round(((goal.savedAmount + actualContribution) / goal.targetAmount) * 100), 100);
+
+  try {
+    // Wallet Deduction & Savings transfer creation
+    wallet.balance -= actualContribution;
+    // C1 fix: removed dead \`await wallet.balance\` — awaiting a primitive is a no-op
+    await wallet.save({ session });
+
+    goal.savedAmount += actualContribution;
+
+    [contribution] = await Contribution.create([{
+      goalId: goal._id,
+      user: req.user._id,
+      wallet: wallet._id,
+      amount: actualContribution,
+      note: note || `Manual savings transfer from wallet ${wallet.name}`,
+      date: date || new Date(),
+      type: type || 'Manual'
+    }], { session });
+
+    // Estimate Completion Date based on recent savings velocity
+    const contributions = await Contribution.find({ goalId: goal._id }).sort({ date: 1 }).session(session);
+    if (contributions.length >= 2) {
+      const timeDelta = new Date(contributions[contributions.length - 1].date) - new Date(contributions[0].date);
+      const daysElapsed = Math.max(1, Math.ceil(timeDelta / (1000 * 60 * 60 * 24)));
+      const totalAmount = contributions.reduce((s, c) => s + c.amount, 0);
+      const ratePerDay = totalAmount / daysElapsed;
+      if (ratePerDay > 0) {
+        const remainingAfterContribution = Math.max(0, goal.targetAmount - goal.savedAmount);
+        const daysToComplete = Math.ceil(remainingAfterContribution / ratePerDay);
+        const estDate = new Date();
+        estDate.setDate(estDate.getDate() + daysToComplete);
+        goal.estimatedCompletion = estDate;
+      }
+    }
+
+    goal.goalHistory.push({
+      action: 'Contribution',
+      amount: actualContribution,
+      note: note || `Transferred savings from ${wallet.name}`,
+      user: req.user._id,
+      createdAt: new Date()
+    });
+
+    if (completionPercent >= 100) {
+      goal.status = 'Completed';
+      goal.goalHistory.push({
+        action: 'Completed Goal',
+        note: `Target of ₹${goal.targetAmount.toLocaleString('en-IN')} achieved!`,
+        user: req.user._id,
+        createdAt: new Date()
+      });
+    }
+
+    await goal.save({ session });
+    await session.commitTransaction();
+  } catch (error) {
+    if (session.inTransaction()) await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+  session.endSession();
 
   // Trigger completion notification if completed
   const oldPct = Math.min(Math.round((oldSaved / goal.targetAmount) * 100), 100);
@@ -399,18 +425,6 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
       message: `🏆 Hurrah! You fully completed your savings goal "${goal.title}"!`
     });
   }
-
-  if (completionPercent >= 100) {
-    goal.status = 'Completed';
-    goal.goalHistory.push({
-      action: 'Completed Goal',
-      note: `Target of ₹${goal.targetAmount.toLocaleString('en-IN')} achieved!`,
-      user: req.user._id,
-      createdAt: new Date()
-    });
-  }
-
-  await goal.save();
 
   try {
     await awardBusinessXP({ userId: req.user._id, actionId: 'GOAL_CONTRIBUTION', entityId: contribution._id.toString() });

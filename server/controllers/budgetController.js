@@ -28,7 +28,7 @@ export const createBudget = asyncHandler(async (req, res) => {
   const { category, limit, period, startDate, endDate, alertThreshold } = req.body;
 
   // B9 fix: prevent duplicate budgets for the same category
-  const existing = await Budget.findOne({ user: req.user._id, category });
+  const existing = await Budget.findOne({ user: req.user._id, category, period });
   if (existing) {
     res.status(400);
     throw new Error('A budget for this category already exists. Please update the existing budget instead.');

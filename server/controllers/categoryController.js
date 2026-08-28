@@ -18,9 +18,14 @@ export const createCategory = asyncHandler(async (req, res) => {
 });
 
 export const updateCategory = asyncHandler(async (req, res) => {
+  // whitelist allowed update fields to prevent mass-assignment
+  const allowedFields = ['name', 'icon', 'color', 'type'];
+  const updateData = {};
+  allowedFields.forEach((f) => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
+
   const category = await Category.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
-    req.body,
+    updateData,
     { new: true }
   );
   if (!category) { res.status(404); throw new Error('Category not found'); }

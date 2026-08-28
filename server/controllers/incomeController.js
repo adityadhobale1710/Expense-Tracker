@@ -14,7 +14,7 @@ export const getIncomes = asyncHandler(async (req, res) => {
   // Analytics requests limit: 1000 — allow it so
   // historical income beyond the first 100 rows is not silently truncated.
   const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 20));
-  const filter = { user: req.user._id };
+  const filter = { user: req.user._id, isTransfer: { $ne: true } };
   if (startDate || endDate) {
     filter.date = {};
     if (startDate) filter.date.$gte = new Date(startDate);

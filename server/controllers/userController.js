@@ -14,6 +14,7 @@ import Bill from '../models/Bill.js';
 import SplitExpense from '../models/SplitExpense.js';
 import Family from '../models/Family.js';
 import AIChat from '../models/AIChat.js';
+import Session from '../models/Session.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import logger from '../utils/logger.js';
 import { getRefreshCookieOptions } from './authController.js';
@@ -408,7 +409,11 @@ export const changePassword = asyncHandler(async (req, res) => {
   }
 
   user.password = newPassword;
+  user.refreshToken = null;
   await user.save();
+
+  await Session.updateMany({ user: user._id }, { isActive: false });
+
   sendSuccess(res, 200, 'Password changed successfully');
 });
 

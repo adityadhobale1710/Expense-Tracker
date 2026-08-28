@@ -29,7 +29,7 @@ export const getExpenses = asyncHandler(async (req, res) => {
   // Analytics (e.g. Payment Methods / Splits charts) requests limit: 1000 — allow
   // it so historical expenses beyond the first 100 rows are not silently truncated.
   const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 20));
-  const filter = { user: req.user._id };
+  const filter = { user: req.user._id, isTransfer: { $ne: true } };
   if (startDate || endDate) {
     filter.date = {};
     if (startDate) filter.date.$gte = new Date(startDate);
@@ -298,10 +298,10 @@ export const deleteExpense = asyncHandler(async (req, res) => {
 export const getExpenseSummary = asyncHandler(async (req, res) => {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
   const summary = await Expense.aggregate([
-    { $match: { user: req.user._id, date: { $gte: start, $lte: end } } },
+    { $match: { user: req.user._id, date: { $gte: start, $lte: end }, isTransfer: { $ne: true } } },
     { $group: { _id: '$category', total: { $sum: '$amount' }, count: { $sum: 1 } } },
     { $sort: { total: -1 } },
   ]);
