@@ -52,10 +52,10 @@ export default function GoalsDashboard() {
     contributeToGoal
   } = useGoals(queryFilters);
 
-  // Modal control states
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isContributionOpen, setIsContributionOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
+  const [isSubmittingGoal, setIsSubmittingGoal] = useState(false);
 
   const handleOpenCreate = useCallback(() => {
     setSelectedGoal(null);
@@ -86,6 +86,8 @@ export default function GoalsDashboard() {
   }, []);
 
   const handleGoalSubmit = async (formData) => {
+    if (isSubmittingGoal) return;
+    setIsSubmittingGoal(true);
     try {
       if (selectedGoal && !selectedGoal.isTemplate) {
         await updateGoal({ id: selectedGoal._id, data: formData });
@@ -95,7 +97,11 @@ export default function GoalsDashboard() {
       setIsGoalModalOpen(false);
       refetchStats();
       refetchGoals();
-    } catch (err) {}
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmittingGoal(false);
+    }
   };
 
   const handleContributionSubmit = async (contributionData) => {

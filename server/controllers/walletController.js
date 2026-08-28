@@ -252,8 +252,8 @@ export const transferFunds = asyncHandler(async (req, res) => {
     }
 
     // Perform transfer atomically within the session
-    fromWallet.balance -= amount;
-    toWallet.balance += amount;
+    fromWallet.balance = Math.round((fromWallet.balance - amount) * 100) / 100;
+    toWallet.balance = Math.round((toWallet.balance + amount) * 100) / 100;
 
     await Promise.all([
       fromWallet.save({ session }),

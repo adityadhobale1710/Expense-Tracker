@@ -17,6 +17,7 @@ export default function ContributionModal({
   const [date, setDate] = useState(() => new Date().toISOString().substring(0, 10));
   const [type, setType] = useState('Manual');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch wallets list directly for selection
   const { data: wallets = [], isLoading: isLoadingWallets } = useQuery({
@@ -47,8 +48,9 @@ export default function ContributionModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError('');
 
     const contribAmount = Number(amount);
@@ -66,13 +68,18 @@ export default function ContributionModal({
       return setError(`Insufficient balance in wallet ${selectedWallet.name}. Current Balance: ₹${selectedWallet.balance.toLocaleString('en-IN')}`);
     }
 
-    onSubmit({
-      amount: contribAmount,
-      walletId,
-      note: note || `Savings transfer to goal: ${goal.title}`,
-      date,
-      type
-    });
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        amount: contribAmount,
+        walletId,
+        note: note || `Savings transfer to goal: ${goal.title}`,
+        date,
+        type
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePrefill = (percentageVal) => {
@@ -217,10 +224,11 @@ export default function ContributionModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-xs font-bold text-slate-100 rounded-xl shadow-md transition-all shadow-emerald-500/10 flex items-center gap-1.5"
+              disabled={isSubmitting}
+              className={`px-5 py-2 ${isSubmitting ? 'bg-emerald-500/50' : 'bg-emerald-500 hover:bg-emerald-600'} text-xs font-bold text-slate-100 rounded-xl shadow-md transition-all shadow-emerald-500/10 flex items-center gap-1.5`}
             >
               <Plus size={14} />
-              <span>Transfer Funds</span>
+              <span>{isSubmitting ? 'Transferring...' : 'Transfer Funds'}</span>
             </button>
           </div>
         </form>

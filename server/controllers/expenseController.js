@@ -123,7 +123,7 @@ export const addExpense = asyncHandler(async (req, res) => {
   if (walletId) {
     const wallet = await Wallet.findOneAndUpdate(
       { _id: walletId, user: req.user._id, balance: { $gte: amount } },
-      { $inc: { balance: -amount } },
+      { $inc: { balance: -(Math.round(amount * 100) / 100) } },
       { new: true }
     );
     if (!wallet) {
@@ -189,7 +189,7 @@ export const updateExpense = asyncHandler(async (req, res) => {
         const diff = newAmount - oldAmount;
         const wallet = await Wallet.findOneAndUpdate(
           { _id: newWalletId, user: req.user._id, balance: { $gte: diff } },
-          { $inc: { balance: -diff } }
+          { $inc: { balance: -(Math.round(diff * 100) / 100) } }
         );
         if (!wallet) {
           const existing = await Wallet.findOne({ _id: newWalletId, user: req.user._id });
@@ -200,7 +200,7 @@ export const updateExpense = asyncHandler(async (req, res) => {
         const diff = oldAmount - newAmount;
         await Wallet.findOneAndUpdate(
           { _id: newWalletId, user: req.user._id },
-          { $inc: { balance: diff } }
+          { $inc: { balance: Math.round(diff * 100) / 100 } }
         );
       }
     }
@@ -217,7 +217,7 @@ export const updateExpense = asyncHandler(async (req, res) => {
       // Deduct from new
       const deducted = await Wallet.findOneAndUpdate(
         { _id: newWalletId, user: req.user._id, balance: { $gte: newAmount } },
-        { $inc: { balance: -newAmount } }
+        { $inc: { balance: -(Math.round(newAmount * 100) / 100) } }
       );
       if (!deducted) {
         res.status(400); throw new Error('Insufficient wallet balance');
@@ -228,7 +228,7 @@ export const updateExpense = asyncHandler(async (req, res) => {
       // Refund old
       await Wallet.findOneAndUpdate(
         { _id: oldWalletId, user: req.user._id },
-        { $inc: { balance: oldAmount } }
+        { $inc: { balance: Math.round(oldAmount * 100) / 100 } }
       );
     }
   }
@@ -277,9 +277,10 @@ export const deleteExpense = asyncHandler(async (req, res) => {
 
   // Refund the expense amount to the associated wallet
   if (expense.wallet) {
+    const refundAmount = Number(expense.amount || 0);
     await Wallet.findOneAndUpdate(
       { _id: expense.wallet, user: req.user._id },
-      { $inc: { balance: Number(expense.amount || 0) } }
+      { $inc: { balance: Math.round(refundAmount * 100) / 100 } }
     );
   }
 

@@ -141,6 +141,7 @@ export default function BillCalendar() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDayModalOpen, setIsDayModalOpen] = useState(false);
   const [dayModalDate, setDayModalDate] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
@@ -524,6 +525,7 @@ export default function BillCalendar() {
   // Save Add or Edit Form
   const handleSaveBill = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!formTitle || !formAmount || !formCategory || !formDueDate) {
       toast.error('Please fill in all required fields');
@@ -546,6 +548,7 @@ export default function BillCalendar() {
       icon: formIcon,
     };
 
+    setIsSubmitting(true);
     try {
       if (isEditMode && editingBill) {
         await api.put(`/bills/${editingBill._id}`, payload);
@@ -560,11 +563,14 @@ export default function BillCalendar() {
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to save bill scheduling');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Actions
   const handleMarkPaid = async (billId) => {
+    if (isSubmitting) return;
     const isConfirmed = await dialog.showConfirm({
       title: 'Log Payment',
       message: 'Marking this bill as paid will log an expense entry automatically. Proceed?',
@@ -573,6 +579,7 @@ export default function BillCalendar() {
 
     if (!isConfirmed) return;
 
+    setIsSubmitting(true);
     try {
       await api.post(`/bills/${billId}/pay`);
       toast.success('Bill paid! Expense generated successfully.');
@@ -580,10 +587,13 @@ export default function BillCalendar() {
       fetchAllData();
     } catch (err) {
       toast.error('Failed to update payment status');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSkipBill = async (billId) => {
+    if (isSubmitting) return;
     const isConfirmed = await dialog.showConfirm({
       title: 'Skip Recurring Occurrence',
       message: 'Are you sure you want to skip this cycle? The due date will advance to the next recurring date without registering an expense.',
@@ -592,6 +602,7 @@ export default function BillCalendar() {
 
     if (!isConfirmed) return;
 
+    setIsSubmitting(true);
     try {
       await api.post(`/bills/${billId}/skip`);
       toast.success('Bill occurrence skipped successfully.');
@@ -599,10 +610,14 @@ export default function BillCalendar() {
       fetchAllData();
     } catch (err) {
       toast.error('Failed to skip occurrence');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handlePostponeBill = async (billId, days) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.post(`/bills/${billId}/postpone`, { days });
       toast.success(`Bill postponed by ${days} days.`);
@@ -610,10 +625,13 @@ export default function BillCalendar() {
       fetchAllData();
     } catch (err) {
       toast.error('Failed to postpone due date');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDuplicateBill = async (billId) => {
+    if (isSubmitting) return;
     const today = new Date();
     // Default duplication sets date to next month
     const nextMonthDate = new Date(today.setMonth(today.getMonth() + 1));
@@ -627,16 +645,20 @@ export default function BillCalendar() {
 
     if (!isConfirmed) return;
 
+    setIsSubmitting(true);
     try {
       await api.post(`/bills/${billId}/duplicate`, { newDueDate });
       toast.success('Bill copied successfully.');
       fetchAllData();
     } catch (err) {
       toast.error('Failed to copy bill schedule');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteBill = async (billId) => {
+    if (isSubmitting) return;
     const isConfirmed = await dialog.showConfirm({
       title: 'Delete Scheduled Bill',
       message: 'Are you sure you want to delete this bill from the scheduler? This action is permanent.',
@@ -646,6 +668,7 @@ export default function BillCalendar() {
 
     if (!isConfirmed) return;
 
+    setIsSubmitting(true);
     try {
       await api.delete(`/bills/${billId}`);
       toast.success('Scheduled bill deleted.');
@@ -653,11 +676,14 @@ export default function BillCalendar() {
       fetchAllData();
     } catch (err) {
       toast.error('Failed to delete scheduled bill');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Mark all due today as paid
   const handleMarkAllPaidToday = async () => {
+    if (isSubmitting) return;
     const today = new Date();
     const todayObligations = bills.filter((b) => {
       if (b.status === 'paid' || b.status === 'cancelled') return false;
@@ -682,6 +708,7 @@ export default function BillCalendar() {
 
     if (!isConfirmed) return;
 
+    setIsSubmitting(true);
     try {
       await Promise.all(todayObligations.map((b) => api.post(`/bills/${b._id}/pay`)));
       toast.success(`Successfully paid ${todayObligations.length} bills.`);
@@ -689,6 +716,8 @@ export default function BillCalendar() {
     } catch (err) {
       toast.error('Some bills failed to update status');
       fetchAllData();
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -2049,8 +2078,8 @@ export default function BillCalendar() {
             >
               Cancel
             </button>
-            <button type="submit" className="btn-primary px-6">
-              Save Bill Schedule
+            <button type="submit" disabled={isSubmitting} className="btn-primary px-6 disabled:opacity-50">
+              {isSubmitting ? 'Saving...' : 'Save Bill Schedule'}
             </button>
           </div>
         </form>

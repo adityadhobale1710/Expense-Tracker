@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 import Loan from '../models/Loan.js';
 import Expense from '../models/Expense.js';
@@ -186,59 +187,72 @@ export const deleteLoan = asyncHandler(async (req, res) => {
 // @route   POST /api/loans/:id/pay-emi
 export const payEmi = asyncHandler(async (req, res) => {
   const { walletId } = req.body;
-  const loan = await Loan.findOne({ _id: req.params.id, user: req.user._id });
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!loan) {
-    res.status(404);
-    throw new Error('Loan not found');
-  }
+  let expense;
+  try {
+    const loan = await Loan.findOne({ _id: req.params.id, user: req.user._id }).session(session);
 
-  if (loan.remainingBalance <= 0) {
-    res.status(400);
-    throw new Error('Loan is already fully repaid');
-  }
-
-  const emiPaid = Math.min(loan.emiAmount, loan.remainingBalance);
-
-  // Deduct from wallet if provided
-  let wallet = null;
-  if (walletId) {
-    wallet = await Wallet.findOne({ _id: walletId, user: req.user._id });
-    if (!wallet) {
+    if (!loan) {
       res.status(404);
-      throw new Error('Wallet not found');
+      throw new Error('Loan not found');
     }
-    if (wallet.balance < emiPaid) {
+
+    if (loan.remainingBalance <= 0) {
       res.status(400);
-      throw new Error('Insufficient wallet balance for EMI payment');
+      throw new Error('Loan is already fully repaid');
     }
-    wallet.balance -= emiPaid;
-    await wallet.save();
+
+    const emiPaid = Math.min(loan.emiAmount, loan.remainingBalance);
+
+    // Deduct from wallet if provided
+    let wallet = null;
+    if (walletId) {
+      wallet = await Wallet.findOne({ _id: walletId, user: req.user._id }).session(session);
+      if (!wallet) {
+        res.status(404);
+        throw new Error('Wallet not found');
+      }
+      if (wallet.balance < emiPaid) {
+        res.status(400);
+        throw new Error('Insufficient wallet balance for EMI payment');
+      }
+      wallet.balance = Math.round((wallet.balance - emiPaid) * 100) / 100;
+      await wallet.save({ session });
+    }
+
+    loan.remainingBalance -= emiPaid;
+
+    // Calculate next EMI date (plus 1 month)
+    const currentNext = new Date(loan.nextEmiDate);
+    currentNext.setMonth(currentNext.getMonth() + 1);
+    loan.nextEmiDate = currentNext;
+
+    if (loan.remainingBalance <= 0) {
+      loan.paymentStatus = 'paid';
+    }
+
+    await loan.save({ session });
+
+    // Create an expense for the EMI
+    [expense] = await Expense.create([{
+      user: req.user._id,
+      title: `EMI Payment: ${loan.name}`,
+      amount: emiPaid,
+      date: new Date(),
+      paymentMethod: 'bank',
+      wallet: wallet ? wallet._id : undefined,
+      description: `Monthly EMI repayment. Remaining loan balance is ₹${loan.remainingBalance}`,
+    }], { session });
+
+    await session.commitTransaction();
+  } catch (error) {
+    if (session.inTransaction()) await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  loan.remainingBalance -= emiPaid;
-
-  // Calculate next EMI date (plus 1 month)
-  const currentNext = new Date(loan.nextEmiDate);
-  currentNext.setMonth(currentNext.getMonth() + 1);
-  loan.nextEmiDate = currentNext;
-
-  if (loan.remainingBalance <= 0) {
-    loan.paymentStatus = 'paid';
-  }
-
-  await loan.save();
-
-  // Create an expense for the EMI
-  const expense = await Expense.create({
-    user: req.user._id,
-    title: `EMI Payment: ${loan.name}`,
-    amount: emiPaid,
-    date: new Date(),
-    paymentMethod: 'bank',
-    wallet: wallet ? wallet._id : undefined,
-    description: `Monthly EMI repayment. Remaining loan balance is ₹${loan.remainingBalance}`,
-  });
+  session.endSession();
 
   try {
     await awardBusinessXP({ userId: req.user._id, actionId: 'PAY_EMI', entityId: expense._id.toString() });

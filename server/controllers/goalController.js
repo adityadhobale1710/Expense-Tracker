@@ -357,7 +357,7 @@ export const contributeToGoal = asyncHandler(async (req, res) => {
 
   try {
     // Wallet Deduction & Savings transfer creation
-    wallet.balance -= actualContribution;
+    wallet.balance = Math.round((wallet.balance - actualContribution) * 100) / 100;
     // C1 fix: removed dead \`await wallet.balance\` — awaiting a primitive is a no-op
     await wallet.save({ session });
 
@@ -690,35 +690,47 @@ export const deleteContribution = asyncHandler(async (req, res) => {
     throw new Error('Goal not found');
   }
 
-  const contrib = await Contribution.findOneAndDelete({ _id: contribId, goalId: id });
-  if (!contrib) {
-    res.status(404);
-    throw new Error('Contribution not found');
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Refund wallet
-  if (contrib.wallet) {
-    const wallet = await Wallet.findOne({ _id: contrib.wallet, user: req.user._id });
-    if (wallet) {
-      wallet.balance += contrib.amount;
-      await wallet.save();
+  try {
+    const contrib = await Contribution.findOneAndDelete({ _id: contribId, goalId: id }).session(session);
+    if (!contrib) {
+      res.status(404);
+      throw new Error('Contribution not found');
     }
+
+    // Refund wallet
+    if (contrib.wallet) {
+      const wallet = await Wallet.findOne({ _id: contrib.wallet, user: req.user._id }).session(session);
+      if (wallet) {
+        wallet.balance = Math.round((wallet.balance + contrib.amount) * 100) / 100;
+        await wallet.save({ session });
+      }
+    }
+
+    goal.savedAmount = Math.max(0, goal.savedAmount - contrib.amount);
+    if (goal.savedAmount < goal.targetAmount && goal.status === 'Completed') {
+      goal.status = 'Active';
+    }
+
+    goal.goalHistory.push({
+      action: 'Contribution Removed',
+      amount: contrib.amount,
+      note: `Removed contribution of ₹${contrib.amount.toLocaleString('en-IN')}`,
+      user: req.user._id,
+      createdAt: new Date()
+    });
+
+    await goal.save({ session });
+    await session.commitTransaction();
+  } catch (error) {
+    if (session.inTransaction()) await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
+  session.endSession();
 
-  goal.savedAmount = Math.max(0, goal.savedAmount - contrib.amount);
-  if (goal.savedAmount < goal.targetAmount && goal.status === 'Completed') {
-    goal.status = 'Active';
-  }
-
-  goal.goalHistory.push({
-    action: 'Contribution Removed',
-    amount: contrib.amount,
-    note: `Removed contribution of ₹${contrib.amount.toLocaleString('en-IN')}`,
-    user: req.user._id,
-    createdAt: new Date()
-  });
-
-  await goal.save();
   await updateSavingsAchievements(req.user._id);
 
   await invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
