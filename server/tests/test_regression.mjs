@@ -136,6 +136,84 @@ const runTests = async () => {
     console.log('✅ AI provided analytical response.');
   }
 
+  // 8. Test Auth Email Casing
+  console.log('\n[TEST AUTH EMAIL CASING]');
+  const mixedCaseEmail = 'TeSt_ReGrEsSiOn_CaSe@ExAmPlE.cOm';
+  
+  // Clean up any old data
+  await User.deleteMany({ email: mixedCaseEmail.toLowerCase() });
+  
+  // a) Register with mixed case
+  const regRes = await request('POST', '/auth/register', { 
+    name: 'Case Test', 
+    email: mixedCaseEmail, 
+    password: 'password123' 
+  });
+  if (regRes.status !== 201) {
+    console.error(`❌ Registration failed with status ${regRes.status}`, regRes.data);
+    process.exit(1);
+  }
+  console.log('✅ Registered with mixed case email.');
+
+  // Verify the stored email is lowercase
+  const caseUser = await User.findOne({ email: mixedCaseEmail.toLowerCase() });
+  if (!caseUser) {
+    console.error('❌ User not found with lowercase email in DB.');
+    process.exit(1);
+  }
+  
+  // b) Re-register with same email in DIFFERENT case should return friendly 400
+  const dupRegRes = await request('POST', '/auth/register', { 
+    name: 'Case Test Dup', 
+    email: mixedCaseEmail.toLowerCase(), 
+    password: 'password123' 
+  });
+  if (dupRegRes.status !== 400 || !dupRegRes.data.message.includes('User already exists')) {
+    console.error(`❌ Duplicate registration failed to return 400 friendly message. Status: ${dupRegRes.status}`, dupRegRes.data);
+    process.exit(1);
+  }
+  console.log('✅ Duplicate registration correctly caught with friendly 400 message.');
+  
+  // Mark user as verified so login works
+  caseUser.isEmailVerified = true;
+  await caseUser.save();
+
+  // c) Login with DIFFERENT case than stored should succeed
+  const loginRes = await request('POST', '/auth/login', { 
+    email: mixedCaseEmail.toUpperCase(), 
+    password: 'password123' 
+  });
+  if (loginRes.status !== 200 || !loginRes.data.data?.accessToken) {
+    console.error(`❌ Login failed with different casing. Status: ${loginRes.status}`, loginRes.data);
+    process.exit(1);
+  }
+  console.log('✅ Login succeeded with mismatched case email.');
+
+  // 9. Test Whitespace Trimming
+  console.log('\n[TEST WHITESPACE TRIMMING]');
+  const untrimmedTitle = '   Trim Me Expense   ';
+  const expenseRes = await request('POST', '/expenses', { 
+    title: untrimmedTitle, 
+    amount: 1500, 
+    date: new Date().toISOString(), 
+    wallet: walletId, 
+    paymentMethod: 'cash' 
+  }, token);
+  
+  if (expenseRes.status !== 201) {
+    console.error(`❌ Expense creation failed. Status: ${expenseRes.status}`, expenseRes.data);
+    process.exit(1);
+  }
+  
+  // Verify it was trimmed
+  const Expense = (await import('../models/Expense.js')).default;
+  const createdExpense = await Expense.findById(expenseRes.data.data._id);
+  if (createdExpense.title !== 'Trim Me Expense') {
+    console.error(`❌ Expense title was not trimmed! Got: "${createdExpense.title}"`);
+    process.exit(1);
+  }
+  console.log('✅ Expense title was correctly trimmed.');
+
   console.log('\n--- ALL TESTS COMPLETED SUCCESSFULLY ---');
 };
 

@@ -13,7 +13,7 @@ export default function VerifyEmail() {
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(30);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef([]);
 
   useEffect(() => {
@@ -103,7 +103,12 @@ export default function VerifyEmail() {
       toast.success('Verification code sent to your email.');
       setResendCooldown(30);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to resend code.');
+      const msg = err.response?.data?.message || 'Failed to resend code.';
+      const match = msg.match(/wait (\d+) seconds/);
+      if (match) {
+        setResendCooldown(parseInt(match[1], 10));
+      }
+      toast.error(msg);
     }
   };
 

@@ -113,7 +113,7 @@ export const inviteMember = asyncHandler(async (req, res) => {
       text: `Hello!\n\n${req.user.name} (${req.user.email}) has re-sent your invitation to join their Family Sharing Hub on Expense Tracker as a ${roleLabel}.\n\nAccept your invitation here (link expires in 48 hours):\n${acceptUrl}\n\nIf you do not have an Expense Tracker account, please register using ${normalizedEmail}.\n\nIf you did not expect this invitation, please ignore this email.`,
     });
 
-    if (!emailResult.success && !emailResult.mocked) {
+    if (!emailResult.success && (!emailResult.mocked || emailResult.deliveryFailed)) {
       // Roll back the token so the stale one isn't persisted without delivery
       existingMember.invitationTokenHash = null;
       existingMember.invitationTokenExpire = null;
@@ -167,7 +167,7 @@ export const inviteMember = asyncHandler(async (req, res) => {
     text: `Hello!\n\n${req.user.name} (${req.user.email}) has invited you to join their Family Sharing Hub on Expense Tracker as a ${roleLabel}.\n\nAccept your invitation here (link expires in 48 hours):\n${acceptUrl}\n\nIf you do not have an Expense Tracker account, please register using ${normalizedEmail}.\n\nIf you did not expect this invitation, please ignore this email.`,
   });
 
-  if (!emailResult.success && !emailResult.mocked) {
+  if (!emailResult.success && (!emailResult.mocked || emailResult.deliveryFailed)) {
     // Remove the member record we just added so we don't leave a dangling pending entry
     family.members = family.members.filter(
       (m) => m.email.toLowerCase() !== normalizedEmail

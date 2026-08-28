@@ -243,7 +243,7 @@ export const register = asyncHandler(async (req, res) => {
     text: `Hello ${user.name},\n\nWelcome to Expense Tracker! Your 6-digit verification code is:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not create this account, please ignore this email.`,
   });
 
-  if (!emailResult.success && !emailResult.mocked) {
+  if (!emailResult.success && (!emailResult.mocked || emailResult.deliveryFailed)) {
     user.emailVerificationOtpHash = null;
     user.emailVerificationOtpExpire = null;
     user.emailVerificationOtpAttempts = 0;
@@ -621,7 +621,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     text: `Hello ${user.name},\n\nWe received a request to reset your password. Your 6-digit verification code is:\n\n${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this reset, please ignore this email.`,
   });
 
-  if (!emailResult.success && !emailResult.mocked) {
+  if (!emailResult.success && (!emailResult.mocked || emailResult.deliveryFailed)) {
     // Roll back the token so a stale OTP is not persisted without delivery
     user.resetPasswordToken = null;
     user.resetPasswordExpire = null;
@@ -759,8 +759,9 @@ export const resendVerification = asyncHandler(async (req, res) => {
   }
 
   if (user.emailVerificationLastSentAt && (Date.now() - user.emailVerificationLastSentAt.getTime() < OTP_RESEND_COOLDOWN_MS)) {
+    const waitSec = Math.ceil((OTP_RESEND_COOLDOWN_MS - (Date.now() - user.emailVerificationLastSentAt.getTime())) / 1000);
     res.status(429);
-    throw new Error('Please wait before requesting another verification code.');
+    throw new Error(`Please wait ${waitSec} seconds before requesting another verification code.`);
   }
 
   // Generate new OTP
@@ -790,7 +791,7 @@ export const resendVerification = asyncHandler(async (req, res) => {
     text: `Hello ${user.name},\n\nWe received a request to resend your verification code. Your new 6-digit code is:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
   });
 
-  if (!emailResult.success && !emailResult.mocked) {
+  if (!emailResult.success && (!emailResult.mocked || emailResult.deliveryFailed)) {
     user.emailVerificationOtpHash = null;
     user.emailVerificationOtpExpire = null;
     user.emailVerificationOtpAttempts = 0;

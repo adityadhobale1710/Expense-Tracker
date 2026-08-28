@@ -149,5 +149,11 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   logger.info(`SUBJECT: ${subject}`);
   logger.info(`TEXT:    ${safeText}`);
   logger.info('──────────────────────────────────────────────────────────────────────\n');
+
+  if (process.env.NODE_ENV === 'production') {
+    // In production, a mocked/fallback send is indistinguishable from a hard failure
+    // so callers execute their rollback logic and return 502 instead of false success.
+    return { success: false, mocked: false, deliveryFailed: true };
+  }
   return { success: false, mocked: true };
 };

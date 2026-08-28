@@ -1,5 +1,5 @@
 export const validate = (schema) => (req, res, next) => {
-  const { error } = schema.validate(req.body, { abortEarly: false });
+  const { error, value } = schema.validate(req.body, { abortEarly: false });
   if (error) {
     const errors = error.details.map((d) => {
       const field = d.path[0];
@@ -34,5 +34,7 @@ export const validate = (schema) => (req, res, next) => {
     }));
     throw err;
   }
+  
+  req.body = value;
   next();
 };
