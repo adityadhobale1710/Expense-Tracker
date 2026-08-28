@@ -1234,10 +1234,11 @@ export default function BillCalendar() {
                   </button>
                   <button
                     onClick={handleMarkAllPaidToday}
-                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600/20 transition-all font-semibold text-xs gap-2 group cursor-pointer"
+                    disabled={isSubmitting}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600/20 transition-all font-semibold text-xs gap-2 group cursor-pointer ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <CheckCircle2 size={18} className="group-hover:scale-110 transition-transform" />
-                    Pay Today
+                    {isSubmitting ? 'Processing...' : 'Pay Today'}
                   </button>
                   <button
                     onClick={handleExportData}
@@ -1651,7 +1652,8 @@ export default function BillCalendar() {
                               {bill.status !== 'paid' && (
                                 <button
                                   onClick={() => handleMarkPaid(bill._id)}
-                                  className="btn-icon p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/10"
+                                  disabled={isSubmitting}
+                                  className={`btn-icon p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/10 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   title="Mark Paid"
                                 >
                                   <Check size={13} />
@@ -1659,14 +1661,16 @@ export default function BillCalendar() {
                               )}
                               <button
                                 onClick={() => startEditBill(bill)}
-                                className="btn-icon p-1.5 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-700/30"
+                                disabled={isSubmitting}
+                                className={`btn-icon p-1.5 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-700/30 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 title="Edit"
                               >
                                 <Edit3 size={13} />
                               </button>
                               <button
                                 onClick={() => handleDeleteBill(bill._id)}
-                                className="btn-icon p-1.5 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10"
+                                disabled={isSubmitting}
+                                className={`btn-icon p-1.5 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 title="Delete"
                               >
                                 <Trash2 size={13} />
@@ -1822,47 +1826,53 @@ export default function BillCalendar() {
                 {selectedBill.status !== 'paid' && (
                   <button
                     onClick={() => handleMarkPaid(selectedBill._id)}
-                    className="btn-primary w-full py-2.5 rounded-xl col-span-2 text-xs"
+                    disabled={isSubmitting}
+                    className={`btn-primary w-full py-2.5 rounded-xl col-span-2 text-xs ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    Mark as Paid
+                    {isSubmitting ? 'Processing...' : 'Mark as Paid'}
                   </button>
                 )}
 
                 {selectedBill.recurring && (
                   <button
                     onClick={() => handleSkipBill(selectedBill._id)}
-                    className="btn bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-600/30 text-xs w-full"
+                    disabled={isSubmitting}
+                    className={`btn bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-600/30 text-xs w-full ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <SkipForward size={14} /> Skip Cycle
+                    <SkipForward size={14} /> {isSubmitting ? '...' : 'Skip Cycle'}
                   </button>
                 )}
 
                 <button
                   onClick={() => handlePostponeBill(selectedBill._id, 7)}
-                  className="btn bg-orange-600/10 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-650/30 text-xs w-full"
+                  disabled={isSubmitting}
+                  className={`btn bg-orange-600/10 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-650/30 text-xs w-full ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Clock size={14} /> Postpone 7 Days
+                  <Clock size={14} /> {isSubmitting ? '...' : 'Postpone 7 Days'}
                 </button>
 
                 <button
                   onClick={() => handleDuplicateBill(selectedBill._id)}
-                  className="btn bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs w-full"
+                  disabled={isSubmitting}
+                  className={`btn bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs w-full ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Copy size={14} /> Duplicate Copy
+                  <Copy size={14} /> {isSubmitting ? '...' : 'Duplicate Copy'}
                 </button>
 
                 <button
                   onClick={() => startEditBill(selectedBill)}
-                  className="btn bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs w-full"
+                  disabled={isSubmitting}
+                  className={`btn bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs w-full ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <Edit3 size={14} /> Edit details
                 </button>
 
                 <button
                   onClick={() => handleDeleteBill(selectedBill._id)}
-                  className="btn-danger text-xs w-full col-span-2"
+                  disabled={isSubmitting}
+                  className={`btn-danger text-xs w-full col-span-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Trash2 size={14} /> Delete Schedule
+                  <Trash2 size={14} /> {isSubmitting ? 'Processing...' : 'Delete Schedule'}
                 </button>
               </div>
             </motion.div>

@@ -8,7 +8,8 @@ export default function GoalModal({
   onClose,
   onSubmit,
   goal = null,
-  templates = []
+  templates = [],
+  isSubmitting = false
 }) {
   const isEdit = !!goal && !goal.isTemplate;
 
@@ -288,9 +289,10 @@ export default function GoalModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-primary-500 hover:bg-primary-600 text-xs font-bold text-slate-100 rounded-xl shadow-md transition-all shadow-primary-500/10 flex items-center gap-1.5"
+              disabled={isSubmitting}
+              className={`px-5 py-2 ${isSubmitting ? 'bg-primary-500/50 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600'} text-xs font-bold text-slate-100 rounded-xl shadow-md transition-all shadow-primary-500/10 flex items-center gap-1.5`}
             >
-              <span>{isEdit ? 'Save Changes' : 'Initialize Goal'}</span>
+              <span>{isSubmitting ? 'Saving...' : (isEdit ? 'Save Changes' : 'Initialize Goal')}</span>
             </button>
           </div>
         </form>

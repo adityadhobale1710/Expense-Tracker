@@ -191,8 +191,9 @@ export const payEmi = asyncHandler(async (req, res) => {
   session.startTransaction();
 
   let expense;
+  let loan;
   try {
-    const loan = await Loan.findOne({ _id: req.params.id, user: req.user._id }).session(session);
+    loan = await Loan.findOne({ _id: req.params.id, user: req.user._id }).session(session);
 
     if (!loan) {
       res.status(404);

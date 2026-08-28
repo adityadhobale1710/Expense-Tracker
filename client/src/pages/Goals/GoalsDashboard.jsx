@@ -325,6 +325,7 @@ export default function GoalsDashboard() {
             onSubmit={handleGoalSubmit}
             goal={selectedGoal}
             templates={templates}
+            isSubmitting={isSubmittingGoal}
           />
         )}
       </AnimatePresence>
