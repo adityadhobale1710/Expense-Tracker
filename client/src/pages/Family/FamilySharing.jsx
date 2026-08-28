@@ -102,6 +102,7 @@ export default function FamilySharing() {
 
   // Invite modal
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   // Search, filter, sorting, pagination for transactions
   const [txSearch, setTxSearch] = useState('');
@@ -147,6 +148,7 @@ export default function FamilySharing() {
   const handleInvite = async (e) => {
     e.preventDefault();
     if (!email) return toast.error('Please enter an email address');
+    setInviteLoading(true);
     try {
       const { data } = await api.post('/family/invite', { email, role });
       toast.success(`Invite sent to ${email}!`);
@@ -156,6 +158,8 @@ export default function FamilySharing() {
       fetchFamily();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to send invite');
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -925,8 +929,12 @@ export default function FamilySharing() {
                   <button type="button" onClick={() => setShowInviteModal(false)} className="btn bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs px-4 py-2">
                     Cancel
                   </button>
-                  <button type="submit" className="btn bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-extrabold text-xs px-5 py-2">
-                    Send Invitation
+                  <button
+                    type="submit"
+                    disabled={inviteLoading}
+                    className="btn bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-extrabold text-xs px-5 py-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {inviteLoading ? 'Sending…' : 'Send Invitation'}
                   </button>
                 </div>
               </form>

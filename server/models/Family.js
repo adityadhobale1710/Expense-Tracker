@@ -4,6 +4,12 @@ const familyMemberSchema = new mongoose.Schema({
   email: { type: String, required: true },
   role: { type: String, enum: ['owner', 'admin', 'member'], default: 'member' },
   status: { type: String, enum: ['pending', 'accepted'], default: 'pending' },
+  // Secure invitation token (stored as bcrypt hash, never plaintext)
+  invitationTokenHash: { type: String, default: null },
+  // Token expiry — 48 hours after invite is sent
+  invitationTokenExpire: { type: Date, default: null },
+  // Timestamp of the most recent invite send (used for resend cooldown)
+  invitedAt: { type: Date, default: null },
 });
 
 const approvalRequestSchema = new mongoose.Schema(

@@ -39,6 +39,7 @@ const Wallets = lazy(() => import('./pages/Wallets/Wallets'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions/Subscriptions'));
 const SplitBills = lazy(() => import('./pages/Split/SplitBills'));
 const FamilySharing = lazy(() => import('./pages/Family/FamilySharing'));
+const AcceptInvite = lazy(() => import('./pages/Family/AcceptInvite'));
 const AnalyticsPro = lazy(() => import('./pages/Analytics/AnalyticsPro'));
 const AdminPortal = lazy(() => import('./pages/Admin/AdminPortal'));
 const GoalsDashboard = lazy(() => import('./pages/Goals/GoalsDashboard'));
@@ -93,6 +94,8 @@ const AppRoutes = () => (
         <Route path="goals" element={<GoalsDashboard />} />
         <Route path="goals/:id" element={<GoalDetails />} />
       </Route>
+      {/* Public invitation acceptance — must be outside ProtectedRoute */}
+      <Route path="/family/invite/:token" element={<AcceptInvite />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   </Suspense>
