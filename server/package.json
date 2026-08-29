@@ -38,7 +38,7 @@
     "mongoose": "^8.4.1",
     "morgan": "^1.10.0",
     "pdfkit": "^0.19.1",
-    "resend": "^6.19.0",
+    "resend": "^6.25.0",
     "winston": "^3.19.0"
   },
   "devDependencies": {
