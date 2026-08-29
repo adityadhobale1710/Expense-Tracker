@@ -54,3 +54,8 @@ Thumbs.db
 *.timestamp-*.mjs
 .eslintcache
 .stylelintcache
+
+.env
+.env.*
+!.env.example
+server/client_secret_*.json
