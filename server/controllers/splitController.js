@@ -64,7 +64,7 @@ export const settleMember = asyncHandler(async (req, res) => {
   const { memberEmail } = req.body;
   // Issue #3 fix: fetch with no filter first, then check ownership
   // Populating creator to send notification emails
-  const split = await SplitExpense.findById(req.params.id).populate('creator', 'name email');
+  const split = await SplitExpense.findById(req.params.id).populate('creator', 'name email currency');
 
   if (!split) {
     res.status(404);
@@ -100,8 +100,9 @@ export const settleMember = asyncHandler(async (req, res) => {
   // Send email notifications if this was actually a new settlement
   if (!wasAlreadySettled) {
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    const currency = req.user.currency || 'INR';
+    const currency = split.creator?.currency || 'INR';
     const groupText = split.groupName ? ` in group **"${escapeHtml(split.groupName)}"**` : '';
+    const groupTextPlain = split.groupName ? ` in group "${split.groupName}"` : '';
 
     // 1. Partial settlement: notify creator (unless creator is the one doing the settling)
     if (!isCreator) {
@@ -118,7 +119,7 @@ export const settleMember = asyncHandler(async (req, res) => {
         to: split.creator.email.toLowerCase(),
         subject: `Share Settled: "${split.title}"`,
         html: partialHtml,
-        text: `Hello ${split.creator.name},\n\n${memberEmail} has settled their share of ${currency} ${member.share} for "${split.title}".\n\nView and settle your active shared bills here: ${clientUrl}/dashboard`,
+        text: `Hello ${split.creator.name},\n\n${memberEmail} has settled their share of ${currency} ${member.share} for "${split.title}"${groupTextPlain}.\n\nView and settle your active shared bills here: ${clientUrl}/dashboard`,
       }).catch((err) => console.error(`Split bill settle email to creator failed:`, err));
     }
 
@@ -133,7 +134,7 @@ export const settleMember = asyncHandler(async (req, res) => {
         footerText: 'Log in to your workspace dashboard to manage your shared bills.',
       });
 
-      const fullText = `Hello!\n\nThe split bill for "${split.title}" has been fully settled by all members.\nTotal Amount: ${currency} ${split.amount}\n\nView here: ${clientUrl}/dashboard`;
+      const fullText = `Hello!\n\nThe split bill for "${split.title}"${groupTextPlain} has been fully settled by all members.\nTotal Amount: ${currency} ${split.amount}\n\nView here: ${clientUrl}/dashboard`;
 
       // Notify creator
       sendEmail({
@@ -143,8 +144,15 @@ export const settleMember = asyncHandler(async (req, res) => {
         text: fullText,
       }).catch((err) => console.error(`Split bill full-settle email to creator failed:`, err));
 
-      // Notify all members
+      const normalizedCreatorEmail = String(split.creator?.email || '').trim().toLowerCase();
+
+      // Notify all members (skipping creator to prevent duplicate emails)
       split.members.forEach((m) => {
+        const normalizedMemberEmail = String(m.userEmail || '').trim().toLowerCase();
+        if (normalizedMemberEmail === normalizedCreatorEmail) {
+          return;
+        }
+
         sendEmail({
           to: m.userEmail.toLowerCase(),
           subject: `Fully Settled: "${split.title}"`,
