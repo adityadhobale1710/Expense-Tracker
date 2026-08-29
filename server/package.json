@@ -9,6 +9,13 @@
     "dev": "nodemon server.js",
     "seed:categories": "node scripts/seed_categories.js",
     "dedupe:ai": "node scripts/dedupeAIChats.mjs",
+    "test": "node tests/run_all_tests.mjs",
+    "test:income": "node tests/income_crud.test.mjs",
+    "test:expense": "node tests/expense_crud.test.mjs",
+    "test:invariants": "node tests/wallet_invariants.test.mjs",
+    "test:auth": "node tests/auth.test.mjs",
+    "test:security": "node tests/cross_user_security.test.mjs",
+    "test:all": "node tests/run_all_tests.mjs",
     "test:regression": "node tests/test_regression.mjs"
   },
   "keywords": [

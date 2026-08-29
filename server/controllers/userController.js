@@ -426,24 +426,21 @@ export const deleteMe = asyncHandler(async (req, res) => {
   session.startTransaction();
 
   try {
-    // MASTER-025: Cascading delete — remove all user-linked data before deleting the user
-    // to prevent orphaned documents and comply with GDPR/privacy requirements.
-    // Wrapped in a transaction so partial deletions rollback safely.
-    await Promise.all([
-      Expense.deleteMany({ user: userId }, { session }),
-      Income.deleteMany({ user: userId }, { session }),
-      Budget.deleteMany({ user: userId }, { session }),
-      Wallet.deleteMany({ user: userId }, { session }),
-      Goal.deleteMany({ user: userId }, { session }),
-      Loan.deleteMany({ user: userId }, { session }),
-      Subscription.deleteMany({ user: userId }, { session }),
-      Notification.deleteMany({ user: userId }, { session }),
-      Category.deleteMany({ user: userId }, { session }),
-      Bill.deleteMany({ user: userId }, { session }),
-      SplitExpense.deleteMany({ creator: userId }, { session }),
-      Family.deleteMany({ creator: userId }, { session }),
-      AIChat.deleteMany({ user: userId }, { session }),
-    ]);
+    // MASTER-025 / SEC-PURGE-001: Cascading delete — remove all user-linked data sequentially
+    // within the transaction to prevent multi-operation session concurrency conflicts on MongoDB.
+    await Expense.deleteMany({ user: userId }, { session });
+    await Income.deleteMany({ user: userId }, { session });
+    await Budget.deleteMany({ user: userId }, { session });
+    await Wallet.deleteMany({ user: userId }, { session });
+    await Goal.deleteMany({ user: userId }, { session });
+    await Loan.deleteMany({ user: userId }, { session });
+    await Subscription.deleteMany({ user: userId }, { session });
+    await Notification.deleteMany({ user: userId }, { session });
+    await Category.deleteMany({ user: userId }, { session });
+    await Bill.deleteMany({ user: userId }, { session });
+    await SplitExpense.deleteMany({ creator: userId }, { session });
+    await Family.deleteMany({ owner: userId }, { session });
+    await AIChat.deleteMany({ user: userId }, { session });
 
     await User.findByIdAndDelete(userId, { session });
 

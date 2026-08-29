@@ -226,15 +226,13 @@ export const transferFunds = asyncHandler(async (req, res) => {
     throw new Error('Both source and destination wallet IDs are required');
   }
 
-  // B7 fix: wrap the entire transfer in a MongoDB session/transaction
-  // so partial failures (e.g. toWallet.save() fails) cannot leave balances inconsistent.
+  // B7 / DOM-WAL-001 fix: wrap the entire transfer in a sequential MongoDB session/transaction
+  // so all operations execute sequentially within the session to avoid concurrency collisions.
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const [fromWallet, toWallet] = await Promise.all([
-      Wallet.findOne({ _id: fromWalletId, user: req.user._id }).session(session),
-      Wallet.findOne({ _id: toWalletId, user: req.user._id }).session(session),
-    ]);
+    const fromWallet = await Wallet.findOne({ _id: fromWalletId, user: req.user._id }).session(session);
+    const toWallet = await Wallet.findOne({ _id: toWalletId, user: req.user._id }).session(session);
 
     if (!fromWallet || !toWallet) {
       res.status(404);
@@ -255,43 +253,39 @@ export const transferFunds = asyncHandler(async (req, res) => {
     fromWallet.balance = Math.round((fromWallet.balance - amount) * 100) / 100;
     toWallet.balance = Math.round((toWallet.balance + amount) * 100) / 100;
 
-    await Promise.all([
-      fromWallet.save({ session }),
-      toWallet.save({ session }),
-    ]);
+    await fromWallet.save({ session });
+    await toWallet.save({ session });
 
-    // Create transaction records within the same session
+    // Create transaction records sequentially within the same session
     const now = new Date();
-    await Promise.all([
-      Expense.create([{
-        user: req.user._id,
-        title: `Transfer to ${toWallet.name}`,
-        amount,
-        date: now,
-        wallet: fromWallet._id,
-        paymentMethod: fromWallet.type === 'credit_card' ? 'card' : fromWallet.type === 'upi' ? 'upi' : 'other',
-        description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
-        // MASTER-045: Mark as transfer so it's excluded from income/expense financial totals
-        isTransfer: true,
-      }], { session }),
-      Income.create([{
-        user: req.user._id,
-        title: `Transfer from ${fromWallet.name}`,
-        amount,
-        date: now,
-        wallet: toWallet._id,
-        category: 'Other Income',
-        source: toWallet.name,
-        description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
-        // MASTER-045: Mark as transfer so it's excluded from income/expense financial totals
-        isTransfer: true,
-      }], { session }),
-    ]);
+    await Expense.create([{
+      user: req.user._id,
+      title: `Transfer to ${toWallet.name}`,
+      amount,
+      date: now,
+      wallet: fromWallet._id,
+      paymentMethod: fromWallet.type === 'credit_card' ? 'card' : fromWallet.type === 'upi' ? 'upi' : 'other',
+      description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+      // MASTER-045: Mark as transfer so it's excluded from income/expense financial totals
+      isTransfer: true,
+    }], { session });
+
+    await Income.create([{
+      user: req.user._id,
+      title: `Transfer from ${fromWallet.name}`,
+      amount,
+      date: now,
+      wallet: toWallet._id,
+      category: 'Other Income',
+      source: toWallet.name,
+      description: note || `Transferred from ${fromWallet.name} to ${toWallet.name}`,
+      // MASTER-045: Mark as transfer so it's excluded from income/expense financial totals
+      isTransfer: true,
+    }], { session });
 
     await session.commitTransaction();
-    session.endSession();
 
-  await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
+    await invalidateAICache(req.user._id, CACHE_MODULES.WALLET_UPDATE);
 
     try {
       await awardBusinessXP({ userId: req.user._id, actionId: 'WALLET_TRANSFER', entityId: fromWalletId.toString() });
@@ -301,9 +295,14 @@ export const transferFunds = asyncHandler(async (req, res) => {
 
     sendSuccess(res, 200, 'Funds transferred successfully', { fromWallet, toWallet });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
+    try {
+      if (session.inTransaction()) await session.abortTransaction();
+    } catch (abortErr) {
+      console.error(`[transferFunds] Failed to abort transaction: ${abortErr.message}`);
+    }
     throw error;
+  } finally {
+    session.endSession();
   }
 });
 
