@@ -205,7 +205,17 @@ export const payEmi = asyncHandler(async (req, res) => {
       throw new Error('Loan is already fully repaid');
     }
 
-    const emiPaid = Math.min(loan.emiAmount, loan.remainingBalance);
+    const monthlyInterestRate = loan.interestRate / 12 / 100;
+    const interestForMonth = loan.remainingBalance * monthlyInterestRate;
+    
+    // The payment needed to completely clear the loan this month
+    const totalRequiredToClear = loan.remainingBalance + interestForMonth;
+    
+    // Actual payment is the standard EMI, but cannot exceed the total required to clear the balance
+    const actualPayment = Math.min(loan.emiAmount, totalRequiredToClear);
+    
+    // Calculate how much of the payment goes towards the principal
+    const principalPaid = actualPayment - interestForMonth;
 
     // Deduct from wallet if provided
     let wallet = null;
@@ -215,22 +225,23 @@ export const payEmi = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Wallet not found');
       }
-      if (wallet.balance < emiPaid) {
+      if (wallet.balance < actualPayment) {
         res.status(400);
         throw new Error('Insufficient wallet balance for EMI payment');
       }
-      wallet.balance = Math.round((wallet.balance - emiPaid) * 100) / 100;
+      wallet.balance = Math.round((wallet.balance - actualPayment) * 100) / 100;
       await wallet.save({ session });
     }
 
-    loan.remainingBalance -= emiPaid;
+    loan.remainingBalance = Math.max(0, loan.remainingBalance - principalPaid);
 
     // Calculate next EMI date (plus 1 month)
     const currentNext = new Date(loan.nextEmiDate);
     currentNext.setMonth(currentNext.getMonth() + 1);
     loan.nextEmiDate = currentNext;
 
-    if (loan.remainingBalance <= 0) {
+    if (loan.remainingBalance <= 0.01) { // Floating point safety
+      loan.remainingBalance = 0;
       loan.paymentStatus = 'paid';
     }
 
@@ -240,11 +251,11 @@ export const payEmi = asyncHandler(async (req, res) => {
     [expense] = await Expense.create([{
       user: req.user._id,
       title: `EMI Payment: ${loan.name}`,
-      amount: emiPaid,
+      amount: actualPayment,
       date: new Date(),
       paymentMethod: 'bank',
       wallet: wallet ? wallet._id : undefined,
-      description: `Monthly EMI repayment. Remaining loan balance is ₹${loan.remainingBalance}`,
+      description: `Monthly EMI repayment. Principal: ₹${principalPaid.toFixed(2)}, Interest: ₹${interestForMonth.toFixed(2)}. Remaining loan balance is ₹${loan.remainingBalance.toFixed(2)}`,
     }], { session });
 
     await session.commitTransaction();

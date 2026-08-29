@@ -677,15 +677,35 @@ export default function Loans() {
               </div>
 
               {amount && emiAmount && (
-                <div className="p-3 bg-rose-500/5 border border-rose-500/15 rounded-xl flex items-center justify-between text-xs">
+                <div className="p-3 bg-rose-500/5 border border-rose-500/15 rounded-xl flex items-center justify-between text-xs mt-4">
                   <div>
-                    <p className="text-slate-500">Repayment Estimate</p>
-                    <p className="text-slate-300 font-semibold">{name || 'SBI Loan'}</p>
+                    <p className="text-slate-500">Original Contract</p>
+                    <p className="text-slate-300 font-semibold">{name || 'Loan Account'}</p>
+                    <p className="text-[10px] text-slate-400">Total: {fmt(amount)}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right pr-4">
+                    <p className="text-slate-500">Contractual EMI</p>
                     <p className="text-rose-400 font-bold block">{fmt(emiAmount)} / mo</p>
-                    <p className="text-[10px] text-slate-500">Over {durationMonths || 0} months</p>
+                    <p className="text-[10px] text-slate-500">Original Term: {durationMonths || 0} months</p>
                   </div>
+                  {remainingBalance !== '' && Number(remainingBalance) < Number(amount) && (
+                    <div className="text-right border-l border-slate-700/50 pl-4">
+                      <p className="text-slate-500">Outstanding Principal</p>
+                      <p className="text-amber-400 font-bold block">{fmt(remainingBalance)}</p>
+                      <p className="text-[10px] text-slate-500">
+                        ~{(() => {
+                          const r = Number(interestRate) / 12 / 100;
+                          const P = Number(remainingBalance);
+                          const emi = Number(emiAmount);
+                          if (P <= 0) return 0;
+                          if (r === 0) return Math.ceil(P / emi);
+                          const val = 1 - (r * P) / emi;
+                          if (val > 0) return Math.ceil(-Math.log(val) / Math.log(1 + r));
+                          return '??';
+                        })()} months left
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

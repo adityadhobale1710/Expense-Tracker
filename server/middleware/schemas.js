@@ -3,13 +3,14 @@
  * These schemas are consumed by the validate() middleware.
  */
 import Joi from 'joi';
+import { applyPasswordRules } from '../utils/passwordSecurity.js';
 
 // ─── Auth schemas ─────────────────────────────────────────────────────────────
 
 export const registerSchema = Joi.object({
   name: Joi.string().min(2).max(60).trim().required(),
   email: Joi.string().email().lowercase().required(),
-  password: Joi.string().min(6).max(128).required(),
+  password: applyPasswordRules(Joi.string()),
   phone: Joi.string().max(20).allow('').optional(),
 });
 
@@ -25,7 +26,7 @@ export const forgotPasswordSchema = Joi.object({
 export const resetPasswordSchema = Joi.object({
   email: Joi.string().email().lowercase().required(),
   token: Joi.string().length(6).pattern(/^\d+$/).required(),
-  newPassword: Joi.string().min(6).max(128).required(),
+  newPassword: applyPasswordRules(Joi.string()),
 });
 
 export const verifyEmailSchema = Joi.object({
@@ -356,7 +357,7 @@ export const updateMeSchema = Joi.object({
 
 export const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().min(1).max(128).required(),
-  newPassword: Joi.string().min(6).max(128).required(),
+  newPassword: applyPasswordRules(Joi.string()),
 }).unknown(false);
 
 // ─── AI chat schema (M1: new — mirrors controller's 2000-char cap) ────────────
