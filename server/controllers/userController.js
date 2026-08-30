@@ -22,7 +22,11 @@ import { getRefreshCookieOptions } from './authController.js';
 // @desc  Get current user profile
 // @route GET /api/users/me
 export const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id).select('-password -refreshToken');
+  const user = await User.findById(req.user._id).select(
+    '-password -refreshToken -resetPasswordToken -resetPasswordExpire ' +
+    '-emailVerificationOtpHash -emailVerificationOtpExpire -emailVerificationOtpAttempts -emailVerificationLastSentAt ' +
+    '-backupCodes -twoFactorSecret'
+  );
   sendSuccess(res, 200, 'Profile fetched', user);
 });
 
@@ -48,7 +52,11 @@ export const updateMe = asyncHandler(async (req, res) => {
     req.user._id,
     updateFields,
     { new: true, runValidators: true }
-  ).select('-password -refreshToken');
+  ).select(
+    '-password -refreshToken -resetPasswordToken -resetPasswordExpire ' +
+    '-emailVerificationOtpHash -emailVerificationOtpExpire -emailVerificationOtpAttempts -emailVerificationLastSentAt ' +
+    '-backupCodes -twoFactorSecret'
+  );
   sendSuccess(res, 200, 'Profile updated', user);
 });
 
@@ -379,7 +387,21 @@ export const updateGamification = asyncHandler(async (req, res) => {
   user.achievements = updatedAchievements;
 
   await user.save();
-  sendSuccess(res, 200, 'Gamification progress updated', user);
+  sendSuccess(res, 200, 'Gamification progress updated', {
+    _id: user._id,
+    name: user.name,
+    avatar: user.avatar,
+    xp: user.xp,
+    coins: user.coins,
+    level: user.level,
+    streak: user.streak,
+    longestStreak: user.longestStreak,
+    lifetimeXP: user.lifetimeXP,
+    rank: user.rank,
+    achievements: user.achievements,
+    simulatedActions: user.simulatedActions,
+    pinnedBadges: user.pinnedBadges,
+  });
 });
 
 // @desc  Change password

@@ -49,6 +49,13 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 401;
     message = 'Authentication token has expired. Please log in again.';
   }
+  // 6. Handle Malformed JSON Request Bodies (express.json / body-parser parse failures)
+  //    Reviewed as a client-side 400, never a 500. Returns a safe generic message
+  //    instead of leaking the raw parser error (e.g. "Unexpected end of JSON input").
+  else if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400)) {
+    statusCode = 400;
+    message = 'Invalid JSON body';
+  }
 
   // H1 fix: never expose stack traces via the API. The deployed server was found
   // running with NODE_ENV != production, which leaked full absolute paths and

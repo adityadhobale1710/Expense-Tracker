@@ -207,7 +207,12 @@ export const payEmi = asyncHandler(async (req, res) => {
 
     const monthlyInterestRate = loan.interestRate / 12 / 100;
     const interestForMonth = loan.remainingBalance * monthlyInterestRate;
-    
+
+    if (loan.emiAmount <= interestForMonth) {
+      res.status(400);
+      throw new Error('EMI amount must be greater than the current monthly interest.');
+    }
+
     // The payment needed to completely clear the loan this month
     const totalRequiredToClear = loan.remainingBalance + interestForMonth;
     
