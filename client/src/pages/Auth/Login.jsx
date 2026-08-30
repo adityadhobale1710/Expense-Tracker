@@ -115,9 +115,6 @@ export default function Login() {
     if (!forgotCode || !newPassword) {
       return toast.error('Please enter the verification code and your new password');
     }
-    if (newPassword.length < 6) {
-      return toast.error('New password must be at least 6 characters');
-    }
     setForgotLoading(true);
     try {
       await api.post('/auth/reset-password', {

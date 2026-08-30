@@ -63,21 +63,21 @@ export const isCommonPassword = (password) => {
   return commonPasswordsSet.has(normalized);
 };
 
-/**
- * Joi custom validator for password security
- */
 export const commonPasswordValidator = (value, helpers) => {
   if (isCommonPassword(value)) {
-    return helpers.message('This password is too common. Please choose a stronger password.');
+    return helpers.message('Password is too common. Choose a different password.');
   }
   return value;
 };
 
-export const passwordComplexityRegex = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
+export const passwordComplexityRegex = /(?=.*\d)(?=.*[^A-Za-z0-9])/;
 
 export const passwordComplexityMessages = {
-  'string.pattern.base': 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character.',
-  'string.min': 'Password must be at least 8 characters long.'
+  'string.pattern.base': 'Password must be 6+ characters with a number and special character.',
+  'string.min': 'Password must be 6+ characters with a number and special character.',
+  'string.max': 'Password must be 6+ characters with a number and special character.',
+  'string.empty': 'Password must be 6+ characters with a number and special character.',
+  'any.required': 'Password must be 6+ characters with a number and special character.'
 };
 
 /**
@@ -86,7 +86,7 @@ export const passwordComplexityMessages = {
  */
 export const applyPasswordRules = (joiString) => {
   return joiString
-    .min(8)
+    .min(6)
     .max(128)
     .pattern(passwordComplexityRegex)
     .messages(passwordComplexityMessages)

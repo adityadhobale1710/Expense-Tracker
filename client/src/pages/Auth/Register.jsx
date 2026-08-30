@@ -81,8 +81,6 @@ export default function Register() {
   // Password requirements calculation
   const pwd = form.password;
   const isMinLength = pwd.length >= 6;
-  const isUppercase = /[A-Z]/.test(pwd);
-  const isLowercase = /[a-z]/.test(pwd);
   const isNumber = /[0-9]/.test(pwd);
   const isSpecialChar = /[^A-Za-z0-9]/.test(pwd);
 
@@ -90,8 +88,8 @@ export default function Register() {
     if (!pwd) return { score: 0, text: 'None', color: 'bg-slate-200' };
     let score = 0;
     if (isMinLength) score++;
-    if (isUppercase && isLowercase) score++;
-    if (isNumber && isSpecialChar) score++;
+    if (isNumber) score++;
+    if (isSpecialChar) score++;
 
     if (score === 1) return { score, text: 'Weak Password', color: 'bg-rose-500' };
     if (score === 2) return { score, text: 'Medium Strength', color: 'bg-amber-500' };
@@ -118,9 +116,9 @@ export default function Register() {
       setErrors(prev => ({ ...prev, phone: true }));
       return toast.error('Please enter your phone number.');
     }
-    if (!isMinLength) {
+    if (!isMinLength || !isNumber || !isSpecialChar) {
       setErrors(prev => ({ ...prev, password: true }));
-      return toast.error('Password must be at least 6 characters.');
+      return toast.error('Password must be 6+ characters with a number and special character.');
     }
     if (form.password !== form.confirmPassword) {
       setErrors(prev => ({ ...prev, confirmPassword: true }));
@@ -281,26 +279,18 @@ export default function Register() {
                             <div className={`h-full flex-1 rounded ${strength.score >= 3 ? strength.color : 'bg-slate-200'}`} />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-1 text-[10px] font-medium text-slate-500">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-1.5 pt-1 text-[10px] font-medium text-slate-500">
                             <div className="flex items-center gap-1">
                               {isMinLength ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>6+ characters</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              {isUppercase ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
-                              <span>Uppercase letter</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {isLowercase ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
-                              <span>Lowercase letter</span>
-                            </div>
-                            <div className="flex items-center gap-1">
                               {isNumber ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
                               <span>Numeric digit</span>
                             </div>
-                            <div className="flex items-center gap-1 col-span-2">
+                            <div className="flex items-center gap-1">
                               {isSpecialChar ? <CheckCircle2 size={12} className="text-emerald-500" /> : <XCircle size={12} className="text-slate-300" />}
-                              <span>Special character (!@#$%)</span>
+                              <span>Special character</span>
                             </div>
                           </div>
                         </div>
