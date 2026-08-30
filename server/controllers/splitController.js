@@ -1,7 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import SplitExpense from '../models/SplitExpense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { sendEmail, getHtmlTemplate, escapeHtml } from '../utils/sendEmail.js';
+import { sendEmail, getHtmlTemplate, escapeHtml, getClientBaseUrl } from '../utils/sendEmail.js';
 
 // @desc    Get all split expenses for user
 // @route   GET /api/splits
@@ -34,7 +34,7 @@ export const createSplit = asyncHandler(async (req, res) => {
     const currency = req.user.currency || 'INR';
 
     members.forEach((m) => {
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+      const clientUrl = getClientBaseUrl();
       const emailHtml = getHtmlTemplate({
         title: 'New Shared Bill',
         greeting: `Hello!`,
@@ -99,7 +99,7 @@ export const settleMember = asyncHandler(async (req, res) => {
 
   // Send email notifications if this was actually a new settlement
   if (!wasAlreadySettled) {
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const clientUrl = getClientBaseUrl();
     const currency = split.creator?.currency || 'INR';
     const groupText = split.groupName ? ` in group **"${escapeHtml(split.groupName)}"**` : '';
     const groupTextPlain = split.groupName ? ` in group "${split.groupName}"` : '';

@@ -4,6 +4,7 @@ import {
   inviteMember,
   getInvitation,
   acceptInvitation,
+  cancelInvitation,
   createApprovalRequest,
   approveRequest,
   rejectRequest,
@@ -25,6 +26,7 @@ router.use(protect);
 router.route('/').get(getFamily);
 
 router.post('/invite', validate(familyInviteSchema), inviteMember);
+router.delete('/invite/:id', cancelInvitation);
 
 // Authenticated acceptance — user must be logged in as the invited email
 router.post('/invite/accept', acceptInvitation);

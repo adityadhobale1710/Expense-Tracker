@@ -6,6 +6,56 @@ const LOGO_URL = process.env.LOGO_URL || 'https://raw.githubusercontent.com/adit
 const COMPANY_NAME = process.env.COMPANY_NAME || 'Expense Tracker';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@expensetracker.com';
 
+/**
+ * Resolves and normalizes the frontend client base URL for email CTAs and navigation links.
+ *
+ * - In production (`NODE_ENV === 'production'`):
+ *   - Fails clearly if CLIENT_URL is missing or empty.
+ *   - Validates that the URL scheme is HTTPS.
+ *   - Never falls back to localhost.
+ * - In non-production (e.g. development):
+ *   - Uses CLIENT_URL if provided, else falls back safely to 'http://localhost:5173'.
+ * - Normalizes any trailing slashes and handles comma-separated lists (taking the primary origin).
+ *
+ * @returns {string} Normalized base URL (e.g. 'https://expense-tracker-five-virid-19.vercel.app' or 'http://localhost:5173')
+ */
+export const getClientBaseUrl = () => {
+  const rawUrl = process.env.CLIENT_URL;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!rawUrl || !rawUrl.trim()) {
+    if (isProduction) {
+      throw new Error('CLIENT_URL environment variable is missing or empty in production environment');
+    }
+    return 'http://localhost:5173';
+  }
+
+  const primaryUrl = rawUrl.split(',')[0].trim().replace(/\/+$/, '');
+
+  if (!primaryUrl) {
+    if (isProduction) {
+      throw new Error('CLIENT_URL environment variable is invalid in production environment');
+    }
+    return 'http://localhost:5173';
+  }
+
+  if (isProduction) {
+    try {
+      const parsedUrl = new URL(primaryUrl);
+      if (parsedUrl.protocol !== 'https:') {
+        throw new Error(`Insecure CLIENT_URL scheme (${parsedUrl.protocol}) detected in production. Production frontend must use HTTPS.`);
+      }
+    } catch (err) {
+      if (err.message.includes('Insecure CLIENT_URL scheme')) {
+        throw err;
+      }
+      throw new Error(`Malformed CLIENT_URL in production: "${primaryUrl}" (${err.message})`);
+    }
+  }
+
+  return primaryUrl;
+};
+
 export const escapeHtml = (unsafe) => {
   if (typeof unsafe !== 'string') return unsafe;
   return unsafe

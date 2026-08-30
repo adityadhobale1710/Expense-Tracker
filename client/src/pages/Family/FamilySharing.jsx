@@ -11,6 +11,8 @@ import { StatCard } from '../../components/ui/StatCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { DataTable } from '../../components/ui/DataTable';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { Trash2 } from 'lucide-react';
 
 const SharedBalanceIcon = () => (
   <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 flex-shrink-0">
@@ -199,6 +201,39 @@ export default function FamilySharing() {
       fetchFamily();
     } catch {
       toast.error('Failed to reject request');
+    }
+  };
+
+  // Cancel / delete invitation modal state
+  const [cancelConfirm, setCancelConfirm] = useState({
+    isOpen: false,
+    invite: null,
+    loading: false,
+  });
+
+  const handleCancelInviteClick = (invite) => {
+    setCancelConfirm({
+      isOpen: true,
+      invite,
+      loading: false,
+    });
+  };
+
+  const handleConfirmCancelInvite = async () => {
+    if (!cancelConfirm.invite) return;
+    setCancelConfirm((prev) => ({ ...prev, loading: true }));
+    try {
+      const { data } = await api.delete(`/family/invite/${cancelConfirm.invite._id}`);
+      toast.success('Invitation cancelled successfully');
+      if (data?.data) {
+        setFamily(data.data);
+      } else {
+        fetchFamily();
+      }
+      setCancelConfirm({ isOpen: false, invite: null, loading: false });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to cancel invitation');
+      setCancelConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -661,13 +696,25 @@ export default function FamilySharing() {
                   <div className="space-y-2.5">
                     {pendingInvites.map((invite) => (
                       <div key={invite._id} className="bg-slate-900/30 border border-slate-800 rounded-xl p-3 flex justify-between items-center gap-3">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-200 truncate">{invite.email}</p>
                           <p className="text-[9px] text-slate-500 mt-0.5">Role: {invite.role}</p>
                         </div>
-                        <span className="text-[8px] font-black uppercase bg-orange-500/10 text-orange-400 border border-orange-500/25 px-2 py-0.5 rounded-full">
-                          Sent
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[8px] font-black uppercase bg-orange-500/10 text-orange-400 border border-orange-500/25 px-2 py-0.5 rounded-full">
+                            Sent
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelInviteClick(invite)}
+                            disabled={cancelConfirm.loading && cancelConfirm.invite?._id === invite._id}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/40 transition-all cursor-pointer disabled:opacity-50"
+                            title="Cancel invitation"
+                            aria-label={`Cancel invitation for ${invite.email}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -942,6 +989,19 @@ export default function FamilySharing() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── Cancel Invitation Confirmation Modal ── */}
+      <ConfirmDialog
+        isOpen={cancelConfirm.isOpen}
+        title="Cancel Invitation?"
+        message={`Are you sure you want to cancel the invitation sent to ${cancelConfirm.invite?.email || 'this member'}? This invitation link will no longer be usable.`}
+        confirmText="Cancel Invitation"
+        cancelText="Keep Invitation"
+        confirmVariant="danger"
+        loading={cancelConfirm.loading}
+        onConfirm={handleConfirmCancelInvite}
+        onCancel={() => setCancelConfirm({ isOpen: false, invite: null, loading: false })}
+      />
     </div>
   );
 }

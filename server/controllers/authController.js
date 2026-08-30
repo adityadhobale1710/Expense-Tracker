@@ -63,7 +63,7 @@ const createSessionRecord = async (userId, token, req) => {
 
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { sendEmail, getHtmlTemplate, escapeHtml } from '../utils/sendEmail.js';
+import { sendEmail, getHtmlTemplate, escapeHtml, getClientBaseUrl } from '../utils/sendEmail.js';
 import logger from '../utils/logger.js';
 
 export const createAuthenticatedSession = async (user, req, res, authMethod = 'Password') => {
@@ -670,7 +670,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
   await Session.updateMany({ user: user._id }, { isActive: false });
 
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getClientBaseUrl();
   const confirmHtml = getHtmlTemplate({
     title: 'Password Updated',
     greeting: `Hello ${escapeHtml(user.name)}`,

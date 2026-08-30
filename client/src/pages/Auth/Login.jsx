@@ -69,6 +69,7 @@ export default function Login() {
   const [forgotStep, setForgotStep] = useState(1);
   const [forgotCode, setForgotCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -130,6 +131,7 @@ export default function Login() {
       setForgotEmail('');
       setForgotCode('');
       setNewPassword('');
+      setShowNewPassword(false);
     } catch (err) {
       toast.error(err.response?.data?.message || (err.message === 'Network Error' || !err.response ? 'Network Error. Unable to connect to the backend server.' : 'Failed to reset password'));
     } finally {
@@ -658,6 +660,7 @@ export default function Login() {
               onClick={() => {
                 setShowForgotModal(false);
                 setForgotStep(1);
+                setShowNewPassword(false);
               }}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg"
               aria-label="Close reset modal"
@@ -726,16 +729,26 @@ export default function Login() {
                   <label className="block text-xs font-semibold text-[#334155] mb-1.5 font-jakarta">
                     New Password
                   </label>
-                  <div className="relative flex items-center">
-                    <Lock className="w-4 h-4 absolute left-4 text-slate-400 pointer-events-none" />
+                  <div className="relative flex items-center group">
+                    <Lock className="w-4 h-4 absolute left-4 text-slate-400 pointer-events-none transition-colors group-focus-within:text-[#5B4CF0]" />
                     <input
-                      type="password"
-                      className="w-full h-[48px] pl-11 pr-4 bg-[#F1F5F9] border border-transparent rounded-[14px] text-[#0F172A] text-sm font-medium placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#5B4CF0] focus:ring-4 focus:ring-[#5B4CF0]/12 transition-all duration-200"
+                      id="reset-new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      className="w-full h-[48px] pl-11 pr-11 bg-[#F1F5F9] border border-transparent rounded-[14px] text-[#0F172A] text-sm font-medium placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#5B4CF0] focus:ring-4 focus:ring-[#5B4CF0]/12 transition-all duration-200"
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3.5 text-[#5B4CF0] hover:text-[#4338CA] transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B4CF0]/20 cursor-pointer"
+                      aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      title={showNewPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
                 <div className="flex justify-end mt-1 mb-2">

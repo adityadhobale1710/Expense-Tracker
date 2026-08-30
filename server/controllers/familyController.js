@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import Family from '../models/Family.js';
 import Expense from '../models/Expense.js';
 import { sendSuccess } from '../utils/apiResponse.js';
-import { sendEmail, getHtmlTemplate, escapeHtml } from '../utils/sendEmail.js';
+import { sendEmail, getHtmlTemplate, escapeHtml, getClientBaseUrl } from '../utils/sendEmail.js';
 import logger from '../utils/logger.js';
 
 // Resend cooldown in ms (5 minutes) — prevents invitation email spam
@@ -93,7 +93,7 @@ export const inviteMember = asyncHandler(async (req, res) => {
 
     await family.save();
 
-    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, '');
+    const clientUrl = getClientBaseUrl();
     const acceptUrl = `${clientUrl}/family/invite/${rawToken}`;
     const roleLabel = existingMember.role === 'admin' ? 'Administrator' : 'Member';
 
@@ -145,7 +145,7 @@ export const inviteMember = asyncHandler(async (req, res) => {
 
   await family.save();
 
-  const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, '');
+  const clientUrl = getClientBaseUrl();
   const acceptUrl = `${clientUrl}/family/invite/${rawToken}`;
   const roleLabel = (role || 'member') === 'admin' ? 'Administrator' : 'Member';
 
@@ -370,4 +370,50 @@ export const rejectRequest = asyncHandler(async (req, res) => {
   await family.save();
 
   sendSuccess(res, 200, 'Request rejected', family);
+});
+
+// @desc    Cancel a pending family invitation
+// @route   DELETE /api/family/invite/:id
+// @access  Private (Owner only)
+export const cancelInvitation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Find the family owned by the current authenticated user
+  const family = await Family.findOne({ owner: req.user._id });
+
+  if (!family) {
+    // Check if the user is a member of another family attempting to cancel
+    const memberFamily = await Family.findOne({ 'members.email': req.user.email });
+    if (memberFamily) {
+      res.status(403);
+      throw new Error('Only the family hub owner can cancel pending invitations');
+    }
+    res.status(404);
+    throw new Error('Family hub not found');
+  }
+
+  // Look for the pending member/invitation by _id or email
+  const memberIndex = family.members.findIndex(
+    (m) => (m._id.toString() === id || m.email.toLowerCase() === id.toLowerCase()) && m.status === 'pending'
+  );
+
+  if (memberIndex === -1) {
+    // Check if member exists but is already accepted
+    const isAccepted = family.members.some(
+      (m) => (m._id.toString() === id || m.email.toLowerCase() === id.toLowerCase()) && m.status === 'accepted'
+    );
+    if (isAccepted) {
+      res.status(400);
+      throw new Error('Cannot cancel an invitation that has already been accepted');
+    }
+
+    res.status(404);
+    throw new Error('Pending invitation not found');
+  }
+
+  // Remove the pending invitation from the members array
+  family.members.splice(memberIndex, 1);
+  await family.save();
+
+  sendSuccess(res, 200, 'Invitation cancelled successfully', family);
 });
