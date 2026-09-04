@@ -36,22 +36,53 @@ class FinancialDataService {
       .populate('category', 'name icon color')
       .lean();
 
-    // H7 fix: the persisted Budget.spent field can drift from reality (lowered
-    // by old mutations, never refreshed, etc.). Every consumer of the shared
-    // snapshot (dashboard "REMAINING BUDGET" card, Financial Health Score, AI
-    // chat context) reads b.spent — so recompute it live from the Expense
-    // collection, exactly matching the Budget page (/budget). This keeps the
-    // dashboard and budget page from ever disagreeing, and fixes the false
-    // "Budget Exceeded" / "this month" AI answers that used stale values.
-    for (const b of budgets) {
-      if (!b.category) continue;
-      const { startDate, endDate } = getBudgetPeriodDates(b);
-      const [result] = await Expense.aggregate([
-        { $match: { user: userId, category: b.category._id, date: { $gte: startDate, $lte: endDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
+    // H7 fix: recompute Budget.spent live from the Expense collection so every
+    // consumer (dashboard, Financial Health Score, AI chat) reads accurate values
+    // rather than the stale persisted field.
+    //
+    // PERF: Replaced the serial for...of loop (N round-trips) with a single
+    // batched aggregation that groups spending by category across all relevant
+    // date ranges in one query, then fans the results back out to each budget.
+    // This reduces DB overhead from O(n budgets) to O(1).
+    const budgetsWithCategory = budgets.filter((b) => b.category);
+    if (budgetsWithCategory.length > 0) {
+      // Build a $or filter: one clause per budget covering its specific period + category
+      const orConditions = budgetsWithCategory.map((b) => {
+        const { startDate, endDate } = getBudgetPeriodDates(b);
+        return {
+          category: b.category._id,
+          date: { $gte: startDate, $lte: endDate },
+        };
+      });
+
+      // Single aggregation: group by category _id, sum amounts only for matching docs
+      const spentResults = await Expense.aggregate([
+        {
+          $match: {
+            user: userId,
+            isTransfer: { $ne: true },
+            $or: orConditions,
+          },
+        },
+        {
+          $group: {
+            _id: '$category',
+            total: { $sum: '$amount' },
+          },
+        },
       ]);
-      b.spent = result ? result.total : 0;
-      b.percentSpent = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
+
+      // Build a lookup map: categoryId (string) → total spent
+      const spentMap = {};
+      for (const r of spentResults) {
+        spentMap[String(r._id)] = r.total;
+      }
+
+      // Fan results back to each budget
+      for (const b of budgetsWithCategory) {
+        b.spent = spentMap[String(b.category._id)] ?? 0;
+        b.percentSpent = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
+      }
     }
 
     return budgets;

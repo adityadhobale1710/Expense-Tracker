@@ -12,6 +12,9 @@ import {
   calculateSavings,
 } from '../services/ai/ToolRegistry.js';
 
+// Cache TTL must match InsightEngine so we agree on freshness (5 min)
+const INSIGHTS_CACHE_TTL = 5 * 60 * 1000;
+
 // @desc    Get aggregated dashboard data
 // @route   GET /api/dashboard
 export const getDashboardData = asyncHandler(async (req, res) => {
@@ -59,29 +62,50 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   const balance = savSummary.amount;
   const savingsRate = totalIncome > 0 ? Math.round(savSummary.rate) : 0;
 
-  // Run AI Financial Advisor insights calculation using pre-fetched collections (zero DB duplicate queries)
-  // M7: load (or upsert) the chat document so InsightEngine can read/write the MongoDB insights cache
+  // --- Non-blocking AI Insights ---
+  // Read from the MongoDB-persisted cache synchronously; if fresh, use it.
+  // If stale/missing, respond immediately with nulls and fire off a background
+  // regeneration so the next request (or a polling refresh) will get fresh data.
+  // This completely removes Gemini latency and 503 errors from the critical path.
   let insights = null;
+  let chatDoc = null;
   try {
-    const chat = await AIChat.findOneAndUpdate(
+    chatDoc = await AIChat.findOneAndUpdate(
       { user: userId },
       {},
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-    const { generateInsights } = await import('../services/ai/InsightEngine.js');
-    insights = await generateInsights({
-      wallets,
-      budgets,
-      expenses,
-      incomes,
-      goals,
-      loans,
-      subscriptions,
-      userId,
-      chat,
-    });
+
+    const cache = chatDoc?.insightsCache;
+    const cacheAge = cache?.timestamp ? Date.now() - cache.timestamp : Infinity;
+    if (cache?.data && cacheAge < INSIGHTS_CACHE_TTL) {
+      // Cache is fresh — use it immediately, no background work needed
+      insights = cache.data;
+      logger.info(`[Dashboard] Serving cached insights for user ${userId} (age: ${Math.round(cacheAge / 1000)}s)`);
+    } else {
+      // Cache is stale or missing — kick off background regeneration and respond now
+      logger.info(`[Dashboard] Insights cache miss for user ${userId}. Firing background regeneration.`);
+      import('../services/ai/InsightEngine.js')
+        .then(({ generateInsights }) =>
+          generateInsights({
+            wallets,
+            budgets,
+            expenses,
+            incomes,
+            goals,
+            loans,
+            subscriptions,
+            userId,
+            chat: chatDoc,
+          })
+        )
+        .catch((err) =>
+          logger.warn(`[Dashboard] Background insight regeneration failed: ${err.message}`)
+        );
+    }
   } catch (err) {
-    logger.warn(`Failed to generate AI dashboard insights: ${err.message}`);
+    // A cache-read failure must never crash the dashboard
+    logger.warn(`[Dashboard] Failed to read insights cache: ${err.message}`);
   }
 
   sendSuccess(res, 200, 'Dashboard data aggregated successfully', {
@@ -105,9 +129,10 @@ export const getDashboardData = asyncHandler(async (req, res) => {
       savingsRate
     },
     // Dynamic Proactive Advisor payloads
+    // These are null on a cold cache; the frontend already handles null gracefully.
     financialHealth: insights?.financialHealth || null,
-    healthScore: insights?.financialHealth?.score || 82,
-    grade: insights?.financialHealth?.grade || 'Excellent',
+    healthScore: insights?.financialHealth?.score || null,
+    grade: insights?.financialHealth?.grade || null,
     topInsight: insights?.aiExplanation || null,
     activeRisks: insights?.activeRisks || [],
     recommendations: insights?.recommendations || [],
