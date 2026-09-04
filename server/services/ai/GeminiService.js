@@ -16,7 +16,7 @@ const getGenAIClient = () => {
  * @param {(signal: AbortSignal) => Promise<any>} operation 
  * @param {number} ms 
  */
-const withTimeout = async (operation, ms = 15000) => {
+const withTimeout = async (operation, ms = 30000) => {
   const controller = new AbortController();
   let timedOut = false;
 
@@ -72,47 +72,7 @@ const extractStatusCode = (err) => {
   return null;
 };
 
-/**
- * Return true for transient errors that are safe to retry.
- * Permanent errors (4xx auth/validation) should never be retried.
- * @param {Error} err
- * @param {number|null} statusCode
- * @returns {boolean}
- */
-const isTransientError = (err, statusCode) => {
-  // Permanent: auth failures and bad requests
-  if (statusCode === 400 || statusCode === 401 || statusCode === 403) return false;
 
-  // TIMEOUT sentinel or 504
-  if (err.message === 'TIMEOUT' || statusCode === 504 || err.name === 'AbortError') return true;
-
-  // Rate-limited or server overloaded
-  if (statusCode === 429 || statusCode === 503) return true;
-
-  // Text-based overload / unavailability signals from the SDK message
-  const msg = (err.message || '').toLowerCase();
-  if (
-    msg.includes('unavailable') ||
-    msg.includes('overloaded') ||
-    msg.includes('high demand') ||
-    msg.includes('503')
-  ) return true;
-
-  // Network-level transient failures
-  if (
-    msg.includes('fetch') ||
-    msg.includes('network') ||
-    msg.includes('enotfound') ||
-    msg.includes('econnrefused')
-  ) return true;
-
-  return false;
-};
-
-/**
- * Return a sleep Promise for `ms` milliseconds.
- */
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Map the final error to a user-friendly message and attach the HTTP status
@@ -176,80 +136,55 @@ export const generateAIResponse = async ({ systemInstruction, contents }) => {
   const startTime = Date.now();
   const systemInstructionText = systemInstruction;
 
-  logger.info(`[Gemini Service] Request started (intelligent context). Contents: ${contents.length} message(s).`);
+  logger.info(`[Gemini Service] Request started (intelligent context). Contents: ${contents.length} message(s). Timeout: 30s.`);
 
-  const maxAttempts = 2;
-  // Backoff delay before attempt 2: 2 seconds
-  const backoffDelays = [0, 2000];
+  try {
+    const ai = getGenAIClient();
+    const modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    // Apply backoff before every retry (not before the first attempt)
-    if (attempt > 1) {
-      const delay = backoffDelays[attempt - 1];
-      logger.info(`[Gemini Service] Waiting ${delay}ms before attempt ${attempt}/${maxAttempts}...`);
-      await sleep(delay);
+    logger.info(`[Gemini Service] Using model: ${modelName}`);
+
+    // Execute the API call with a single abortable 30-second timeout
+    const result = await withTimeout(
+      (signal) =>
+        ai.models.generateContent({
+          model: modelName,
+          contents,
+          config: {
+            abortSignal: signal,
+            systemInstruction: { parts: [{ text: systemInstructionText }] },
+          },
+        }),
+      30000
+    );
+
+    const reply = result.text;
+    const duration = Date.now() - startTime;
+
+    const usageMetadata = result.usageMetadata;
+    if (usageMetadata) {
+      logger.info(
+        `[Gemini Service] Completed in ${duration}ms. ` +
+        `Tokens — Prompt: ${usageMetadata.promptTokenCount}, ` +
+        `Candidates: ${usageMetadata.candidatesTokenCount}, ` +
+        `Total: ${usageMetadata.totalTokenCount}`
+      );
+    } else {
+      logger.info(`[Gemini Service] Completed in ${duration}ms.`);
     }
 
-    try {
-      const ai = getGenAIClient();
-      const modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+    return reply;
 
-      logger.info(`[Gemini Service] Using model: ${modelName}`);
+  } catch (err) {
+    const duration = Date.now() - startTime;
+    const statusCode = extractStatusCode(err);
 
-      // Execute the API call with an abortable 15-second timeout
-      const result = await withTimeout(
-        (signal) =>
-          ai.models.generateContent({
-            model: modelName,
-            contents,
-            config: {
-              abortSignal: signal,
-              systemInstruction: { parts: [{ text: systemInstructionText }] },
-            },
-          }),
-        15000
-      );
+    logger.error(
+      `[Gemini Service] Request failed after ${duration}ms: ${err.message}`,
+      { statusCode, name: err.name, stack: err.stack }
+    );
 
-      const reply = result.text;
-      const duration = Date.now() - startTime;
-
-      const usageMetadata = result.usageMetadata;
-      if (usageMetadata) {
-        logger.info(
-          `[Gemini Service] Completed in ${duration}ms. ` +
-          `Tokens — Prompt: ${usageMetadata.promptTokenCount}, ` +
-          `Candidates: ${usageMetadata.candidatesTokenCount}, ` +
-          `Total: ${usageMetadata.totalTokenCount}`
-        );
-      } else {
-        logger.info(`[Gemini Service] Completed in ${duration}ms.`);
-      }
-
-      return reply;
-
-    } catch (err) {
-      const duration = Date.now() - startTime;
-      const statusCode = extractStatusCode(err);
-
-      logger.warn(
-        `[Gemini Service] Attempt ${attempt}/${maxAttempts} failed after ${duration}ms: ${err.message}`,
-        { statusCode, name: err.name }
-      );
-
-      const transient = isTransientError(err, statusCode);
-
-      if (transient && attempt < maxAttempts) {
-        logger.info(`[Gemini Service] Transient error (status ${statusCode ?? 'unknown'}) — will retry...`);
-        continue;
-      }
-
-      logger.error(
-        `[Gemini Service] Request failed permanently on attempt ${attempt}. Error: ${err.message}`,
-        { statusCode, name: err.name, stack: err.stack }
-      );
-
-      throw mapToUserError(err, statusCode);
-    }
+    throw mapToUserError(err, statusCode);
   }
 };
 
