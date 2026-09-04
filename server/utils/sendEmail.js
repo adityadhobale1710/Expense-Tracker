@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer';
 import logger from './logger.js';
 import { sendViaGmail, isGmailConfigured } from './gmailService.js';
 
@@ -5,6 +6,61 @@ import { sendViaGmail, isGmailConfigured } from './gmailService.js';
 const LOGO_URL = process.env.LOGO_URL || 'https://raw.githubusercontent.com/adityadhobale1710/Expense-Tracker/main/client/public/logo.jpg';
 const COMPANY_NAME = process.env.COMPANY_NAME || 'Expense Tracker';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@expensetracker.com';
+
+// ── SMTP Transporter Cache ───────────────────────────────────────────────────
+let smtpTransporter = null;
+
+/**
+ * Returns true if SMTP credentials (user and password) are configured.
+ */
+export function isSmtpConfigured() {
+  return !!(process.env.SMTP_USER?.trim() && process.env.SMTP_PASS?.trim());
+}
+
+/**
+ * Creates or returns the cached Nodemailer SMTP transporter.
+ */
+function getSmtpTransporter() {
+  if (!smtpTransporter) {
+    const host = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com';
+    const port = Number(process.env.SMTP_PORT?.trim()) || 465;
+    const isSecure = port === 465;
+
+    smtpTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: isSecure,
+      auth: {
+        user: process.env.SMTP_USER?.trim(),
+        pass: process.env.SMTP_PASS?.trim().replace(/\s+/g, ''), // Strip spaces in App Passwords
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
+  return smtpTransporter;
+}
+
+/**
+ * Sends an email using Nodemailer via SMTP.
+ */
+export async function sendViaSmtp({ to, subject, html, text }) {
+  const transporter = getSmtpTransporter();
+  const fromAddress = process.env.SMTP_FROM?.trim() || process.env.SMTP_USER?.trim();
+  const fromName = process.env.SMTP_FROM_NAME?.trim() || COMPANY_NAME;
+
+  const info = await transporter.sendMail({
+    from: `"${fromName}" <${fromAddress}>`,
+    to,
+    subject,
+    html,
+    text: text || undefined,
+  });
+
+  logger.info(`📧 [SMTP] Email delivered successfully. Message ID: ${info.messageId}`);
+  return { success: true, messageId: info.messageId };
+}
 
 /**
  * Resolves and normalizes the frontend client base URL for email CTAs and navigation links.
@@ -164,27 +220,43 @@ export const getHtmlTemplate = ({ title, greeting, body, ctaText, ctaUrl, code, 
 /**
  * Sends an email using the configured transport.
  *
- * Transport priority:
- *   1. Gmail API (OAuth2 refresh-token flow) — when GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET,
- *      GMAIL_REFRESH_TOKEN, and GMAIL_SENDER_EMAIL are all set.
- *   2. Terminal log — fallback when Gmail delivery fails.
+ * Supported transports:
+ *   1. SMTP (Nodemailer) — when SMTP_USER and SMTP_PASS are set (e.g. Gmail App Password or SMTP provider).
+ *   2. Gmail API (OAuth2) — when GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL are set.
  *
- * All existing callers (authController, splitController, familyController, emailController)
- * continue to work through this same interface without modification.
+ * If both are configured, SMTP is prioritized with automatic failover to Gmail API if an error occurs.
+ * If neither succeeds (or neither is configured), falls back to terminal logging.
  */
 export const sendEmail = async ({ to, subject, html, text }) => {
   logger.info(`\n📧 Dispatching email to: ${to} (Subject: "${subject}")`);
 
-  // ── Transport 1: Gmail API ──────────────────────────────────────────────────
+  let lastError = null;
+
+  // ── Transport 1: SMTP / Gmail App Password ─────────────────────────────────
+  if (isSmtpConfigured()) {
+    try {
+      const result = await sendViaSmtp({ to, subject, html, text });
+      return result;
+    } catch (smtpError) {
+      lastError = smtpError;
+      logger.error(`❌ [SMTP] Delivery failed: ${smtpError.message}`);
+    }
+  }
+
+  // ── Transport 2: Gmail API (OAuth2) ─────────────────────────────────────────
   if (isGmailConfigured()) {
     try {
       const result = await sendViaGmail({ to, subject, html });
       return result;
     } catch (gmailError) {
+      lastError = gmailError;
       logger.error(`❌ [Gmail API] Delivery failed: ${gmailError.message}`);
     }
-  } else {
-    logger.error('❌ [Gmail API] Not configured.');
+  }
+
+  if (!isSmtpConfigured() && !isGmailConfigured()) {
+    logger.error('❌ [Email] No email delivery provider configured (neither SMTP nor Gmail API).');
+    lastError = new Error('No email delivery provider configured');
   }
 
   let safeText = text;
@@ -192,7 +264,7 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     safeText = safeText.replace(/\b\d{6}\b/g, '******');
   }
 
-  // ── Transport 2: Terminal log fallback ─────────────────────────────────────
+  // ── Transport Fallback: Terminal log ────────────────────────────────────────
   logger.info('⚠️  [Log Fallback] No transport succeeded. Dumping email context below:');
   logger.info('──────────────────────────────────────────────────────────────────────');
   logger.info(`TO:      ${to}`);
@@ -203,7 +275,12 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   if (process.env.NODE_ENV === 'production') {
     // In production, a mocked/fallback send is indistinguishable from a hard failure
     // so callers execute their rollback logic and return 502 instead of false success.
-    return { success: false, mocked: false, deliveryFailed: true };
+    return {
+      success: false,
+      mocked: false,
+      deliveryFailed: true,
+      error: lastError?.message || 'Email delivery failed'
+    };
   }
-  return { success: false, mocked: true };
+  return { success: false, mocked: true, error: lastError?.message };
 };

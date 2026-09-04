@@ -51,9 +51,13 @@ function buildMimeMessage(to, from, subject, html) {
  * @returns {import('googleapis').gmail_v1.Gmail}
  */
 function createGmailClient() {
+  const clientId = process.env.GMAIL_CLIENT_ID?.trim();
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET?.trim();
+  const refreshToken = process.env.GMAIL_REFRESH_TOKEN?.trim();
+
   const oAuth2Client = new google.auth.OAuth2(
-    process.env.GMAIL_CLIENT_ID,
-    process.env.GMAIL_CLIENT_SECRET,
+    clientId,
+    clientSecret,
     // redirect_uri is unused at runtime; only required for the initial authorization
     'http://127.0.0.1:3000'
   );
@@ -61,7 +65,7 @@ function createGmailClient() {
   // Set credentials using the stored refresh token.
   // The googleapis library exchanges this automatically for a short-lived access token.
   oAuth2Client.setCredentials({
-    refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+    refresh_token: refreshToken,
   });
 
   return google.gmail({ version: 'v1', auth: oAuth2Client });
@@ -77,7 +81,7 @@ function createGmailClient() {
  * @returns {Promise<{ success: boolean, messageId?: string, error?: string }>}
  */
 export async function sendViaGmail({ to, subject, html }) {
-  const senderEmail = process.env.GMAIL_SENDER_EMAIL;
+  const senderEmail = process.env.GMAIL_SENDER_EMAIL?.trim();
   const companyName = process.env.COMPANY_NAME || 'Expense Tracker';
 
   const from = `"${companyName}" <${senderEmail}>`;
@@ -85,21 +89,30 @@ export async function sendViaGmail({ to, subject, html }) {
 
   const gmail = createGmailClient();
 
-  // Add a 10-second timeout guard so the server doesn't hang if Gmail API stalls
-  const response = await Promise.race([
-    gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: rawMessage },
-    }),
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Gmail API connection timed out after 10s')), 10000)
-    )
-  ]);
+  try {
+    // Add a 10-second timeout guard so the server doesn't hang if Gmail API stalls
+    const response = await Promise.race([
+      gmail.users.messages.send({
+        userId: 'me',
+        requestBody: { raw: rawMessage },
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Gmail API connection timed out after 10s')), 10000)
+      )
+    ]);
 
-  const messageId = response?.data?.id;
-  logger.info(`📧 [Gmail API] Email delivered successfully. Message ID: ${messageId}`);
+    const messageId = response?.data?.id;
+    logger.info(`📧 [Gmail API] Email delivered successfully. Message ID: ${messageId}`);
 
-  return { success: true, messageId };
+    return { success: true, messageId };
+  } catch (err) {
+    if (err.message?.includes('invalid_grant')) {
+      const enhancedError = new Error('Gmail API OAuth token expired or revoked (invalid_grant). Ensure Google Cloud OAuth Consent Screen is published to Production and generate a new refresh token.');
+      enhancedError.originalError = err;
+      throw enhancedError;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -110,9 +123,10 @@ export async function sendViaGmail({ to, subject, html }) {
  */
 export function isGmailConfigured() {
   return !!(
-    process.env.GMAIL_CLIENT_ID &&
-    process.env.GMAIL_CLIENT_SECRET &&
-    process.env.GMAIL_REFRESH_TOKEN &&
-    process.env.GMAIL_SENDER_EMAIL
+    process.env.GMAIL_CLIENT_ID?.trim() &&
+    process.env.GMAIL_CLIENT_SECRET?.trim() &&
+    process.env.GMAIL_REFRESH_TOKEN?.trim() &&
+    process.env.GMAIL_SENDER_EMAIL?.trim()
   );
 }
+

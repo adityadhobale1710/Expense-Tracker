@@ -4,17 +4,31 @@ const http = require('http');
 const { google } = require('googleapis');
 const url = require('url');
 
+require('dotenv').config();
+
 const CREDENTIALS_PATH = path.join(__dirname, 'client_secret_467666891263-sg4dfg19ft1pjip8vsnb7n8h9tggaqk8.apps.googleusercontent.com.json');
 
 async function main() {
-  if (!fs.existsSync(CREDENTIALS_PATH)) {
-    console.error(`Error: Credentials file not found at ${CREDENTIALS_PATH}`);
-    process.exit(1);
+  let client_id = process.env.GMAIL_CLIENT_ID?.trim();
+  let client_secret = process.env.GMAIL_CLIENT_SECRET?.trim();
+
+  if (fs.existsSync(CREDENTIALS_PATH)) {
+    try {
+      const credentialsStr = fs.readFileSync(CREDENTIALS_PATH, 'utf-8');
+      const credentials = JSON.parse(credentialsStr);
+      if (credentials.installed) {
+        client_id = credentials.installed.client_id;
+        client_secret = credentials.installed.client_secret;
+      }
+    } catch (e) {
+      // fallback to env
+    }
   }
 
-  const credentialsStr = fs.readFileSync(CREDENTIALS_PATH, 'utf-8');
-  const credentials = JSON.parse(credentialsStr);
-  const { client_secret, client_id } = credentials.installed;
+  if (!client_id || !client_secret) {
+    console.error('Error: GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET must be set in .env or present in client_secret JSON file.');
+    process.exit(1);
+  }
   
   // Create an OAuth2 client
   // The redirect URI must match what's allowed for Desktop clients.
@@ -37,7 +51,7 @@ async function main() {
 
   console.log('Authorize this app by visiting this URL:');
   console.log(authUrl);
-  console.log('\nWaiting for authorization callback...');
+  console.log('\nWaiting for authorization callback on http://127.0.0.1:3000 ...');
 
   // Start a temporary HTTP server to receive the callback
   const server = http.createServer(async (req, res) => {
@@ -65,14 +79,20 @@ async function main() {
       
       const { tokens } = await oAuth2Client.getToken(code);
       
-      console.log('\n=== OAUTH TOKENS ===');
+      console.log('\n=================== OAUTH TOKENS ===================');
       console.log('Refresh Token:', tokens.refresh_token);
       if (!tokens.refresh_token) {
         console.log('NOTE: No refresh token returned. This usually happens if prompt=consent was not provided or user already granted access previously without revoking it.');
       }
-      console.log('====================');
-      console.log('\nSUCCESS! Copy the refresh token above and add it to your .env file.');
-      console.log('Do not share this token or commit it to version control.');
+      console.log('====================================================');
+      console.log('\nSUCCESS! Copy the refresh token above and add it to your .env file and Render environment variables (GMAIL_REFRESH_TOKEN).');
+      console.log('\n⚠️  CRITICAL NOTICE:');
+      console.log('If your Google Cloud Console OAuth consent screen is in "Testing" status,');
+      console.log('this refresh token will automatically EXPIRE IN 7 DAYS, throwing invalid_grant!');
+      console.log('To make it permanent:');
+      console.log('1. Open https://console.cloud.google.com/apis/credentials/consent');
+      console.log('2. Under "Publishing status", click "PUBLISH APP" to switch to "In production".');
+      console.log('====================================================\n');
       process.exit(0);
     } catch (error) {
       console.error('Error during callback processing:', error.message);

@@ -542,8 +542,11 @@ export const logout = asyncHandler(async (req, res) => {
 export const refreshToken = asyncHandler(async (req, res) => {
   const token = req.cookies?.refreshToken;
   if (!token) {
-    res.status(401);
-    throw new Error('No refresh token provided');
+    return res.status(401).json({
+      success: false,
+      message: 'No refresh token provided',
+      data: null,
+    });
   }
 
   // A3 fix: wrap jwt.verify in try/catch so expired/invalid tokens are handled gracefully
