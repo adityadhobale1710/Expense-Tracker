@@ -509,28 +509,80 @@ export const calculateComparison = ({
 
 // ─── TEMPORAL PARSING & COMPUTATIONS ──────────────────────────────────────────
 
+const WORD_TO_NUM = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+  thirty: 30, sixty: 60, ninety: 90
+};
+
+const subtractMonths = (date, months) => {
+  const d = new Date(date);
+  const currentDay = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - months);
+  const maxDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(currentDay, maxDays));
+  return d;
+};
+
 /**
  * Parses user input for temporal expressions and returns the matching date range bounds.
  *
  * @param {string} text - User chat message
- * @returns {{ start: Date, end: Date, label: string }}
+ * @param {number|null} tzOffset - Optional timezone offset in minutes
+ * @returns {{ start: Date, end: Date, label: string, isExplicit: boolean }}
  */
-export const parseDateRange = (text = '') => {
+export const parseDateRange = (text = '', tzOffset = null) => {
   const norm = text.toLowerCase();
   const now = new Date();
 
   let start = new Date();
   let end = new Date();
   let label = 'Last 30 Days';
+  let isExplicit = false;
 
   const setStartOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
   const setEndOfDay = (d) => { d.setHours(23, 59, 59, 999); return d; };
 
-  if (norm.includes('today')) {
+  // Explicit multi-period matching (e.g. 'last 3 months', 'past 3 months', 'last three months', 'last 90 days', 'past 90 days')
+  const multiMatch = norm.match(/\b(?:last|past|previous|prior)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|sixty|ninety)\s*(months?|days?|weeks?|years?)\b/i);
+
+  if (multiMatch) {
+    const rawNum = multiMatch[1].toLowerCase();
+    const count = WORD_TO_NUM[rawNum] || parseInt(rawNum, 10);
+    const unit = multiMatch[2].toLowerCase();
+
+    if (count > 0) {
+      isExplicit = true;
+      if (unit.startsWith('month')) {
+        start = setStartOfDay(subtractMonths(now, count));
+        end = setEndOfDay(new Date());
+        label = `Last ${count} Month${count > 1 ? 's' : ''}`;
+      } else if (unit.startsWith('day')) {
+        start = new Date();
+        start.setDate(start.getDate() - count);
+        setStartOfDay(start);
+        end = setEndOfDay(new Date());
+        label = `Last ${count} Day${count > 1 ? 's' : ''}`;
+      } else if (unit.startsWith('week')) {
+        start = new Date();
+        start.setDate(start.getDate() - count * 7);
+        setStartOfDay(start);
+        end = setEndOfDay(new Date());
+        label = `Last ${count} Week${count > 1 ? 's' : ''}`;
+      } else if (unit.startsWith('year')) {
+        start = new Date(now.getFullYear() - count, now.getMonth(), now.getDate());
+        setStartOfDay(start);
+        end = setEndOfDay(new Date());
+        label = `Last ${count} Year${count > 1 ? 's' : ''}`;
+      }
+    }
+  } else if (norm.includes('today')) {
+    isExplicit = true;
     start = setStartOfDay(new Date());
     end = setEndOfDay(new Date());
     label = 'Today';
   } else if (norm.includes('yesterday')) {
+    isExplicit = true;
     start = new Date();
     start.setDate(start.getDate() - 1);
     setStartOfDay(start);
@@ -538,6 +590,7 @@ export const parseDateRange = (text = '') => {
     setEndOfDay(end);
     label = 'Yesterday';
   } else if (norm.includes('last 7 days') || norm.includes('past 7 days')) {
+    isExplicit = true;
     start = new Date();
     start.setDate(start.getDate() - 7);
     setStartOfDay(start);
@@ -545,6 +598,7 @@ export const parseDateRange = (text = '') => {
     setEndOfDay(end);
     label = 'Last 7 Days';
   } else if (norm.includes('last week') || norm.includes('previous week')) {
+    isExplicit = true;
     const day = now.getDay();
     start = new Date();
     start.setDate(now.getDate() - day - 7);
@@ -554,6 +608,7 @@ export const parseDateRange = (text = '') => {
     setEndOfDay(end);
     label = 'Last Week';
   } else if (norm.includes('this week')) {
+    isExplicit = true;
     const day = now.getDay();
     start = new Date();
     start.setDate(now.getDate() - day);
@@ -562,30 +617,35 @@ export const parseDateRange = (text = '') => {
     setEndOfDay(end);
     label = 'This Week';
   } else if (norm.includes('last month') || norm.includes('previous month')) {
+    isExplicit = true;
     start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     setStartOfDay(start);
     end = new Date(now.getFullYear(), now.getMonth(), 0);
     setEndOfDay(end);
     label = 'Last Month';
   } else if (norm.includes('this month')) {
+    isExplicit = true;
     start = new Date(now.getFullYear(), now.getMonth(), 1);
     setStartOfDay(start);
     end = new Date();
     setEndOfDay(end);
     label = 'This Month';
   } else if (norm.includes('last year') || norm.includes('previous year')) {
+    isExplicit = true;
     start = new Date(now.getFullYear() - 1, 0, 1);
     setStartOfDay(start);
     end = new Date(now.getFullYear() - 1, 11, 31);
     setEndOfDay(end);
     label = 'Last Year';
   } else if (norm.includes('this year')) {
+    isExplicit = true;
     start = new Date(now.getFullYear(), 0, 1);
     setStartOfDay(start);
     end = new Date();
     setEndOfDay(end);
     label = 'This Year';
   } else if (norm.includes('previous quarter') || norm.includes('last quarter')) {
+    isExplicit = true;
     const currentQuarter = Math.floor(now.getMonth() / 3);
     const targetQuarter = currentQuarter === 0 ? 3 : currentQuarter - 1;
     const targetYear = currentQuarter === 0 ? now.getFullYear() - 1 : now.getFullYear();
@@ -595,6 +655,7 @@ export const parseDateRange = (text = '') => {
     setEndOfDay(end);
     label = `Q${targetQuarter + 1} ${targetYear}`;
   } else if (norm.includes('this quarter') || norm.includes('current quarter')) {
+    isExplicit = true;
     const currentQuarter = Math.floor(now.getMonth() / 3);
     start = new Date(now.getFullYear(), currentQuarter * 3, 1);
     setStartOfDay(start);
@@ -609,9 +670,10 @@ export const parseDateRange = (text = '') => {
     end = new Date();
     setEndOfDay(end);
     label = 'Last 30 Days';
+    isExplicit = false;
   }
 
-  return { start, end, label };
+  return { start, end, label, isExplicit };
 };
 
 /**

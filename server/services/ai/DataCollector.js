@@ -12,8 +12,8 @@ import { getBoundsForOffset } from '../../utils/timezoneUtils.js';
 export const collectFinancialData = async (userId, dateRanges = {}, tzOffset = null) => {
   const startTime = Date.now();
 
-  let startDate = dateRanges.expensesStartDate;
-  let endDate = dateRanges.expensesEndDate;
+  let startDate = dateRanges.startDate || dateRanges.expensesStartDate;
+  let endDate = dateRanges.endDate || dateRanges.expensesEndDate;
   
   if (!startDate || !endDate) {
     const bounds = getBoundsForOffset(tzOffset, 'last30days');

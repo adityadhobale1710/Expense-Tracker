@@ -548,8 +548,8 @@ export const buildContext = async (userId, detectedIntents, chat, message = '', 
   }
 
   // Parse custom date ranges
-  const dateRange = parseDateRange(message);
-  const isCustomTimeQuery = dateRange.label !== 'Last 30 Days';
+  const dateRange = parseDateRange(message, tzOffset);
+  const isCustomTimeQuery = Boolean(dateRange.isExplicit || dateRange.label !== 'Last 30 Days');
 
   const requiredModules = resolveModules(intentNames);
 
@@ -612,13 +612,12 @@ export const buildContext = async (userId, detectedIntents, chat, message = '', 
     logger.info(`[ContextBuilder] Cache MISS or temporal query detected. Fetching fresh snapshot from DB.`);
     
     // Load fresh data in parallel using standard collectFinancialData loader.
-    // M8 fix: for temporal queries ("this month", "this week", "last month",
-    // …) the fetch window MUST match the parsed range — previously expenses
-    // were always loaded as last-30-days while the section was labeled "This
-    // Month", so monthly AI answers were silently wrong (all-time/rolling
-    // numbers reported as month figures). Non-temporal queries keep the 30-day
-    // window so the module cache stays a consistent rolling snapshot.
+    // For temporal queries ("last 3 months", "this month", "this week", "last month",
+    // …) the fetch window MUST match the parsed range. Non-temporal queries keep the
+    // 30-day window so the module cache stays a consistent rolling snapshot.
     const rawData = await collectFinancialData(userId, {
+      startDate: isCustomTimeQuery ? dateRange.start : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDate: isCustomTimeQuery ? dateRange.end : new Date(),
       expensesStartDate: isCustomTimeQuery ? dateRange.start : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       expensesEndDate: isCustomTimeQuery ? dateRange.end : new Date(),
     }, tzOffset);

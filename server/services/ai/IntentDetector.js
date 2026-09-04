@@ -168,6 +168,10 @@ const INTENT_DEFINITIONS = {
       'highest expenses', 'top expenses', 'expense report',
       'where is my money going', 'spending habits', 'spending pattern',
       'outflow', 'how much was spent', 'money going out',
+      'my last 3 month spending', 'last 3 months spending', 'last 3 month spending',
+      'past 3 months spending', 'past 3 month spending', 'spending for the past',
+      'spending in the last', 'spending over the last', 'spent in the last',
+      'spent over the last', 'spend in the last', 'spend over the last',
     ],
     keywords: [
       'spent', 'spending', 'expense', 'expenses', 'expenditure',
@@ -181,6 +185,8 @@ const INTENT_DEFINITIONS = {
       /where (is|are|did|has) (my )?(money|cash|funds)/,
       /spent (on|last|this|in)/,
       /spending (this|last|in|on)/,
+      /(spend|spending|spent) (over|in|during|for)?\s*(the )?(last|past)/,
+      /\b(last|past)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|sixty|ninety)\s+(months?|days?)\b/,
     ],
   },
 
