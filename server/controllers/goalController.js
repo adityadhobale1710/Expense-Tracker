@@ -731,8 +731,6 @@ export const deleteContribution = asyncHandler(async (req, res) => {
   }
   session.endSession();
 
-  await updateSavingsAchievements(req.user._id);
-
   await invalidateAICache(req.user._id, [CACHE_MODULES.GOALS, CACHE_MODULES.WALLET_UPDATE]);
   sendSuccess(res, 200, 'Contribution removed successfully', goal);
 });

@@ -42,7 +42,7 @@ export const runAuthTests = async () => {
       body: {
         name: 'Registration Tester',
         email: uniqueEmail,
-        password: 'Password123!',
+        password: 'Xk9#mQz2Lp!',
         phone: '9876543210',
       },
     });
@@ -86,7 +86,7 @@ export const runAuthTests = async () => {
       body: {
         name: 'Duplicate Tester',
         email: uniqueEmail,
-        password: 'Password123!',
+        password: 'Xk9#mQz2Lp!',
       },
     });
 

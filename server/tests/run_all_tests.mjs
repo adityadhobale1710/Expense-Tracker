@@ -8,6 +8,8 @@
 import { mongoose } from './test_helpers.mjs';
 import { runIncomeCRUDTests } from './income_crud.test.mjs';
 import { runExpenseCRUDTests } from './expense_crud.test.mjs';
+import { runPhase1CoreFinancialTests } from './phase1_core_financial.test.mjs';
+import { runPhase2SecondaryFeaturesTests } from './phase2_secondary_features.test.mjs';
 import { runWalletInvariantTests } from './wallet_invariants.test.mjs';
 import { runAuthTests } from './auth.test.mjs';
 import { runGoogleOAuthTests } from './google_oauth.test.mjs';
@@ -30,6 +32,8 @@ const runMasterSuite = async () => {
   try {
     allSummaries.push(await runIncomeCRUDTests());
     allSummaries.push(await runExpenseCRUDTests());
+    allSummaries.push(await runPhase1CoreFinancialTests());
+    allSummaries.push(await runPhase2SecondaryFeaturesTests());
     allSummaries.push(await runWalletInvariantTests());
     allSummaries.push(await runAuthTests());
     allSummaries.push(await runGoogleOAuthTests());
