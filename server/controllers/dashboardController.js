@@ -15,6 +15,12 @@ import {
 // Cache TTL must match InsightEngine so we agree on freshness (5 min)
 const INSIGHTS_CACHE_TTL = 5 * 60 * 1000;
 
+// Per-user in-process generation lock.
+// Prevents multiple concurrent dashboard requests from each starting their own
+// Gemini generation before the first one finishes.
+// Key: userId string. Cleared on generation success or failure.
+const _generatingInsights = new Set();
+
 // @desc    Get aggregated dashboard data
 // @route   GET /api/dashboard
 export const getDashboardData = asyncHandler(async (req, res) => {
@@ -83,25 +89,36 @@ export const getDashboardData = asyncHandler(async (req, res) => {
       insights = cache.data;
       logger.info(`[Dashboard] Serving cached insights for user ${userId} (age: ${Math.round(cacheAge / 1000)}s)`);
     } else {
-      // Cache is stale or missing — kick off background regeneration and respond now
-      logger.info(`[Dashboard] Insights cache miss for user ${userId}. Firing background regeneration.`);
-      import('../services/ai/InsightEngine.js')
-        .then(({ generateInsights }) =>
-          generateInsights({
-            wallets,
-            budgets,
-            expenses,
-            incomes,
-            goals,
-            loans,
-            subscriptions,
-            userId,
-            chat: chatDoc,
-          })
-        )
-        .catch((err) =>
-          logger.warn(`[Dashboard] Background insight regeneration failed: ${err.message}`)
-        );
+      // Cache is stale or missing — kick off background regeneration and respond now.
+      // The lock prevents duplicate Gemini calls when multiple requests arrive
+      // simultaneously for the same user before the first generation completes.
+      const userKey = String(userId);
+      if (_generatingInsights.has(userKey)) {
+        logger.info(`[Dashboard] Background generation already in progress for user ${userId}. Skipping duplicate.`);
+      } else {
+        logger.info(`[Dashboard] Insights cache miss for user ${userId}. Firing background regeneration.`);
+        _generatingInsights.add(userKey);
+        import('../services/ai/InsightEngine.js')
+          .then(({ generateInsights }) =>
+            generateInsights({
+              wallets,
+              budgets,
+              expenses,
+              incomes,
+              goals,
+              loans,
+              subscriptions,
+              userId,
+              chat: chatDoc,
+            })
+          )
+          .catch((err) =>
+            logger.warn(`[Dashboard] Background insight regeneration failed: ${err.message}`)
+          )
+          .finally(() => {
+            _generatingInsights.delete(userKey);
+          });
+      }
     }
   } catch (err) {
     // A cache-read failure must never crash the dashboard

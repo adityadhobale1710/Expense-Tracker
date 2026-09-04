@@ -40,47 +40,49 @@ class FinancialDataService {
     // consumer (dashboard, Financial Health Score, AI chat) reads accurate values
     // rather than the stale persisted field.
     //
-    // PERF: Replaced the serial for...of loop (N round-trips) with a single
-    // batched aggregation that groups spending by category across all relevant
-    // date ranges in one query, then fans the results back out to each budget.
-    // This reduces DB overhead from O(n budgets) to O(1).
+    // PERF: Single $facet aggregation — one DB round-trip regardless of how many
+    // budgets exist. Each facet branch is fully isolated, so two budgets sharing
+    // the same category but covering different periods (e.g. January Food vs
+    // February Food) are computed independently and never cross-contaminate.
     const budgetsWithCategory = budgets.filter((b) => b.category);
     if (budgetsWithCategory.length > 0) {
-      // Build a $or filter: one clause per budget covering its specific period + category
-      const orConditions = budgetsWithCategory.map((b) => {
+      // Build one facet pipeline per budget. The facet key is the budget's
+      // own string _id so we can look results up after the aggregation.
+      const facetStages = {};
+      for (const b of budgetsWithCategory) {
         const { startDate, endDate } = getBudgetPeriodDates(b);
-        return {
-          category: b.category._id,
-          date: { $gte: startDate, $lte: endDate },
-        };
-      });
+        facetStages[String(b._id)] = [
+          {
+            $match: {
+              category: b.category._id,
+              date: { $gte: startDate, $lte: endDate },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$amount' },
+            },
+          },
+        ];
+      }
 
-      // Single aggregation: group by category _id, sum amounts only for matching docs
-      const spentResults = await Expense.aggregate([
+      // Single aggregation call — pre-filter to this user's non-transfer expenses,
+      // then fan out to per-budget facets.
+      const [facetResult] = await Expense.aggregate([
         {
           $match: {
             user: userId,
             isTransfer: { $ne: true },
-            $or: orConditions,
           },
         },
-        {
-          $group: {
-            _id: '$category',
-            total: { $sum: '$amount' },
-          },
-        },
+        { $facet: facetStages },
       ]);
-
-      // Build a lookup map: categoryId (string) → total spent
-      const spentMap = {};
-      for (const r of spentResults) {
-        spentMap[String(r._id)] = r.total;
-      }
 
       // Fan results back to each budget
       for (const b of budgetsWithCategory) {
-        b.spent = spentMap[String(b.category._id)] ?? 0;
+        const rows = facetResult?.[String(b._id)] ?? [];
+        b.spent = rows[0]?.total ?? 0;
         b.percentSpent = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
       }
     }
