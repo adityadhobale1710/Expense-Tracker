@@ -9,7 +9,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import ContributionModal from '../../components/Goals/ContributionModal';
 import { AnimatePresence } from 'framer-motion';
 import { 
-  Plus, BarChart2, TrendingUp, Target, Wallet, Award, ArrowUpRight, Grid, Activity, Clock, Bell, Lightbulb, ChevronRight, AlertCircle
+  Plus, BarChart2, TrendingUp, Target, Wallet, Award, ArrowUpRight, Grid, Activity, Clock, Bell, ChevronRight, AlertCircle
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -80,10 +80,6 @@ export default function Dashboard() {
   const [healthScore, setHealthScore] = useState(82);
   const [healthGrade, setHealthGrade] = useState('Excellent');
   const [financialHealth, setFinancialHealth] = useState(null);
-  const [tipOfTheDay, setTipOfTheDay] = useState({
-    title: 'Cut unused streaming services',
-    text: 'Canceling Spotify could save you ₹1,428/year. Redirecting it to gold funds yields better CAGR.'
-  });
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -103,9 +99,6 @@ export default function Dashboard() {
         if (payload.financialHealth !== undefined && payload.financialHealth !== null) {
           setFinancialHealth(payload.financialHealth);
         }
-        if (payload.tipOfTheDay !== undefined && payload.tipOfTheDay !== null) {
-          setTipOfTheDay(payload.tipOfTheDay);
-        }
       }
     } catch {}
   }, [fetchDashboardData]);
@@ -116,8 +109,7 @@ export default function Dashboard() {
     'weeklySpend', 'monthlySpend', 'remainingBudget',
     'walletSummary',
     'savingsProgress', 'largestExpense', 'mostUsedCategory',
-    'health', 'bills', 'notifications',
-    'tipOfTheDay'
+    'health', 'bills', 'notifications'
   ];
 
   // Modals state
@@ -1033,33 +1025,7 @@ export default function Dashboard() {
           }
 
 
-          // 13. AI Tip of the Day
-          if (widgetId === 'tipOfTheDay') {
-            return (
-              <div key={widgetId} className="card flex flex-col justify-between hover:border-primary-500/30 transition-all duration-300">
-                <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/30">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                      <Lightbulb size={16} />
-                    </div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">AI Tip of the Day</h3>
-                  </div>
-                </div>
-                <div className="pt-2.5 pb-1 space-y-3">
-                  <div className="p-2.5 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex gap-3">
-                    <span className="text-xl flex-shrink-0">💡</span>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-200">{tipOfTheDay?.title}</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
-                        {tipOfTheDay?.text}
-                      </p>
-                    </div>
-                  </div>
 
-                </div>
-              </div>
-            );
-          }
 
           return null;
         })}

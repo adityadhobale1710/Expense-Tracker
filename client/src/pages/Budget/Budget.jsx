@@ -2,11 +2,11 @@ import { useEffect, useState, useMemo, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Target, Wallet, AlertCircle, Plus, Edit3, Trash2,
-  Calendar, CreditCard, Banknote, Search, ShieldAlert, Sparkles, RefreshCw,
+  Calendar, CreditCard, Banknote, Search, Sparkles, RefreshCw,
   Info, LayoutGrid, BarChart3, PieChart as PieIcon, ArrowUpRight, ArrowDownRight,
-  CheckCircle2, SlidersHorizontal, Check, Flame, Lock, Unlock,
-  ChevronRight, ArrowLeft, MoreVertical, Settings, FileText,
-  Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, Zap, X
+  CheckCircle2, SlidersHorizontal, Check, Flame,
+  ChevronRight, MoreVertical, Settings,
+  Printer, RotateCcw, Eye, HelpCircle, Briefcase, Zap, X
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
@@ -49,7 +49,6 @@ const EMPTY_BUDGET = {
   priority: 'medium',
   description: '',
   carryForward: false,
-  isLocked: false,
   notes: ''
 };
 
@@ -236,12 +235,9 @@ export default function Budget() {
   
   // Custom local state
   const [wallets, setWallets] = useState([]);
-  const [selectedDetailsId, setSelectedDetailsId] = useState(null);
   const [activeChartTab, setActiveChartTab] = useState('comparison');
   
   const [globalAnalytics, setGlobalAnalytics] = useState({ monthlyTrendData: [], weeklySpendingData: [] });
-  const [localAnalytics, setLocalAnalytics] = useState(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_BUDGET);
   const [submitting, setSubmitting] = useState(false);
@@ -286,22 +282,6 @@ export default function Budget() {
     loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    if (selectedDetailsId) {
-      setAnalyticsLoading(true);
-      api.get(`/budgets/${selectedDetailsId}/analytics`)
-        .then(res => setLocalAnalytics(res.data.data))
-        .catch(err => {
-          console.error(err);
-          toast.error("Failed to load budget analytics");
-          setLocalAnalytics(null);
-        })
-        .finally(() => setAnalyticsLoading(false));
-    } else {
-      setLocalAnalytics(null);
-    }
-  }, [selectedDetailsId]);
-
   // Sync Extended properties from localStorage
   const syncExtendedProps = useCallback(() => {
     const keys = Object.keys(localStorage).filter(k => k.startsWith('budget_ext_'));
@@ -331,7 +311,6 @@ export default function Budget() {
         icon: ext.icon || b.category?.icon || '📁',
         description: ext.description || '',
         notes: ext.notes || '',
-        isLocked: ext.isLocked || false,
         carryForward: ext.carryForward || false
       };
     });
@@ -403,132 +382,7 @@ export default function Budget() {
   const overspentCount = useMemo(() => combinedBudgets.filter(b => b.spent > b.limit).length, [combinedBudgets]);
   const savingsEstimate = useMemo(() => totalBudgeted > totalSpent ? totalBudgeted - totalSpent : 0, [totalBudgeted, totalSpent]);
 
-  // Insights compiler
-  const insights = useMemo(() => {
-    const list = [];
-    combinedBudgets.forEach(b => {
-      const pct = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
-      if (pct >= 100) {
-        list.push({
-          type: 'danger',
-          title: `Overlimit Alert`,
-          message: `You've used ${pct}% of ${b.category?.name || 'Category'} budget. Exceeded by ₹${(b.spent - b.limit).toLocaleString('en-IN')}.`
-        });
-      } else if (pct >= (b.alertThreshold || 80)) {
-        list.push({
-          type: 'warning',
-          title: `Approaching Threshold`,
-          message: `Food & Drinks allocation is pacing fast. Used ${pct}% of your ${b.category?.name || 'Category'} budget.`
-        });
-      }
-    });
 
-    // Auto budget pacing forecast from actual transactions
-    if (expenses && expenses.length > 0 && combinedBudgets.length > 0) {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      const weeklyTotal = expenses
-        .filter(e => new Date(e.date) >= weekAgo)
-        .reduce((sum, e) => sum + e.amount, 0);
-
-      if (weeklyTotal > (totalBudgeted / 4) * 1.25) {
-        list.push({
-          type: 'warning',
-          title: 'High Velocity Detected',
-          message: `Spending is 25% higher than weekly budgeted index this cycle.`
-        });
-      }
-    }
-
-    if (utilizationPct > 80) {
-      list.push({
-        type: 'danger',
-        title: 'Tight Allocation Buffer',
-        message: 'Aggregate utilization is extremely high. Non-essentials should be restricted.'
-      });
-    } else if (combinedBudgets.length > 0 && overspentCount === 0) {
-      list.push({
-        type: 'success',
-        title: 'Optimal Health',
-        message: 'Excellent pacing! All categories are well within their safety buffers.'
-      });
-    }
-
-    if (list.length === 0) {
-      list.push({
-        type: 'success',
-        title: 'Cognitive Budgeting Active',
-        message: 'Setup specific target limits on categories to trigger automated warnings.'
-      });
-    }
-
-    return list.slice(0, 4);
-  }, [combinedBudgets, utilizationPct, overspentCount, expenses, totalBudgeted]);
-
-  // Warning Alerts list compiler
-  const warningAlerts = useMemo(() => {
-    const alerts = [];
-    
-    // 1. Budget Exceeded
-    combinedBudgets.forEach(b => {
-      const pct = b.limit > 0 ? (b.spent / b.limit) * 100 : 0;
-      if (pct > 100) {
-        alerts.push({
-          id: `exceeded_${b._id}`,
-          type: 'exceeded',
-          title: 'Budget Exceeded',
-          message: `${b.category?.name || 'Category'} limit breached by ₹${(b.spent - b.limit).toLocaleString('en-IN')}`,
-          color: '#ef4444'
-        });
-      } else if (pct >= b.alertThreshold) {
-        // 2. Approaching Limit
-        alerts.push({
-          id: `warn_${b._id}`,
-          type: 'warning',
-          title: 'Approaching Limit',
-          message: `${b.category?.name || 'Category'} has reached ${Math.round(pct)}% of limit`,
-          color: '#f59e0b'
-        });
-      }
-    });
-
-    // 3. Inactive Budgets
-    combinedBudgets.forEach(b => {
-      if (b.spent === 0) {
-        alerts.push({
-          id: `inactive_${b._id}`,
-          type: 'inactive',
-          title: 'Inactive Budget',
-          message: `${b.category?.name || 'Category'} setup has no active transaction records`,
-          color: '#6366f1'
-        });
-      }
-    });
-
-    // 4. Missing Budgets (Category has expenses but no budget setup)
-    const activeBudgetCats = new Set(combinedBudgets.map(b => b.category?._id));
-    const categoriesWithExpenses = {};
-    expenses.forEach(e => {
-      if (e.category?._id && !activeBudgetCats.has(e.category._id)) {
-        categoriesWithExpenses[e.category._id] = (categoriesWithExpenses[e.category._id] || 0) + e.amount;
-      }
-    });
-
-    Object.keys(categoriesWithExpenses).forEach(catId => {
-      const cat = categories.find(c => c._id === catId);
-      if (cat) {
-        alerts.push({
-          id: `missing_${catId}`,
-          type: 'missing',
-          title: 'Missing Budget',
-          message: `Category "${cat.name}" has accumulated ₹${categoriesWithExpenses[catId].toLocaleString('en-IN')} with no limit set`,
-          color: '#f97316'
-        });
-      }
-    });
-
-    return alerts.slice(0, 5);
-  }, [combinedBudgets, expenses, categories]);
 
   // Handlers for Add/Edit Modal
   const openAdd = useCallback(() => {
@@ -546,7 +400,6 @@ export default function Budget() {
       priority: item.priority || 'medium',
       description: item.description || '',
       carryForward: item.carryForward || false,
-      isLocked: item.isLocked || false,
       notes: item.notes || ''
     });
     setModal({ open: true, mode: 'edit', item });
@@ -589,7 +442,6 @@ export default function Budget() {
           icon: form.icon || '📁',
           description: form.description,
           carryForward: form.carryForward,
-          isLocked: form.isLocked,
           notes: form.notes
         };
         localStorage.setItem(`budget_ext_${budgetId}`, JSON.stringify(extPayload));
@@ -606,10 +458,6 @@ export default function Budget() {
 
   // Delete handlers
   const handleDelete = useCallback((item) => {
-    if (item.isLocked) {
-      toast.error('This budget is locked. Unlock it first in Edit settings.');
-      return;
-    }
     setDeleteConfirm({ isOpen: true, id: item._id, loading: false });
   }, []);
 
@@ -627,21 +475,7 @@ export default function Budget() {
     }
   };
 
-  // Budget Lock Toggle Handler
-  const handleToggleLock = useCallback((item) => {
-    const key = `budget_ext_${item._id}`;
-    const ext = extendedStore[item._id] || {};
-    const newLockState = !ext.isLocked;
-    
-    const updated = {
-      ...ext,
-      isLocked: newLockState
-    };
-    
-    localStorage.setItem(key, JSON.stringify(updated));
-    syncExtendedProps();
-    toast.success(newLockState ? 'Budget locked successfully! 🔒' : 'Budget unlocked. 🔓');
-  }, [extendedStore, syncExtendedProps]);
+
 
   // Budget Transfer handler
   const handleTransferSubmit = async (e) => {
@@ -659,11 +493,6 @@ export default function Budget() {
 
     if (!sourceBudget || !targetBudget) {
       toast.error('Target budgets not found.');
-      return;
-    }
-
-    if (sourceBudget.isLocked || targetBudget.isLocked) {
-      toast.error('Cannot transfer allocation to or from a locked budget.');
       return;
     }
 
@@ -704,12 +533,10 @@ export default function Budget() {
 
     try {
       for (let b of combinedBudgets) {
-        if (!b.isLocked) {
-          await deleteBudget(b._id);
-          localStorage.removeItem(`budget_ext_${b._id}`);
-        }
+        await deleteBudget(b._id);
+        localStorage.removeItem(`budget_ext_${b._id}`);
       }
-      toast.success('All unlocked budget rules wiped.');
+      toast.success('All budget rules wiped.');
       loadData();
     } catch {
       toast.error('Failed to clear some budget settings.');
@@ -745,16 +572,7 @@ export default function Budget() {
     return globalAnalytics?.weeklySpendingData || [];
   }, [globalAnalytics]);
 
-  // Selected Budget details helper
-  const selectedBudgetDetails = useMemo(() => {
-    if (!selectedDetailsId) return null;
-    return combinedBudgets.find(b => b._id === selectedDetailsId);
-  }, [selectedDetailsId, combinedBudgets]);
 
-  // Filter transactions specific to the selected budget details
-  const selectedBudgetTransactions = useMemo(() => {
-    return localAnalytics?.spendingHistory || [];
-  }, [localAnalytics]);
 
   // Sparkline coordinates calculator helper using real transaction date differences
   const getSparklineDataForCategory = (catId) => {
@@ -904,10 +722,7 @@ export default function Budget() {
       </div>
 
       {/* ── MAIN CONTENT LAYOUT ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* LEFT COLUMN: BUDGET LIST AND CONTROLS (70%) */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6">
           
           {/* Advanced filter card */}
           <div className="card p-5 space-y-4 border-slate-800">
@@ -1055,7 +870,6 @@ export default function Budget() {
                             <div>
                               <h3 className="font-extrabold text-sm text-slate-100 tracking-tight leading-tight flex items-center gap-1.5">
                                 {b.category?.name || 'Category'}
-                                {b.isLocked && <Lock size={10} className="text-slate-500" />}
                               </h3>
                               <div className="flex items-center gap-1.5 mt-1">
                                 <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">
@@ -1089,13 +903,6 @@ export default function Budget() {
                                 title="Delete"
                               >
                                 <Trash2 size={11} />
-                              </button>
-                              <button
-                                onClick={() => handleToggleLock(b)}
-                                className="p-1 hover:bg-slate-800 rounded transition-colors text-slate-400 hover:text-amber-400"
-                                title={b.isLocked ? "Unlock Budget" : "Lock Budget"}
-                              >
-                                {b.isLocked ? <Lock size={11} /> : <Unlock size={11} />}
                               </button>
                             </div>
                           </div>
@@ -1152,19 +959,14 @@ export default function Budget() {
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between pt-2">
-                          <span className="text-[9px] text-slate-500 font-semibold flex items-center gap-1">
-                            <CreditCard size={10} />
-                            {associatedWallet ? associatedWallet.name : 'No linked wallet'}
-                          </span>
-                          <button
-                            onClick={() => setSelectedDetailsId(b._id)}
-                            className="text-[10px] font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-0.5 transition-colors"
-                          >
-                            <span>View Details</span>
-                            <ChevronRight size={10} />
-                          </button>
-                        </div>
+                        {associatedWallet && (
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-[9px] text-slate-500 font-semibold flex items-center gap-1">
+                              <CreditCard size={10} />
+                              {associatedWallet.name}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   );
@@ -1322,291 +1124,7 @@ export default function Budget() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* RIGHT COLUMN: AI INSIGHTS & REAL-TIME ALERTS PANEL (30%) */}
-        <div className="space-y-6">
-          
-          {/* AI Audits & Cognitive Insights */}
-          <div className="card p-5 border-slate-800 space-y-4 bg-slate-900/20 backdrop-blur-sm">
-            <div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                <Sparkles size={14} className="text-indigo-400" /> Cognitive Audits
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">AI-powered pacing advice and suggestions</p>
-            </div>
-
-            <div className="space-y-3">
-              {insights.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex gap-2.5 text-xs transition-transform hover:translate-x-1"
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    {item.type === 'danger' ? (
-                      <AlertCircle size={14} className="text-rose-400" />
-                    ) : item.type === 'warning' ? (
-                      <Flame size={14} className="text-amber-400" />
-                    ) : (
-                      <CheckCircle2 size={14} className="text-emerald-400" />
-                    )}
-                  </div>
-                  <div className="space-y-0.5">
-                    <h4 className="font-extrabold text-slate-200 text-xs">{item.title}</h4>
-                    <p className="text-slate-400 leading-normal text-[11px] font-medium">{item.message}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Real-time Warnings alert system */}
-          <div className="card p-5 border-slate-800 space-y-4 bg-slate-900/20 backdrop-blur-sm">
-            <div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                <ShieldAlert size={14} className="text-amber-400" /> Alerts Panel
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Critical anomalies and pacing flags</p>
-            </div>
-
-            <div className="space-y-2.5">
-              {warningAlerts.length === 0 ? (
-                <div className="p-4 bg-slate-900/40 rounded-xl text-center text-xs text-slate-500 border border-slate-800">
-                  All systems green. No active warnings.
-                </div>
-              ) : (
-                warningAlerts.map(alert => (
-                  <div
-                    key={alert.id}
-                    className="p-3 rounded-xl border border-slate-800 flex items-start gap-2.5 text-xs transition-colors hover:bg-slate-900/60"
-                  >
-                    <div className="flex-shrink-0 mt-0.5" style={{ color: alert.color }}>
-                      <AlertTriangle size={13} />
-                    </div>
-                    <div className="space-y-0.5">
-                      <span className="font-bold text-slate-200 block text-[11px]">{alert.title}</span>
-                      <span className="text-slate-400 text-[10px] block leading-relaxed font-medium">
-                        {alert.message}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-        </div>
       </div>
-
-      {/* ── SELECTED CATEGORY DETAILS VIEW (Immersive Overlay Panel) ── */}
-      <AnimatePresence>
-        {selectedDetailsId && selectedBudgetDetails && (
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-y-0 right-0 w-full sm:max-w-lg bg-dark-900 border-l border-slate-800 shadow-2xl z-40 flex flex-col justify-between"
-          >
-            {/* Immersive Header */}
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/40">
-              <button
-                onClick={() => setSelectedDetailsId(null)}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors font-bold"
-              >
-                <ArrowLeft size={14} /> Back
-              </button>
-              <h2 className="text-sm font-black text-slate-100 flex items-center gap-2">
-                <span>{selectedBudgetDetails.icon}</span>
-                <span>{selectedBudgetDetails.category?.name || 'Category Details'}</span>
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    const id = selectedBudgetDetails._id;
-                    setSelectedDetailsId(null);
-                    openEdit(selectedBudgetDetails);
-                  }}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all"
-                  title="Edit Settings"
-                >
-                  <Edit3 size={12} />
-                </button>
-                <button
-                  onClick={() => setSelectedDetailsId(null)}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            </div>
-
-            {/* Content Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              
-              {/* Core metrics overview */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Utilization</span>
-                  <span className="text-xl font-black text-slate-200 mt-2">
-                    {parseFloat(((selectedBudgetDetails.spent / selectedBudgetDetails.limit) * 100).toFixed(1))}%
-                  </span>
-                  <div className="progress-bar h-1.5 bg-slate-800 mt-2 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, (selectedBudgetDetails.spent / selectedBudgetDetails.limit) * 100)}%`,
-                        backgroundColor: selectedBudgetDetails.color
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Remaining Buffer</span>
-                  <span className={`text-xl font-black mt-2 ${selectedBudgetDetails.limit - selectedBudgetDetails.spent < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {fmt(selectedBudgetDetails.limit - selectedBudgetDetails.spent)}
-                  </span>
-                  <span className="text-[8px] text-slate-500 mt-1 block">Safe allocation space</span>
-                </div>
-              </div>
-
-              {/* Forecast calculations */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Zap size={11} className="text-indigo-400" /> Forecasting Engine
-                </h4>
-                {analyticsLoading ? (
-                  <div className="text-xs text-slate-500">Calculating...</div>
-                ) : localAnalytics ? (
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 font-semibold">Active Run Rate</span>
-                      <span className="text-slate-200 font-bold">₹{Math.round(localAnalytics.activeRunRate || 0)}/day</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 font-semibold">Projected Burn Date</span>
-                      <span className="text-rose-400 font-bold">
-                        {localAnalytics.projectedBurnDate 
-                          ? new Date(localAnalytics.projectedBurnDate).toLocaleDateString()
-                          : (localAnalytics.remaining <= 0 ? 'Breached' : 'Within Safety')}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-500">Failed to load forecast data.</div>
-                )}
-              </div>
-
-              {/* Recharts Local Trend Chart */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Local Spending Distribution
-                </h4>
-                <div className="h-40 w-full">
-                  {selectedBudgetTransactions.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-xs text-slate-500">
-                      No active records.
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={selectedBudgetTransactions.slice(0, 6).reverse()} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                        <XAxis dataKey="title" tick={{ fill: '#64748b', fontSize: 8 }} tickLine={false} />
-                        <YAxis tick={{ fill: '#64748b', fontSize: 8 }} tickLine={false} axisLine={false} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: 'var(--chart-tooltip-bg)', borderColor: 'var(--chart-tooltip-border)', borderRadius: '10px' }}
-                          itemStyle={{ fontSize: '11px', color: 'var(--chart-tooltip-text)' }}
-                          labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--chart-text)' }}
-                        />
-                        <Area type="monotone" dataKey="amount" stroke={selectedBudgetDetails.color} fill={selectedBudgetDetails.color} fillOpacity={0.1} strokeWidth={1.5} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </div>
-
-              {/* Local notes notepad storage block */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText size={11} className="text-slate-400" /> Budget Notes
-                </h4>
-                <textarea
-                  className="w-full h-20 bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
-                  placeholder="Record boundaries advice, rules or limits context..."
-                  value={selectedBudgetDetails.notes || ''}
-                  onChange={(e) => {
-                    const key = `budget_ext_${selectedBudgetDetails._id}`;
-                    const ext = extendedStore[selectedBudgetDetails._id] || {};
-                    const updated = {
-                      ...ext,
-                      notes: e.target.value
-                    };
-                    localStorage.setItem(key, JSON.stringify(updated));
-                    syncExtendedProps();
-                  }}
-                />
-              </div>
-
-              {/* Recent Transaction Preview List */}
-              <div className="space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>Recent category activity</span>
-                  <span className="text-[8px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
-                    {selectedBudgetTransactions.length} Total
-                  </span>
-                </h4>
-                
-                {selectedBudgetTransactions.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-4">No logged transactions under this category yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedBudgetTransactions.slice(0, 4).map((tx) => (
-                      <div
-                        key={tx._id}
-                        className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="flex items-center gap-2.5 truncate">
-                          <span className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-sm shadow-inner">
-                            {selectedBudgetDetails.icon}
-                          </span>
-                          <div className="truncate">
-                            <span className="font-bold text-slate-200 block truncate">{tx.title}</span>
-                            <span className="text-[10px] text-slate-500 font-semibold block">
-                              {new Date(tx.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className="font-extrabold text-slate-200 block">₹{tx.amount.toLocaleString('en-IN')}</span>
-                          <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">
-                            {tx.paymentMethod}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* Footer buttons actions */}
-            <div className="p-6 border-t border-slate-800 bg-slate-900/40 flex gap-3">
-              <button
-                onClick={() => {
-                  setSelectedDetailsId(null);
-                  toast.success('Switched back to allocations dashboard.');
-                }}
-                className="flex-1 btn bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs"
-              >
-                Close View
-              </button>
-            </div>
-
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── ADD / EDIT BUDGET MODAL ── */}
       <AnimatePresence>
@@ -1816,7 +1334,7 @@ export default function Budget() {
                   required
                 >
                   <option value="">Select source</option>
-                  {combinedBudgets.filter(b => !b.isLocked).map(b => (
+                  {combinedBudgets.map(b => (
                     <option key={b._id} value={b._id}>
                       {b.icon} {b.category?.name} (₹{b.limit.toLocaleString('en-IN')})
                     </option>

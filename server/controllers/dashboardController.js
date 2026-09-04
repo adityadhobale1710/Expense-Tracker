@@ -108,9 +108,6 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     financialHealth: insights?.financialHealth || null,
     healthScore: insights?.financialHealth?.score || 82,
     grade: insights?.financialHealth?.grade || 'Excellent',
-    tipOfTheDay: insights?.recommendations?.[0]
-      ? { title: insights.recommendations[0].title, text: insights.recommendations[0].description }
-      : { title: 'Cut unused streaming services', text: 'Canceling Spotify could save you ₹1,428/year. Redirecting it to gold funds yields better CAGR.' },
     topInsight: insights?.aiExplanation || null,
     activeRisks: insights?.activeRisks || [],
     recommendations: insights?.recommendations || [],

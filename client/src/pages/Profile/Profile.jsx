@@ -886,7 +886,6 @@ export default function Profile() {
                     >
                       <option value="light">☀️ Light Theme</option>
                       <option value="dark">🌙 Classic Dark</option>
-                      <option value="dark-blue">🔵 Dark Blue</option>
                     </select>
                   </div>
                 </div>

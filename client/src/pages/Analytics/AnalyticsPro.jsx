@@ -882,30 +882,6 @@ export default function AnalyticsPro() {
         </div>
       )}
 
-      {/* Section 4: Detailed Breakdown & Financial Recommendations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-5 bg-dark-800/80 border border-slate-700/60 rounded-3xl space-y-2 shadow-lg">
-          <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
-            <TrendingUp size={16} />
-            Earning Insight
-          </div>
-          <h4 className="text-sm font-extrabold text-slate-100">Diversification Score</h4>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            You currently log {incomePieData.length} active income stream(s). Expanding secondary passive or freelance streams increases financial stability.
-          </p>
-        </div>
-
-        <div className="p-5 bg-dark-800/80 border border-slate-700/60 rounded-3xl space-y-2 shadow-lg">
-          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
-            <PiggyBank size={16} />
-            Savings Optimization
-          </div>
-          <h4 className="text-sm font-extrabold text-slate-100">Recommended Target</h4>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Aim to direct at least 20-30% of total earnings directly into investment wallets right when earnings are received to automate wealth building.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

@@ -354,21 +354,26 @@ export default function SplitBills() {
     }
   };
 
-  const handleDeleteSplit = async (splitId) => {
+  const handleDeleteSplit = async (split) => {
+    if (split.status !== 'settled') {
+      toast.error('Only settled split bills can be deleted. Please settle all member shares first.');
+      return;
+    }
     const confirmed = await showConfirm({
-      title: 'Delete Settled Bill',
-      message: 'Are you sure you want to permanently delete this settled split bill? This action cannot be undone.',
+      title: 'Delete Split Bill',
+      message: `Are you sure you want to permanently delete "${split.title}"? This action cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       variant: 'danger',
     });
     if (!confirmed) return;
     try {
-      await api.delete(`/splits/${splitId}`);
+      await api.delete(`/splits/${split._id}`);
       toast.success('Split bill deleted successfully');
+      setSplits((prev) => prev.filter((s) => s._id !== split._id));
       fetchSplits();
-    } catch {
-      toast.error('Failed to delete split bill');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to delete split bill');
     }
   };
 
@@ -544,13 +549,13 @@ export default function SplitBills() {
                           {split.status}
                         </span>
                         
-                        {split.status === 'settled' && isCreator && (
+                        {isCreator && (
                           <button
-                            onClick={() => handleDeleteSplit(split._id)}
+                            onClick={() => handleDeleteSplit(split)}
                             className="p-1.5 bg-rose-500/10 hover:bg-rose-500 hover:text-white border border-rose-500/20 text-rose-400 rounded-lg text-xs cursor-pointer transition-all flex items-center justify-center"
-                            title="Delete Settled Split"
+                            title={split.status === 'settled' ? 'Delete Split Bill' : 'Delete Split Bill (Must be settled first)'}
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={13} />
                           </button>
                         )}
 

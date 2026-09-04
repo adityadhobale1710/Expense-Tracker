@@ -13,7 +13,6 @@ import {
   Search,
   ArrowUpDown,
   SlidersHorizontal,
-  Sparkles,
   Printer,
   Download,
   Upload,
@@ -1268,33 +1267,6 @@ export default function BillCalendar() {
                 </div>
               </div>
 
-              {/* AI-Style Rule-based Insights */}
-              {stats?.insights && stats.insights.length > 0 && (
-                <div className="card bg-dark-800/80 border-slate-700/50 shadow-lg p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="text-primary-400" size={16} />
-                    <h3 className="text-xs font-black text-slate-300 uppercase tracking-wider">AI-Style Insights</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {stats.insights.map((insight, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-3 border rounded-xl text-xs leading-relaxed ${
-                          insight.type === 'warning'
-                            ? 'bg-rose-500/5 border-rose-500/20 text-rose-400'
-                            : insight.type === 'highlight'
-                            ? 'bg-indigo-500/5 border-indigo-500/20 text-indigo-400 font-semibold'
-                            : insight.type === 'action'
-                            ? 'bg-primary-600/5 border-primary-500/20 text-primary-400'
-                            : 'bg-slate-900/40 border-slate-800 text-slate-300'
-                        }`}
-                      >
-                        {insight.text}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Smart Timeline (Upcoming Calendar Timeline) */}
               <div className="card bg-dark-800/80 border-slate-700/50 shadow-lg">

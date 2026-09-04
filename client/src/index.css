@@ -58,32 +58,7 @@ html[data-theme="light"] {
 
 
 
-/* Dark Blue Theme */
-html[data-theme="dark-blue"] {
-  --dark-50: 10 25 50;
-  --dark-100: 18 38 78;
-  --dark-700: 59 130 246;
-  --dark-800: 15 32 66;
-  --dark-900: 8 18 36;
-  
-  --slate-50: 239 246 255;
-  --slate-100: 191 219 254;
-  --slate-200: 147 197 253;
-  --slate-300: 96 165 250;
-  --slate-400: 59 130 246;
-  --slate-500: 59 130 246;
-  --slate-600: 37 99 235;
-  --slate-700: 29 78 216;
-  --slate-800: 20 40 80;
-  --slate-900: 10 25 55;
 
-  /* Chart colors */
-  --chart-grid: #1e3a8a;
-  --chart-text: #93c5fd;
-  --chart-tooltip-bg: #081224;
-  --chart-tooltip-border: #1e3a8a;
-  --chart-tooltip-text: #eff6ff;
-}
 
 
 
@@ -669,8 +644,7 @@ html[data-theme="light"] .analytics-page [class~="text-red-300/80"] {
    text to its 300-range (near-white tint) on dark surfaces raises every
    affected pair well above 4.5. Light theme keeps its 600/700 deep shades. */
 :root,
-html[data-theme="dark"],
-html[data-theme="dark-blue"] {
+html[data-theme="dark"] {
   --contrast-emerald: #6ee7b7;   /* emerald-300 */
   --contrast-emerald-bright: #a7f3d0; /* emerald-200 */
   --contrast-red: #fca5a5;       /* red-300 */
@@ -684,37 +658,27 @@ html[data-theme="dark-blue"] {
    it passes ~7:1, keep it. The offenders are slate-500/600 gray micro-labels.
    Scope to the handful of semantic tinted-text classes instead of blanket
    var swaps so borders/surfaces are untouched. */
-html[data-theme="dark"] [class~="text-emerald-400"],
-html[data-theme="dark-blue"] [class~="text-emerald-400"] {
+html[data-theme="dark"] [class~="text-emerald-400"] {
   color: var(--contrast-emerald) !important;
 }
-html[data-theme="dark"] [class~="text-emerald-300"],
-html[data-theme="dark-blue"] [class~="text-emerald-300"] {
+html[data-theme="dark"] [class~="text-emerald-300"] {
   color: var(--contrast-emerald-bright) !important;
 }
-html[data-theme="dark"] [class~="text-red-400"],
-html[data-theme="dark-blue"] [class~="text-red-400"] {
+html[data-theme="dark"] [class~="text-red-400"] {
   color: var(--contrast-red) !important;
 }
 html[data-theme="dark"] [class~="text-rose-300"],
-html[data-theme="dark"] [class~="text-rose-400"],
-html[data-theme="dark-blue"] [class~="text-rose-300"],
-html[data-theme="dark-blue"] [class~="text-rose-400"] {
+html[data-theme="dark"] [class~="text-rose-400"] {
   color: var(--contrast-rose) !important;
 }
 html[data-theme="dark"] [class~="text-amber-300"],
 html[data-theme="dark"] [class~="text-amber-400"],
-html[data-theme="dark"] [class~="text-yellow-400"],
-html[data-theme="dark-blue"] [class~="text-amber-300"],
-html[data-theme="dark-blue"] [class~="text-amber-400"],
-html[data-theme="dark-blue"] [class~="text-yellow-400"] {
+html[data-theme="dark"] [class~="text-yellow-400"] {
   color: var(--contrast-amber) !important;
 }
 /* Purple links/actions ("Manage", "View All", active pills @ 10px) */
 html[data-theme="dark"] [class~="text-primary-400"],
-html[data-theme="dark"] [class~="text-purple-400"],
-html[data-theme="dark-blue"] [class~="text-primary-400"],
-html[data-theme="dark-blue"] [class~="text-purple-400"] {
+html[data-theme="dark"] [class~="text-purple-400"] {
   color: var(--contrast-purple) !important;
 }
 
@@ -722,10 +686,7 @@ html[data-theme="dark-blue"] [class~="text-purple-400"] {
    on dark surfaces: lift to slate-300 (#cbd5e1) which comfortably passes. */
 html[data-theme="dark"] [class~="text-slate-500"]:not([class~="opacity-0"]),
 html[data-theme="dark"] [class~="text-slate-600"]:not([class~="opacity-0"]),
-html[data-theme="dark-blue"] [class~="text-slate-500"]:not([class~="opacity-0"]),
-html[data-theme="dark-blue"] [class~="text-slate-600"]:not([class~="opacity-0"]),
-html[data-theme="dark"] [class~="label"] [class~="text-slate-400"],
-html[data-theme="dark-blue"] [class~="label"] [class~="text-slate-400"] {
+html[data-theme="dark"] [class~="label"] [class~="text-slate-400"] {
   color: rgb(203 213 225) !important;
 }
 

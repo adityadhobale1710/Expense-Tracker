@@ -25,13 +25,11 @@ const PAGE_TITLES = {
 const THEME_ICONS = {
   light: '☀️',
   dark: '🌙',
-  'dark-blue': '🔵',
 };
 
 const THEMES = [
   { id: 'light', name: 'Light Theme', icon: '☀️' },
   { id: 'dark', name: 'Classic Dark', icon: '🌙' },
-  { id: 'dark-blue', name: 'Dark Blue', icon: '🔵' },
 ];
 
 export default function Navbar({ onMenuToggle }) {

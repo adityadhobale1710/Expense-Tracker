@@ -9,10 +9,8 @@ import SeasonCard from '../../components/gamification/SeasonCard';
 import MultiplierBanner from '../../components/gamification/MultiplierBanner';
 import DailyChallenges from '../../components/gamification/DailyChallenges';
 import StreakCard from '../../components/gamification/StreakCard';
-import Leaderboard from '../../components/gamification/Leaderboard';
 import AchievementShowcase from '../../components/gamification/AchievementShowcase';
 import BadgeGrid from '../../components/gamification/BadgeGrid';
-import Timeline from '../../components/gamification/Timeline';
 import XPAnalytics from '../../components/gamification/XPAnalytics';
 import StatsPanel from '../../components/gamification/StatsPanel';
 import RankBadge from '../../components/gamification/RankBadge';
@@ -22,7 +20,6 @@ import { calculateLevel } from '../../services/rewardService';
 const TABS = [
   { id: 'overview',    label: 'Overview',    icon: '🏠' },
   { id: 'badges',      label: 'Badges',      icon: '🏆' },
-  { id: 'timeline',    label: 'Timeline',    icon: '📜' },
   { id: 'analytics',   label: 'Analytics',   icon: '📊' },
   { id: 'progression', label: 'Progression', icon: '🌌' },
 ];
@@ -227,9 +224,6 @@ export default function Achievements() {
             <DailyChallenges />
             <StreakCard />
           </div>
-
-          {/* Leaderboard */}
-          <Leaderboard />
         </div>
       )}
 
@@ -247,16 +241,7 @@ export default function Achievements() {
         </div>
       )}
 
-      {/* Tab: Timeline */}
-      {activeTab === 'timeline' && (
-        <div className="card bg-dark-800 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-          <div className="pb-4 border-b border-slate-700/40 mb-6">
-            <h3 className="text-base font-black text-slate-100">XP Timeline</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Your progression history, grouped by date</p>
-          </div>
-          <Timeline />
-        </div>
-      )}
+
 
       {/* Tab: Analytics */}
       {activeTab === 'analytics' && (

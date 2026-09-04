@@ -2,12 +2,12 @@ import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Target, Wallet, AlertCircle, Plus, Edit3, Trash2,
-  Calendar, CreditCard, Banknote, Search, ShieldAlert, Sparkles, RefreshCw,
+  Calendar, CreditCard, Banknote, Search, RefreshCw,
   Info, LayoutGrid, BarChart3, PieChart as PieIcon, ArrowUpRight, ArrowDownRight,
   CheckCircle2, SlidersHorizontal, Check, Copy, Flame, Lock, Unlock,
-  ChevronRight, ArrowLeft, MoreVertical, Layers, Settings, FileText,
-  Printer, RotateCcw, AlertTriangle, Eye, HelpCircle, Briefcase, X,
-  Play, Pause, Star, Clock, DollarSign
+  ChevronRight, MoreVertical, Layers,
+  Printer, RotateCcw, Eye, HelpCircle, Briefcase, X,
+  Star, Clock, DollarSign
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
@@ -239,12 +239,10 @@ export default function Subscriptions() {
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, loading: false });
   
   // Custom states
-  const [selectedDetailsId, setSelectedDetailsId] = useState(null);
   const [activeChartTab, setActiveChartTab] = useState('monthly');
   const [modal, setModal] = useState({ open: false, mode: 'add', item: null });
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
   const [extendedStore, setExtendedStore] = useState({});
 
   // Filters State
@@ -406,104 +404,6 @@ export default function Subscriptions() {
     return combinedSubscriptions.filter(s => s.isFreeTrial).length;
   }, [combinedSubscriptions]);
 
-  const potentialSavings = useMemo(() => {
-    // Dynamic simulation: identify low priority or rarely used subscriptions
-    return combinedSubscriptions
-      .filter(s => s.priority === 'low' || s.isFreeTrial)
-      .reduce((sum, s) => sum + (s.billingCycle === 'monthly' ? s.cost : s.cost / 12), 0);
-  }, [combinedSubscriptions]);
-
-  // AI-Style Insights Generator
-  const aiInsights = useMemo(() => {
-    const list = [];
-    list.push({
-      type: 'info',
-      message: `You spend ₹${Math.round(totalMonthlyCost).toLocaleString('en-IN')}/month on subscriptions.`
-    });
-
-    const highest = combinedSubscriptions.reduce((max, s) => s.cost > (max?.cost || 0) ? s : max, null);
-    if (highest) {
-      list.push({
-        type: 'danger',
-        message: `Most expensive subscription is ${highest.name} plan costing ₹${highest.cost.toLocaleString('en-IN')}/${highest.billingCycle}.`
-      });
-    }
-
-    if (upcomingCount > 0) {
-      list.push({
-        type: 'warning',
-        message: `You have ${upcomingCount} upcoming renewals within the next 2 weeks.`
-      });
-    }
-
-    if (potentialSavings > 0) {
-      list.push({
-        type: 'success',
-        message: `You could save ₹${Math.round(potentialSavings).toLocaleString('en-IN')}/month by canceling low priority allocations.`
-      });
-    }
-
-    if (trialCount > 0) {
-      list.push({
-        type: 'info',
-        message: `You have ${trialCount} active free trial accounts running.`
-      });
-    }
-
-    return list.slice(0, 4);
-  }, [combinedSubscriptions, totalMonthlyCost, upcomingCount, potentialSavings, trialCount]);
-
-  // Renewal Calendar categorizations
-  const calendarGroups = useMemo(() => {
-    const groups = { today: [], tomorrow: [], thisWeek: [], nextWeek: [], nextMonth: [] };
-    
-    combinedSubscriptions.forEach(s => {
-      const days = getDaysRemaining(s.renewalDate);
-      if (days === 0) groups.today.push(s);
-      else if (days === 1) groups.tomorrow.push(s);
-      else if (days > 1 && days <= 7) groups.thisWeek.push(s);
-      else if (days > 7 && days <= 14) groups.nextWeek.push(s);
-      else if (days > 14 && days <= 30) groups.nextMonth.push(s);
-    });
-
-    return groups;
-  }, [combinedSubscriptions]);
-
-  // Application Notifications Compiler
-  const notifications = useMemo(() => {
-    const alerts = [];
-    combinedSubscriptions.forEach(s => {
-      const days = getDaysRemaining(s.renewalDate);
-      if (days === 1) {
-        alerts.push({
-          id: `renew_tom_${s._id}`,
-          type: 'warning',
-          message: `${s.name} standard renewal occurs tomorrow (₹${s.cost.toLocaleString('en-IN')})`
-        });
-      } else if (days === 0) {
-        alerts.push({
-          id: `renew_tod_${s._id}`,
-          type: 'danger',
-          message: `Subscription "${s.name}" renews today`
-        });
-      } else if (s.isFreeTrial && days >= 0 && days <= 3) {
-        alerts.push({
-          id: `trial_${s._id}`,
-          type: 'trial',
-          message: `${s.name} free trial ending in ${days} days`
-        });
-      } else if (days < 0) {
-        alerts.push({
-          id: `expired_${s._id}`,
-          type: 'expired',
-          message: `${s.name} payment renewal date elapsed (${Math.abs(days)} days ago)`
-        });
-      }
-    });
-
-    return alerts.slice(0, 4);
-  }, [combinedSubscriptions]);
-
   // Modal open handlers
   const openAdd = useCallback(() => {
     setForm(EMPTY_FORM);
@@ -610,7 +510,6 @@ export default function Subscriptions() {
       toast.success('Subscription cancelled and removed.');
       fetchSubscriptions();
       syncExtendedProps();
-      setSelectedDetailsId(null);
       setDeleteConfirm({ isOpen: false, id: null, loading: false });
     } catch {
       toast.error('Failed to delete subscription');
@@ -618,45 +517,7 @@ export default function Subscriptions() {
     }
   };
 
-  // Interactive quick actions: Renew, Pause/Resume, Pin, Favorite
-  const handleRenewOneClick = async (sub) => {
-    try {
-      // Advance renewal date by 1 billing cycle
-      const date = new Date(sub.renewalDate);
-      if (sub.billingCycle === 'monthly') date.setMonth(date.getMonth() + 1);
-      else date.setFullYear(date.getFullYear() + 1);
-      
-      const payload = {
-        name: sub.name,
-        cost: sub.cost,
-        billingCycle: sub.billingCycle,
-        renewalDate: date.toISOString().slice(0, 10),
-        reminder: sub.reminder
-      };
 
-      await api.put(`/subscriptions/${sub._id}`, payload);
-      toast.success(`Successfully renewed "${sub.name}"!`);
-      fetchSubscriptions();
-    } catch {
-      toast.error('Failed to renew subscription');
-    }
-  };
-
-  const handleTogglePause = useCallback((sub) => {
-    const key = `subscription_ext_${sub._id}`;
-    const ext = extendedStore[sub._id] || {};
-    const newAuto = !sub.autoRenewal;
-
-    const updated = {
-      ...ext,
-      autoRenewal: newAuto,
-      status: newAuto ? 'active' : 'cancelled'
-    };
-
-    localStorage.setItem(key, JSON.stringify(updated));
-    syncExtendedProps();
-    toast.success(newAuto ? `Resumed auto-renewal for "${sub.name}".` : `Paused auto-renewal for "${sub.name}".`);
-  }, [extendedStore, syncExtendedProps]);
 
   const handleTogglePin = useCallback((sub) => {
     const key = `subscription_ext_${sub._id}`;
@@ -769,14 +630,7 @@ export default function Subscriptions() {
     return trend;
   }, [totalMonthlyCost]);
 
-  // Selected Subscription Details
-  const selectedDetails = useMemo(() => {
-    if (!selectedDetailsId) return null;
-    return combinedSubscriptions.find(s => s._id === selectedDetailsId);
-  }, [selectedDetailsId, combinedSubscriptions]);
 
-  const daysRemaining = selectedDetails ? getDaysRemaining(selectedDetails.renewalDate) : 0;
-  const statusConfig = selectedDetails ? getStatusConfig(selectedDetails, daysRemaining) : STATUS_COLORS.active;
 
   const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -866,10 +720,7 @@ export default function Subscriptions() {
       </div>
 
       {/* ── MAIN LAYOUT GRID ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* LEFT COLUMN: SUBSCRIPTIONS CONTROLS & CARDS (70%) */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6">
           
           {/* Advanced Filter Box */}
           <div className="card p-5 space-y-4 border-slate-800 bg-slate-900/10">
@@ -1053,12 +904,6 @@ export default function Subscriptions() {
                               {sub.paymentMethod.replace('_', ' ')}
                             </span>
                           </div>
-                          <div className="text-right">
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Autopay</span>
-                            <span className={`text-[10px] font-extrabold ${sub.autoRenewal ? 'text-emerald-400' : 'text-slate-500'}`}>
-                              {sub.autoRenewal ? 'ON 🟢' : 'OFF 🔴'}
-                            </span>
-                          </div>
                         </div>
                       </div>
 
@@ -1071,22 +916,6 @@ export default function Subscriptions() {
 
                         {/* Interactive action controls */}
                         <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleRenewOneClick(sub)}
-                            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-emerald-400 transition-colors"
-                            title="Quick Renew Cycle"
-                          >
-                            <RefreshCw size={11} />
-                          </button>
-                          
-                          <button
-                            onClick={() => handleTogglePause(sub)}
-                            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-amber-400 transition-colors"
-                            title={sub.autoRenewal ? "Pause Autopay" : "Resume Autopay"}
-                          >
-                            {sub.autoRenewal ? <Pause size={11} /> : <Play size={11} />}
-                          </button>
-
                           <button
                             onClick={() => openEdit(sub)}
                             className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-indigo-400 transition-colors"
@@ -1101,14 +930,6 @@ export default function Subscriptions() {
                             title="Delete"
                           >
                             <Trash2 size={11} />
-                          </button>
-
-                          <button
-                            onClick={() => setSelectedDetailsId(sub._id)}
-                            className="text-[10px] font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-0.5 ml-1 transition-colors"
-                          >
-                            <span>Details</span>
-                            <ChevronRight size={10} />
                           </button>
                         </div>
                       </div>
@@ -1243,341 +1064,7 @@ export default function Subscriptions() {
               </div>
             </div>
           )}
-
         </div>
-
-        {/* RIGHT COLUMN: AI INSIGHTS & RENEWAL CALENDAR (30%) */}
-        <div className="space-y-6">
-          
-          {/* AI Audits & Cognitive Insights */}
-          <div className="card p-5 border-slate-800 space-y-4 bg-slate-900/20 backdrop-blur-sm">
-            <div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                <Sparkles size={14} className="text-indigo-400" /> Cognitive Audits
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">AI-powered renewal pacing alerts</p>
-            </div>
-
-            <div className="space-y-3">
-              {aiInsights.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 flex gap-2 text-xs transition-transform hover:translate-x-1"
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    {item.type === 'danger' ? (
-                      <AlertCircle size={13} className="text-rose-400" />
-                    ) : item.type === 'warning' ? (
-                      <Flame size={13} className="text-amber-400" />
-                    ) : (
-                      <CheckCircle2 size={13} className="text-emerald-400" />
-                    )}
-                  </div>
-                  <p className="text-slate-300 leading-relaxed font-semibold text-[11px]">
-                    {item.message}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Renewal Calendar Widget */}
-          <div className="card p-5 border-slate-800 space-y-4 bg-slate-900/20 backdrop-blur-sm">
-            <div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                <Calendar size={14} className="text-indigo-400" /> Renewal Calendar
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Grouped calendar view of upcoming bills</p>
-            </div>
-
-            <div className="space-y-3 max-h-[300px] overflow-y-auto text-xs">
-              
-              {/* Today */}
-              {calendarGroups.today.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-rose-400 uppercase tracking-wider block">Today 🚨</span>
-                  {calendarGroups.today.map(s => (
-                    <div key={s._id} className="p-2 bg-rose-500/5 border border-rose-500/10 rounded-lg flex justify-between items-center">
-                      <span className="font-bold text-slate-200">{s.name}</span>
-                      <span className="font-extrabold text-rose-400">{fmt(s.cost)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Tomorrow */}
-              {calendarGroups.tomorrow.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-orange-400 uppercase tracking-wider block">Tomorrow ⏳</span>
-                  {calendarGroups.tomorrow.map(s => (
-                    <div key={s._id} className="p-2 bg-orange-500/5 border border-orange-500/10 rounded-lg flex justify-between items-center">
-                      <span className="font-bold text-slate-200">{s.name}</span>
-                      <span className="font-extrabold text-orange-400">{fmt(s.cost)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* This Week */}
-              {calendarGroups.thisWeek.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-blue-400 uppercase tracking-wider block">This Week</span>
-                  {calendarGroups.thisWeek.map(s => (
-                    <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
-                      <span className="font-bold text-slate-200">{s.name}</span>
-                      <span className="font-bold text-slate-300">{fmt(s.cost)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Next Week */}
-              {calendarGroups.nextWeek.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-indigo-400 uppercase tracking-wider block">Next Week</span>
-                  {calendarGroups.nextWeek.map(s => (
-                    <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
-                      <span className="font-bold text-slate-200">{s.name}</span>
-                      <span className="font-bold text-slate-400">{fmt(s.cost)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Next Month */}
-              {calendarGroups.nextMonth.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block">Next Month</span>
-                  {calendarGroups.nextMonth.map(s => (
-                    <div key={s._id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex justify-between items-center">
-                      <span className="font-bold text-slate-300">{s.name}</span>
-                      <span className="font-bold text-slate-500">{fmt(s.cost)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {Object.values(calendarGroups).every(arr => arr.length === 0) && (
-                <p className="text-[10px] text-slate-500 text-center py-6">No scheduled renewals in the next 30 days.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Active Notifications warning block */}
-          <div className="card p-5 border-slate-800 space-y-4 bg-slate-900/20 backdrop-blur-sm">
-            <div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                <ShieldAlert size={14} className="text-amber-400" /> Alerts & Warnings
-              </h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Critical recurring payment markers</p>
-            </div>
-
-            <div className="space-y-2.5">
-              {notifications.length === 0 ? (
-                <p className="text-[10px] text-slate-500 text-center py-4">No active warning alerts.</p>
-              ) : (
-                notifications.map(notif => (
-                  <div
-                    key={notif.id}
-                    className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2.5 text-xs"
-                  >
-                    <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-slate-300 text-[10px] leading-relaxed font-semibold">
-                      {notif.message}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── SUBSCRIPTION DETAILS DRAWER (Slide-over panel) ── */}
-      <AnimatePresence>
-        {selectedDetailsId && selectedDetails && (
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-y-0 right-0 w-full sm:max-w-lg bg-dark-900 border-l border-slate-800 shadow-2xl z-40 flex flex-col justify-between"
-          >
-            {/* Header info */}
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/40">
-              <button
-                onClick={() => setSelectedDetailsId(null)}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-bold"
-              >
-                <ArrowLeft size={14} /> Back
-              </button>
-              <h2 className="text-sm font-black text-slate-100 flex items-center gap-2">
-                <span>{selectedDetails.icon}</span>
-                <span>{selectedDetails.name}</span>
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    const item = selectedDetails;
-                    setSelectedDetailsId(null);
-                    openEdit(item);
-                  }}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
-                  title="Edit"
-                >
-                  <Edit3 size={12} />
-                </button>
-                <button
-                  onClick={() => setSelectedDetailsId(null)}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            </div>
-
-            {/* Scrollable details */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
-              
-              {/* Primary values card */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Billing cost</span>
-                  <span className="text-xl font-black text-slate-200 mt-2">{fmt(selectedDetails.cost)}</span>
-                  <span className="text-[8px] text-slate-500 uppercase font-bold tracking-wider mt-1">
-                    Charged {selectedDetails.billingCycle}
-                  </span>
-                </div>
-                
-                <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Remaining Pacing</span>
-                  <span className={`text-xl font-black mt-2 ${daysRemaining < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {daysRemaining < 0 ? `Expired` : daysRemaining === 0 ? 'Renews Today' : `${daysRemaining} days`}
-                  </span>
-                  <span className="text-[8px] text-slate-500 uppercase font-bold tracking-wider mt-1">
-                    Until {new Date(selectedDetails.renewalDate).toLocaleDateString('en-IN')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Status and priorities check */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan settings</h4>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 font-semibold">Service Plan</span>
-                    <span className="text-slate-200 font-bold">{selectedDetails.plan}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 font-semibold">Payment Linked</span>
-                    <span className="text-slate-200 font-bold uppercase tracking-wider">
-                      {selectedDetails.paymentMethod.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 font-semibold">Billing status</span>
-                    <span className={`font-bold ${statusConfig.text}`}>{statusConfig.label}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 font-semibold">Auto-Renewal Setup</span>
-                    <span className={`font-extrabold ${selectedDetails.autoRenewal ? 'text-emerald-400' : 'text-slate-500'}`}>
-                      {selectedDetails.autoRenewal ? 'ENABLED 🟢' : 'DISABLED 🔴'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notepad Usage notes */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText size={11} className="text-slate-500" /> Usage & Settings Notes
-                </h4>
-                <textarea
-                  className="w-full h-20 bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
-                  placeholder="Record credentials advice, cancellation policies, or usage settings..."
-                  value={selectedDetails.notes || ''}
-                  onChange={(e) => {
-                    const key = `subscription_ext_${selectedDetails._id}`;
-                    const ext = extendedStore[selectedDetails._id] || {};
-                    const updated = {
-                      ...ext,
-                      notes: e.target.value
-                    };
-                    localStorage.setItem(key, JSON.stringify(updated));
-                    syncExtendedProps();
-                  }}
-                />
-              </div>
-
-              {/* Tag system settings */}
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>Configuration Tags</span>
-                  <span className="text-[8px] text-slate-500 font-bold">Comma separated values</span>
-                </h4>
-                <input
-                  type="text"
-                  placeholder="e.g. personal, business, family, essentials"
-                  value={selectedDetails.tags || ''}
-                  onChange={(e) => {
-                    const key = `subscription_ext_${selectedDetails._id}`;
-                    const ext = extendedStore[selectedDetails._id] || {};
-                    const updated = {
-                      ...ext,
-                      tags: e.target.value
-                    };
-                    localStorage.setItem(key, JSON.stringify(updated));
-                    syncExtendedProps();
-                  }}
-                  className="w-full bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-300"
-                />
-              </div>
-
-              {/* Renewal History visual feed */}
-              <div className="space-y-3">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Billing History</h4>
-                <div className="space-y-2">
-                  <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center">
-                    <div className="space-y-0.5">
-                      <span className="font-bold text-slate-200 block">Cycle renewal charge</span>
-                      <span className="text-[9px] text-slate-500 block">
-                        Renews: {new Date(selectedDetails.renewalDate).toLocaleDateString('en-IN')}
-                      </span>
-                    </div>
-                    <span className="font-bold text-slate-300">{fmt(selectedDetails.cost)}</span>
-                  </div>
-                  <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center opacity-60">
-                    <div className="space-y-0.5">
-                      <span className="font-bold text-slate-300 block">Previous billing settlement</span>
-                      <span className="text-[9px] text-slate-500 block">Settled successfully via linked wallet</span>
-                    </div>
-                    <span className="font-bold text-slate-400">{fmt(selectedDetails.cost)}</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Quick Actions at footer */}
-            <div className="p-6 border-t border-slate-800 bg-slate-900/40 flex gap-2">
-              <button
-                onClick={() => handleTogglePause(selectedDetails)}
-                className="flex-1 btn bg-slate-800 hover:bg-slate-800 text-slate-300 font-bold py-2 rounded-xl text-xs"
-              >
-                {selectedDetails.autoRenewal ? 'Pause Sub' : 'Resume Sub'}
-              </button>
-              
-              <button
-                onClick={() => handleRenewOneClick(selectedDetails)}
-                className="flex-1 btn bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs"
-              >
-                Renew Cycle
-              </button>
-            </div>
-
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── ADD / EDIT SUBSCRIPTION MODAL ── */}
       <AnimatePresence>
@@ -1739,18 +1226,7 @@ export default function Subscriptions() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
-                <div className="space-y-0.5">
-                  <span className="text-[11px] font-bold text-slate-200 block">Auto-Renewal Autopay</span>
-                  <span className="text-[9px] text-slate-500 block">Auto billing settles automatically</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={form.autoRenewal}
-                  onChange={(e) => setForm({ ...form, autoRenewal: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-700 accent-indigo-500 bg-slate-900"
-                />
-              </div>
+
 
               <div className="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 rounded-xl">
                 <div className="space-y-0.5">
@@ -1814,45 +1290,7 @@ export default function Subscriptions() {
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null, loading: false })}
       />
 
-      {/* ── FLOATING ACTION MENU / FAB ── */}
-      <div className="fixed bottom-6 right-6 z-30">
-        <div className="relative flex flex-col items-end gap-2.5">
-          <AnimatePresence>
-            {fabOpen && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 15 }}
-                className="flex flex-col gap-2 bg-slate-900/95 border border-slate-800 p-2 rounded-2xl shadow-2xl backdrop-blur-md mb-1.5"
-              >
-                <button
-                  onClick={() => { setFabOpen(false); openAdd(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl text-left transition-colors"
-                >
-                  <Plus size={14} className="text-indigo-400" /> Log Subscription
-                </button>
 
-
-                <button
-                  onClick={() => { setFabOpen(false); window.print(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl text-left transition-colors"
-                >
-                  <Printer size={14} className="text-slate-400" /> Print Report
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setFabOpen(prev => !prev)}
-            className="w-12 h-12 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-600/25 active:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {fabOpen ? <X size={20} /> : <Settings size={20} />}
-          </motion.button>
-        </div>
-      </div>
 
     </div>
   );
