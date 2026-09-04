@@ -104,7 +104,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+    const resolvedModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     return sendSuccess(res, 200, 'Reply sent', {
       userMessage: updatedChat.messages[updatedChat.messages.length - 2],
       aiMessage: updatedChat.messages[updatedChat.messages.length - 1],
@@ -299,7 +299,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   logger.info(`[AI Controller] Request completed in ${totalDuration}ms.`);
 
   // L5: return the resolved model name so the frontend can display it accurately
-  const resolvedModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const resolvedModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
   // ── 8. Asynchronously Update Long-Term Memory (Fire and Forget) ───────────
   // We pass the last few messages and the user's latest message to extract non-financial context.
