@@ -11,21 +11,32 @@ const getGenAIClient = () => {
 };
 
 /**
- * Executes a function with a timeout.
- * @param {Promise} promise 
+ * Executes an async operation with an AbortController-based timeout.
+ * Passes an AbortSignal to the callback and aborts the underlying request if timeout is reached.
+ * @param {(signal: AbortSignal) => Promise<any>} operation 
  * @param {number} ms 
  */
-const withTimeout = (promise, ms = 15000) => {
-  let timeoutId;
-  const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error('TIMEOUT'));
-    }, ms);
-  });
-  return Promise.race([
-    promise.finally(() => clearTimeout(timeoutId)),
-    timeoutPromise
-  ]);
+const withTimeout = async (operation, ms = 15000) => {
+  const controller = new AbortController();
+  let timedOut = false;
+
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, ms);
+
+  try {
+    return await operation(controller.signal);
+  } catch (err) {
+    if (timedOut || err.name === 'AbortError' || controller.signal.aborted) {
+      const timeoutError = new Error('TIMEOUT');
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };
 
 
@@ -72,8 +83,8 @@ const isTransientError = (err, statusCode) => {
   // Permanent: auth failures and bad requests
   if (statusCode === 400 || statusCode === 401 || statusCode === 403) return false;
 
-  // TIMEOUT sentinel
-  if (err.message === 'TIMEOUT') return true;
+  // TIMEOUT sentinel or 504
+  if (err.message === 'TIMEOUT' || statusCode === 504 || err.name === 'AbortError') return true;
 
   // Rate-limited or server overloaded
   if (statusCode === 429 || statusCode === 503) return true;
@@ -167,9 +178,9 @@ export const generateAIResponse = async ({ systemInstruction, contents }) => {
 
   logger.info(`[Gemini Service] Request started (intelligent context). Contents: ${contents.length} message(s).`);
 
-  const maxAttempts = 3;
-  // Backoff delays in ms: before attempt 2 → 2 s, before attempt 3 → 4 s
-  const backoffDelays = [0, 2000, 4000];
+  const maxAttempts = 2;
+  // Backoff delay before attempt 2: 2 seconds
+  const backoffDelays = [0, 2000];
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     // Apply backoff before every retry (not before the first attempt)
@@ -185,15 +196,17 @@ export const generateAIResponse = async ({ systemInstruction, contents }) => {
 
       logger.info(`[Gemini Service] Using model: ${modelName}`);
 
-      // Race the API call with a 15-second timeout
+      // Execute the API call with an abortable 15-second timeout
       const result = await withTimeout(
-        ai.models.generateContent({
-          model: modelName,
-          contents,
-          config: {
-            systemInstruction: { parts: [{ text: systemInstructionText }] },
-          },
-        }),
+        (signal) =>
+          ai.models.generateContent({
+            model: modelName,
+            contents,
+            config: {
+              abortSignal: signal,
+              systemInstruction: { parts: [{ text: systemInstructionText }] },
+            },
+          }),
         15000
       );
 
