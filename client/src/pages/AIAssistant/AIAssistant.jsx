@@ -87,7 +87,7 @@ export default function AIAssistant() {
     abortControllerRef.current = controller;
 
     try {
-      const res = await api.post('/ai/chat', { message: text }, { timeout: 45000, signal: controller.signal });
+      const res = await api.post('/ai/chat', { message: text }, { signal: controller.signal, timeout: 0 });
       const { userMessage, aiMessage } = res.data.data;
 
       setMessages((prev) => {
