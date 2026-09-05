@@ -19,6 +19,7 @@ export default function AIAssistant() {
   const chatContainerRef = useRef(null);
   const abortControllerRef = useRef(null);
   const textareaRef = useRef(null);
+  const isSendingRef = useRef(false);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -64,8 +65,9 @@ export default function AIAssistant() {
 
   const handleSend = async (messageText) => {
     const text = (messageText || input).trim();
-    if (!text || loading) return;
+    if (!text || loading || isSendingRef.current) return;
 
+    isSendingRef.current = true;
     setError(null);
     setLoading(true);
     setIsTyping(true);
@@ -133,6 +135,7 @@ export default function AIAssistant() {
         toast.error('Failed to send message.');
       }
     } finally {
+      isSendingRef.current = false;
       setLoading(false);
       setIsTyping(false);
     }

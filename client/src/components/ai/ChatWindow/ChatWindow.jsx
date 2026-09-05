@@ -61,6 +61,7 @@ export default function ChatWindow({
                   <WelcomeScreen 
                     userName={user?.name} 
                     onPromptClick={handleSend} 
+                    loading={loading}
                   />
                 ) : (
                   <MessageList 

@@ -35,7 +35,7 @@ const SUGGESTED_CARDS = [
   }
 ];
 
-export default function WelcomeScreen({ userName, onPromptClick }) {
+export default function WelcomeScreen({ userName, onPromptClick, loading }) {
   const firstName = userName ? userName.split(' ')[0] : 'there';
 
   return (
@@ -64,7 +64,8 @@ export default function WelcomeScreen({ userName, onPromptClick }) {
             <button
               key={idx}
               onClick={() => onPromptClick(card.title)}
-              className="flex items-start gap-4 p-5 text-left ai-surface-card hover:border-ai-primary/30 hover:shadow-ai-medium transition-all duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-ai-primary/50"
+              disabled={loading}
+              className="flex items-start gap-4 p-5 text-left ai-surface-card hover:border-ai-primary/30 hover:shadow-ai-medium transition-all duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-ai-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <div className={`ai-icon-pastel shrink-0 transition-transform duration-200 group-hover:scale-110 ${card.colorClass}`}>
                 <Icon className="w-5 h-5" />
